@@ -1,0 +1,35 @@
+{
+    "name": "讀冊生活網路書店",
+    "short_name": "讀冊生活",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#E93B7F",
+    "theme_color": "#E93B7F",
+    "description": "讀冊生活網路書店 - 您的線上圖書購物平台",
+    "orientation": "portrait-primary",
+    "prefer_related_applications": false,
+    "icons": [
+        {
+            "src": "icons/Icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "icons/Icon-maskable-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "icons/Icon-maskable-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        }
+    ]
+}
