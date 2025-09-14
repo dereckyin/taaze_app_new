@@ -14,10 +14,7 @@ class CategoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(
-        title: '分類',
-        showBackButton: true,
-      ),
+      appBar: const CustomAppBar(title: '分類', showBackButton: true),
       body: Consumer<BookProvider>(
         builder: (context, bookProvider, child) {
           if (bookProvider.isLoading) {
@@ -30,7 +27,7 @@ class CategoryScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final category = bookProvider.categories[index];
               final books = bookProvider.getBooksByCategory(category);
-              
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 24),
                 child: Column(
@@ -61,26 +58,26 @@ class CategoryScreen extends StatelessWidget {
                         const Spacer(),
                         Text(
                           '${books.length} 本書',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
-                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.grey[600]),
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     // 書籍列表
                     GridView.builder(
                       padding: const EdgeInsets.all(16),
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,        // 一列 2 個
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                        childAspectRatio: 0.6,    // 調整卡片比例
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2, // 一列 2 個
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                            childAspectRatio: 0.6, // 調整卡片比例
+                          ),
                       itemCount: books.length,
                       itemBuilder: (context, index) {
                         final book = books[index];
@@ -90,7 +87,8 @@ class CategoryScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => BookDetailScreen(book: book),
+                                builder: (context) =>
+                                    BookDetailScreen(book: book),
                               ),
                             );
                           },
@@ -99,7 +97,9 @@ class CategoryScreen extends StatelessWidget {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('已將《${book.title}》加入購物車'),
-                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                backgroundColor: Theme.of(
+                                  context,
+                                ).colorScheme.primary,
                               ),
                             );
                           },

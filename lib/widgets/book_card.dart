@@ -21,9 +21,7 @@ class BookCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -33,7 +31,9 @@ class BookCard extends StatelessWidget {
           children: [
             // 書籍封面
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(12),
+              ),
               child: AspectRatio(
                 aspectRatio: 0.8, // 增加高度比例，讓圖片更寬一些
                 child: CachedNetworkImage(
@@ -41,26 +41,20 @@ class BookCard extends StatelessWidget {
                   fit: BoxFit.cover,
                   placeholder: (context, url) => Container(
                     color: Colors.grey[200],
-                    child: const Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    child: const Center(child: CircularProgressIndicator()),
                   ),
                   errorWidget: (context, url, error) => Container(
                     color: Colors.grey[200],
-                    child: const Icon(
-                      Icons.book,
-                      size: 50,
-                      color: Colors.grey,
-                    ),
+                    child: const Icon(Icons.book, size: 50, color: Colors.grey),
                   ),
                 ),
               ),
             ),
-            
+
             // 書籍資訊
             Flexible(
               child: Padding(
-                padding: const EdgeInsets.all(4), // 進一步減少padding
+                padding: const EdgeInsets.all(2), // 進一步減少padding
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -68,52 +62,52 @@ class BookCard extends StatelessWidget {
                     // 書名
                     Text(
                       book.title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 12,
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleSmall?.copyWith(fontSize: 11),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
+                    const SizedBox(height: 1), // 減少間距
                     // 作者
                     Text(
                       book.author,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontSize: 10,
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(fontSize: 9),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
+                    const SizedBox(height: 1), // 減少間距
                     // 評分
                     Row(
                       children: [
-                        const Icon(
-                          Icons.star,
-                          size: 8,
-                          color: Colors.amber,
-                        ),
+                        const Icon(Icons.star, size: 7, color: Colors.amber),
                         const SizedBox(width: 1),
                         Text(
                           book.rating.toString(),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontSize: 9,
-                          ),
+                          style: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.copyWith(fontSize: 8),
                         ),
                         const SizedBox(width: 1),
                         Expanded(
                           child: Text(
                             '(${book.reviewCount})',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[600],
-                              fontSize: 9,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: Colors.grey[600],
+                                  fontSize: 8,
+                                ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
-                    
+
+                    const SizedBox(height: 1), // 減少間距
                     // 價格和按鈕
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -121,32 +115,33 @@ class BookCard extends StatelessWidget {
                         Flexible(
                           child: Text(
                             'NT\$ ${book.price.toStringAsFixed(0)}',
-                            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                            ),
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 9,
+                                ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (showAddToCartButton)
                           Container(
-                            width: 20,
-                            height: 20,
+                            width: 18,
+                            height: 18,
                             decoration: BoxDecoration(
                               color: Theme.of(context).colorScheme.primary,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(3),
                             ),
                             child: IconButton(
                               onPressed: onAddToCart,
                               icon: const Icon(
                                 FontAwesomeIcons.cartPlus,
-                                size: 6,
+                                size: 5,
                               ),
                               style: IconButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.white,
-                                minimumSize: const Size(20, 20),
+                                minimumSize: const Size(18, 18),
                                 padding: EdgeInsets.zero,
                               ),
                             ),
@@ -194,16 +189,11 @@ class BookListTile extends StatelessWidget {
               fit: BoxFit.cover,
               placeholder: (context, url) => Container(
                 color: Colors.grey[200],
-                child: const Center(
-                  child: CircularProgressIndicator(),
-                ),
+                child: const Center(child: CircularProgressIndicator()),
               ),
               errorWidget: (context, url, error) => Container(
                 color: Colors.grey[200],
-                child: const Icon(
-                  Icons.book,
-                  color: Colors.grey,
-                ),
+                child: const Icon(Icons.book, color: Colors.grey),
               ),
             ),
           ),
@@ -227,11 +217,7 @@ class BookListTile extends StatelessWidget {
             const SizedBox(height: 2),
             Row(
               children: [
-                const Icon(
-                  Icons.star,
-                  size: 12,
-                  color: Colors.amber,
-                ),
+                const Icon(Icons.star, size: 12, color: Colors.amber),
                 const SizedBox(width: 2),
                 Expanded(
                   child: Text(
@@ -255,10 +241,7 @@ class BookListTile extends StatelessWidget {
         trailing: showAddToCartButton
             ? IconButton(
                 onPressed: onAddToCart,
-                icon: const Icon(
-                  FontAwesomeIcons.cartPlus,
-                  size: 20,
-                ),
+                icon: const Icon(FontAwesomeIcons.cartPlus, size: 20),
                 style: IconButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.primary,
                   foregroundColor: Colors.white,

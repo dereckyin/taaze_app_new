@@ -47,6 +47,9 @@ class ApiConfig {
   /// 檢查是否為生產環境
   static bool get isProductionEnvironment => _currentBaseUrl == productionUrl;
 
+  /// API 端點路徑
+  static const String bannersEndpoint = '/content/banner';
+
   /// 獲取所有可用的 API 端點
   static List<ApiEndpoint> get availableEndpoints => [
     ApiEndpoint(name: '生產環境', url: productionUrl, description: '正式環境 API'),

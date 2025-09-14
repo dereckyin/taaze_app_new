@@ -3,6 +3,9 @@
 ## 1. 基本Debug命令
 
 ### 運行和調試
+
+open -a simulator
+
 ```bash
 # 基本運行
 flutter run

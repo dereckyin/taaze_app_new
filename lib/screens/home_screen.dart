@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/book_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/banner_provider.dart';
+import '../providers/today_deals_provider.dart';
 import '../models/banner.dart' as banner_model;
 import '../widgets/book_card.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/custom_app_bar.dart';
+import '../utils/debug_helper.dart';
 import 'book_detail_screen.dart';
 import 'search_screen.dart';
 import 'category_screen.dart';
@@ -25,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   final PageController _bannerPageController = PageController();
   int _currentBannerIndex = 0;
+  Timer? _bannerTimer;
 
   @override
   void initState() {
@@ -32,14 +37,38 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BookProvider>().clearError();
       context.read<BannerProvider>().clearError();
+      _startBannerTimer();
     });
   }
 
   @override
   void dispose() {
+    _bannerTimer?.cancel();
     _searchController.dispose();
     _bannerPageController.dispose();
     super.dispose();
+  }
+
+  void _startBannerTimer() {
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        final bannerProvider = context.read<BannerProvider>();
+        final banners = bannerProvider.banners;
+        if (banners.isNotEmpty) {
+          final nextIndex = (_currentBannerIndex + 1) % banners.length;
+          _bannerPageController.animateToPage(
+            nextIndex,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      }
+    });
+  }
+
+  void _stopBannerTimer() {
+    _bannerTimer?.cancel();
   }
 
   @override
@@ -112,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildCategorySection(bookProvider.categories),
 
                   // 今日特惠
-                  _buildTodayDealsSection(bookProvider.todayDeals),
+                  _buildTodayDealsSection(),
 
                   // 暢銷排行榜
                   _buildBestsellersSection(bookProvider.bestsellers),
@@ -176,18 +205,22 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Stack(
             children: [
               // 輪播頁面
-              PageView.builder(
-                controller: _bannerPageController,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentBannerIndex = index;
-                  });
-                },
-                itemCount: banners.length,
-                itemBuilder: (context, index) {
-                  final banner = banners[index];
-                  return _buildBannerCard(banner);
-                },
+              GestureDetector(
+                onPanStart: (_) => _stopBannerTimer(),
+                onPanEnd: (_) => _startBannerTimer(),
+                child: PageView.builder(
+                  controller: _bannerPageController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentBannerIndex = index;
+                    });
+                  },
+                  itemCount: banners.length,
+                  itemBuilder: (context, index) {
+                    final banner = banners[index];
+                    return _buildBannerCard(banner);
+                  },
+                ),
               ),
 
               // 指示器
@@ -222,133 +255,117 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBannerCard(banner_model.Banner banner) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        gradient: LinearGradient(
-          colors: _getBannerGradientColors(banner.type),
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return GestureDetector(
+      onTap: () => _handleBannerAction(banner),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          gradient: LinearGradient(
+            colors: _getBannerGradientColors(banner.type),
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // 背景圖片
-          if (banner.imageUrl.isNotEmpty)
-            Positioned.fill(
-              child: ClipRRect(
+        child: Stack(
+          children: [
+            // 背景圖片
+            if (banner.imageUrl.isNotEmpty)
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    banner.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primary.withValues(alpha: 0.1),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+            // 遮罩層
+            Container(
+              decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  banner.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.1),
-                    );
-                  },
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withValues(alpha: 0.3),
+                    Colors.black.withValues(alpha: 0.1),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
             ),
 
-          // 遮罩層
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: LinearGradient(
-                colors: [
-                  Colors.black.withValues(alpha: 0.3),
-                  Colors.black.withValues(alpha: 0.1),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-
-          // 內容
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 類型標籤
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    banner.type.displayName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+            // 內容
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 類型標籤
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // 標題
-                Text(
-                  banner.title,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 6),
-
-                // 副標題
-                Text(
-                  banner.subtitle,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 12),
-
-                // 行動按鈕
-                if (banner.actionText != null && banner.actionUrl != null)
-                  ElevatedButton(
-                    onPressed: () => _handleBannerAction(banner),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      minimumSize: const Size(0, 32),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      banner.actionText!,
-                      style: const TextStyle(fontSize: 12),
+                      banner.type.displayName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-              ],
+                  const SizedBox(height: 6),
+
+                  // 標題
+                  Text(
+                    banner.title,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+
+                  // 副標題
+                  if (banner.subtitle.isNotEmpty)
+                    Text(
+                      banner.subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -368,10 +385,19 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _handleBannerAction(banner_model.Banner banner) {
+  Future<void> _handleBannerAction(banner_model.Banner banner) async {
     if (banner.actionUrl == null) return;
 
-    switch (banner.actionUrl) {
+    final actionUrl = banner.actionUrl!;
+
+    // 檢查是否為外部 URL（http/https）
+    if (actionUrl.startsWith('http://') || actionUrl.startsWith('https://')) {
+      await _launchExternalUrl(actionUrl);
+      return;
+    }
+
+    // 處理內部路由
+    switch (actionUrl) {
       case '/search':
         Navigator.push(
           context,
@@ -415,7 +441,32 @@ class _HomeScreenState extends State<HomeScreen> {
       default:
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('跳轉到: ${banner.actionUrl}')));
+        ).showSnackBar(SnackBar(content: Text('跳轉到: $actionUrl')));
+    }
+  }
+
+  Future<void> _launchExternalUrl(String url) async {
+    try {
+      final Uri uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication, // 在外部瀏覽器中開啟
+        );
+        DebugHelper.log('成功開啟外部連結: $url', tag: 'HomeScreen');
+      } else {
+        throw Exception('無法開啟連結: $url');
+      }
+    } catch (e) {
+      DebugHelper.log('開啟外部連結失敗: ${e.toString()}', tag: 'HomeScreen');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('無法開啟連結: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -609,19 +660,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // 今日特惠板塊
-  Widget _buildTodayDealsSection(List<dynamic> todayDeals) {
-    return _buildBookSection(
-      title: '今日特惠',
-      books: todayDeals,
-      onViewAll: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const BookListScreen(
-              title: '今日特惠',
-              endpoint: '/api/books/today-deals',
-            ),
-          ),
+  Widget _buildTodayDealsSection() {
+    return Consumer<TodayDealsProvider>(
+      builder: (context, todayDealsProvider, child) {
+        if (todayDealsProvider.isLoading) {
+          return _buildBookSection(
+            title: '今日特惠',
+            books: [],
+            onViewAll: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BookListScreen(
+                    title: '今日特惠',
+                    endpoint: '/content/deals/today',
+                  ),
+                ),
+              );
+            },
+          );
+        }
+
+        return _buildBookSection(
+          title: '今日特惠',
+          books: todayDealsProvider.todayDeals,
+          onViewAll: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const BookListScreen(
+                  title: '今日特惠',
+                  endpoint: '/content/deals/today',
+                ),
+              ),
+            );
+          },
         );
       },
     );

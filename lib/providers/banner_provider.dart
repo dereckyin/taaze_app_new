@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
-// import 'package:http/http.dart' as http; // 暫時註解，使用假資料模式
-// import 'dart:convert'; // 暫時註解，使用假資料模式
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/banner.dart';
 import '../utils/debug_helper.dart';
+import '../config/api_config.dart';
 
 class BannerProvider with ChangeNotifier {
   List<Banner> _banners = [];
@@ -13,10 +14,8 @@ class BannerProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // API 配置（暫時註解，使用假資料模式）
-  // static const String _baseUrl = 'https://api.taaze.tw/api/v1';
-  // static const String _bannersEndpoint = '/api/banners';
-  // static const Duration _timeout = Duration(seconds: 10);
+  // API 配置
+  static const Duration _timeout = Duration(seconds: 10);
 
   // 模擬橫幅資料
   final List<Banner> _mockBanners = [
@@ -103,25 +102,40 @@ class BannerProvider with ChangeNotifier {
   }
 
   Future<void> _loadBanners() async {
-    DebugHelper.log('開始載入橫幅資料（使用假資料模式）', tag: 'BannerProvider');
+    DebugHelper.log('開始載入橫幅資料', tag: 'BannerProvider');
     _isLoading = true;
     notifyListeners();
 
     try {
-      // 直接使用假資料，不調用API
-      DebugHelper.log('使用假資料模式，跳過API調用', tag: 'BannerProvider');
-      _loadMockData();
-      _error = null; // 清除錯誤狀態
+      // 首先嘗試從 API 獲取資料
+      DebugHelper.log('嘗試從 API 獲取橫幅資料', tag: 'BannerProvider');
+      final apiBanners = await _fetchBannersFromAPI();
 
-      _isLoading = false;
-      notifyListeners();
+      if (apiBanners.isNotEmpty) {
+        _banners = apiBanners;
+        _error = null; // 清除錯誤狀態
+        DebugHelper.log(
+          '成功從 API 載入 ${_banners.length} 個橫幅',
+          tag: 'BannerProvider',
+        );
+      } else {
+        // API 返回空資料，使用 mock data
+        DebugHelper.log('API 返回空資料，使用 mock data', tag: 'BannerProvider');
+        _loadMockData();
+        _error = 'API 返回空資料，已載入模擬資料';
+      }
     } catch (e) {
-      // 如果假資料載入失敗
-      DebugHelper.log('假資料載入失敗: ${e.toString()}', tag: 'BannerProvider');
-      _error = '資料載入失敗：${e.toString()}';
-      _isLoading = false;
-      notifyListeners();
+      // API 調用失敗，使用 mock data 作為 fallback
+      DebugHelper.log(
+        'API 調用失敗: ${e.toString()}，使用 mock data',
+        tag: 'BannerProvider',
+      );
+      _loadMockData();
+      _error = 'API 連接失敗，已載入模擬資料：${e.toString()}';
     }
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   // 載入模擬資料
@@ -168,18 +182,32 @@ class BannerProvider with ChangeNotifier {
     await _loadBanners();
   }
 
-  // 強制重新載入（假資料模式）
+  // 強制重新載入（優先使用 API）
   Future<void> forceRefreshFromAPI() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      // 在假資料模式下，重新載入模擬資料
-      _loadMockData();
-      _error = null;
-      DebugHelper.log('強制重新載入橫幅假資料完成', tag: 'BannerProvider');
+      // 強制從 API 重新載入
+      DebugHelper.log('強制從 API 重新載入橫幅資料', tag: 'BannerProvider');
+      final apiBanners = await _fetchBannersFromAPI();
+
+      if (apiBanners.isNotEmpty) {
+        _banners = apiBanners;
+        _error = null;
+        DebugHelper.log(
+          '強制重新載入成功，載入 ${_banners.length} 個橫幅',
+          tag: 'BannerProvider',
+        );
+      } else {
+        _loadMockData();
+        _error = 'API 返回空資料，已載入模擬資料';
+        DebugHelper.log('API 返回空資料，使用模擬資料', tag: 'BannerProvider');
+      }
     } catch (e) {
-      _error = '重新載入失敗：${e.toString()}';
+      _loadMockData();
+      _error = 'API 重新載入失敗，已載入模擬資料：${e.toString()}';
+      DebugHelper.log('API 重新載入失敗，使用模擬資料', tag: 'BannerProvider');
     }
 
     _isLoading = false;
@@ -196,20 +224,29 @@ class BannerProvider with ChangeNotifier {
   // 檢查是否為離線模式
   bool get isOfflineMode => _error?.contains('離線模式') ?? false;
 
-  // 從 API 獲取橫幅資料（暫時註解，使用假資料模式）
-  /*
+  // 從 API 獲取橫幅資料
   Future<List<Banner>> _fetchBannersFromAPI() async {
     try {
-      final uri = Uri.parse('$_baseUrl$_bannersEndpoint');
+      final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.bannersEndpoint}');
       DebugHelper.logApiRequest('GET', uri.toString());
 
       final response = await http.get(uri).timeout(_timeout);
       DebugHelper.logApiResponse(response.statusCode, response.body);
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        final List<dynamic> jsonData = responseData['data'] ?? [];
-        
+        final dynamic responseData = json.decode(response.body);
+
+        List<dynamic> jsonData;
+        if (responseData is List) {
+          // API 直接返回 List
+          jsonData = responseData;
+        } else if (responseData is Map<String, dynamic>) {
+          // API 返回包含 data 字段的 Map
+          jsonData = responseData['data'] ?? [];
+        } else {
+          throw Exception('API 返回格式不正確');
+        }
+
         return jsonData.map((json) => Banner.fromJson(json)).toList();
       } else {
         throw Exception('API 返回錯誤狀態碼: ${response.statusCode}');
@@ -219,5 +256,4 @@ class BannerProvider with ChangeNotifier {
       throw Exception('API 調用失敗: ${e.toString()}');
     }
   }
-  */
 }

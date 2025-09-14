@@ -6,6 +6,7 @@ import 'providers/book_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/banner_provider.dart';
+import 'providers/today_deals_provider.dart';
 import 'providers/ai_chat_provider.dart';
 import 'screens/main_screen.dart';
 
@@ -65,6 +66,7 @@ class BookStoreApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => BannerProvider()),
+        ChangeNotifierProvider(create: (_) => TodayDealsProvider()),
         ChangeNotifierProvider(create: (_) => AiChatProvider()),
       ],
       child: MaterialApp(
