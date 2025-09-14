@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/cached_image_widget.dart';
 import '../providers/book_provider.dart';
 import '../providers/cart_provider.dart';
 import '../providers/banner_provider.dart';
@@ -279,19 +280,10 @@ class _HomeScreenState extends State<HomeScreen> {
             // 背景圖片
             if (banner.imageUrl.isNotEmpty)
               Positioned.fill(
-                child: ClipRRect(
+                child: BannerImage(
+                  imageUrl: banner.imageUrl,
+                  fit: BoxFit.cover,
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    banner.imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.1),
-                      );
-                    },
-                  ),
                 ),
               ),
 

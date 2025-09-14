@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/book.dart';
+import 'cached_image_widget.dart';
 
 class BookCard extends StatelessWidget {
   final Book book;
@@ -30,23 +30,13 @@ class BookCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             // 書籍封面
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-              child: AspectRatio(
-                aspectRatio: 0.8, // 增加高度比例，讓圖片更寬一些
-                child: CachedNetworkImage(
-                  imageUrl: book.imageUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    color: Colors.grey[200],
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.book, size: 50, color: Colors.grey),
-                  ),
+            AspectRatio(
+              aspectRatio: 0.8, // 增加高度比例，讓圖片更寬一些
+              child: BookCoverImage(
+                imageUrl: book.imageUrl,
+                fit: BoxFit.cover,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
                 ),
               ),
             ),
@@ -179,24 +169,12 @@ class BookListTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
         onTap: onTap,
-        leading: ClipRRect(
+        leading: BookCoverImage(
+          imageUrl: book.imageUrl,
+          width: 60,
+          height: 80,
+          fit: BoxFit.cover,
           borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            width: 60,
-            height: 80,
-            child: CachedNetworkImage(
-              imageUrl: book.imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: Colors.grey[200],
-                child: const Center(child: CircularProgressIndicator()),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: Colors.grey[200],
-                child: const Icon(Icons.book, color: Colors.grey),
-              ),
-            ),
-          ),
         ),
         title: Text(
           book.title,

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/cached_image_widget.dart';
 import 'login_screen.dart';
 import 'checkout_screen.dart';
 
@@ -14,10 +14,7 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(
-        title: '購物車',
-        showBackButton: false,
-      ),
+      appBar: const CustomAppBar(title: '購物車', showBackButton: false),
       body: Consumer2<CartProvider, AuthProvider>(
         builder: (context, cartProvider, authProvider, child) {
           if (cartProvider.items.isEmpty) {
@@ -37,7 +34,7 @@ class CartScreen extends StatelessWidget {
                   },
                 ),
               ),
-              
+
               // 底部結帳區域
               _buildCheckoutSection(context, cartProvider, authProvider),
             ],
@@ -62,26 +59,25 @@ class CartScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               '購物車是空的',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Colors.grey[600],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
             Text(
               '快去選購您喜歡的書籍吧！',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.grey[500],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: Colors.grey[500]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: () {
                 // 使用Navigator回到根頁面並切換到首頁
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/',
-                  (route) => false,
-                );
+                Navigator.of(
+                  context,
+                ).pushNamedAndRemoveUntil('/', (route) => false);
               },
               child: const Text('開始購物'),
             ),
@@ -99,35 +95,16 @@ class CartScreen extends StatelessWidget {
         child: Row(
           children: [
             // 書籍封面
-            ClipRRect(
+            BookCoverImage(
+              imageUrl: item.book.imageUrl,
+              width: 60,
+              height: 80,
+              fit: BoxFit.cover,
               borderRadius: BorderRadius.circular(8),
-              child: CachedNetworkImage(
-                imageUrl: item.book.imageUrl,
-                width: 60,
-                height: 80,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  width: 60,
-                  height: 80,
-                  color: Colors.grey[200],
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  width: 60,
-                  height: 80,
-                  color: Colors.grey[200],
-                  child: const Icon(
-                    Icons.book,
-                    color: Colors.grey,
-                  ),
-                ),
-              ),
             ),
-            
+
             const SizedBox(width: 12),
-            
+
             // 書籍資訊
             Expanded(
               child: Column(
@@ -155,7 +132,7 @@ class CartScreen extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             // 數量控制和刪除按鈕
             Column(
               children: [
@@ -203,18 +180,15 @@ class CartScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 8),
-                
+
                 // 刪除按鈕
                 IconButton(
                   onPressed: () {
                     _showDeleteDialog(context, item, cartProvider);
                   },
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    color: Colors.red,
-                  ),
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
                   style: IconButton.styleFrom(
                     backgroundColor: Colors.red.withValues(alpha: 0.1),
                     minimumSize: const Size(32, 32),
@@ -266,9 +240,9 @@ class CartScreen extends StatelessWidget {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // 結帳按鈕
           SizedBox(
             width: double.infinity,
@@ -298,7 +272,10 @@ class CartScreen extends StatelessWidget {
               ),
               child: Text(
                 authProvider.isAuthenticated ? '立即結帳' : '登入後結帳',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ),
