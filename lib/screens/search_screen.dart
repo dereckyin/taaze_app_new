@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/book_provider.dart';
 import '../providers/cart_provider.dart';
 import '../widgets/book_card.dart';
 import '../widgets/loading_widget.dart';
+import '../services/search_service.dart';
+import '../models/book.dart';
 import 'book_detail_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -18,9 +20,15 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  List<dynamic> _searchResults = [];
+  final ScrollController _scrollController = ScrollController();
+  List<Book> _searchResults = [];
   bool _isSearching = false;
+  bool _isLoadingMore = false;
+  bool _hasMoreData = true;
+  int _currentPage = 1;
   String _currentQuery = '';
+  String? _error;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -29,6 +37,9 @@ class _SearchScreenState extends State<SearchScreen> {
     if (widget.query.isNotEmpty) {
       _performSearch(widget.query);
     }
+
+    // 設置滾動監聽器以實現無限滾動
+    _scrollController.addListener(_onScroll);
 
     // 延遲聚焦，確保TextField完全建立後再聚焦
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -40,32 +51,101 @@ class _SearchScreenState extends State<SearchScreen> {
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _scrollController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
   }
 
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMoreResults();
+    }
+  }
+
+  void _loadMoreResults() async {
+    if (_isLoadingMore || !_hasMoreData || _currentQuery.isEmpty) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      final moreResults = await SearchService.searchBooks(
+        keyword: _currentQuery,
+        page: _currentPage + 1,
+        pageSize: 20,
+      );
+
+      if (mounted) {
+        setState(() {
+          if (moreResults.isEmpty) {
+            _hasMoreData = false;
+          } else {
+            _searchResults.addAll(moreResults);
+            _currentPage++;
+          }
+          _isLoadingMore = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
+    }
+  }
+
   void _performSearch(String query) {
+    // 取消之前的延遲搜尋
+    _debounceTimer?.cancel();
+
     if (query.isEmpty) {
       setState(() {
         _searchResults = [];
         _currentQuery = '';
         _isSearching = false;
+        _error = null;
+        _currentPage = 1;
+        _hasMoreData = true;
       });
       return;
     }
 
-    setState(() {
-      _isSearching = true;
-      _currentQuery = query;
-    });
-
-    // 模擬搜尋延遲
-    Future.delayed(const Duration(milliseconds: 500), () {
+    // 設置延遲搜尋，避免頻繁API調用
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
       if (mounted) {
-        final results = context.read<BookProvider>().searchBooks(query);
         setState(() {
-          _searchResults = results;
-          _isSearching = false;
+          _isSearching = true;
+          _currentQuery = query;
+          _error = null;
+          _currentPage = 1;
+          _hasMoreData = true;
         });
+
+        try {
+          final results = await SearchService.searchBooks(
+            keyword: query,
+            page: 1,
+            pageSize: 20,
+          );
+          if (mounted) {
+            setState(() {
+              _searchResults = results;
+              _isSearching = false;
+              _currentPage = 1;
+              _hasMoreData = results.length >= 20; // 如果結果少於20個，表示沒有更多資料
+            });
+          }
+        } catch (e) {
+          if (mounted) {
+            setState(() {
+              _error = '搜尋失敗：${e.toString()}';
+              _isSearching = false;
+            });
+          }
+        }
       }
     });
   }
@@ -138,6 +218,10 @@ class _SearchScreenState extends State<SearchScreen> {
       return const Center(child: LoadingWidget());
     }
 
+    if (_error != null) {
+      return _buildErrorState();
+    }
+
     if (_currentQuery.isEmpty) {
       return _buildEmptyState();
     }
@@ -147,6 +231,42 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     return _buildSearchResults();
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 80, color: Colors.red[400]),
+          const SizedBox(height: 16),
+          Text(
+            '搜尋出錯',
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(color: Colors.red[600]),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _error ?? '未知錯誤',
+            style: Theme.of(
+              context,
+            ).textTheme.bodyLarge?.copyWith(color: Colors.grey[500]),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _error = null;
+              });
+              _performSearch(_currentQuery);
+            },
+            child: const Text('重試'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildEmptyState() {
@@ -222,9 +342,15 @@ class _SearchScreenState extends State<SearchScreen> {
         // 搜尋結果列表
         Expanded(
           child: ListView.builder(
+            controller: _scrollController,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _searchResults.length,
+            itemCount: _searchResults.length + (_hasMoreData ? 1 : 0),
             itemBuilder: (context, index) {
+              // 如果是最後一個項目且還有更多資料，顯示載入指示器
+              if (index == _searchResults.length) {
+                return _buildLoadingMoreIndicator();
+              }
+
               final book = _searchResults[index];
               return BookListTile(
                 book: book,
@@ -250,6 +376,30 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildLoadingMoreIndicator() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: _isLoadingMore
+            ? const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 12),
+                  Text('載入更多...'),
+                ],
+              )
+            : _hasMoreData
+            ? const Text('滑動到底部載入更多', style: TextStyle(color: Colors.grey))
+            : const Text('沒有更多資料了', style: TextStyle(color: Colors.grey)),
+      ),
     );
   }
 }

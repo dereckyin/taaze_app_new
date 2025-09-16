@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/book_provider.dart';
+import '../providers/cart_provider.dart';
 import '../widgets/book_card.dart';
 import '../widgets/loading_widget.dart';
 import 'book_detail_screen.dart';
@@ -158,48 +159,62 @@ class _BookListScreenState extends State<BookListScreen> {
                         bookProvider.books.length + (_isLoadingMore ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index >= bookProvider.books.length) {
-                        return const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
+                        return _buildLoadingMoreIndicator();
                       }
 
                       final book = bookProvider.books[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: BookCard(
-                          book: book,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    BookDetailScreen(book: book),
-                              ),
-                            );
-                          },
-                        ),
+                      return BookListTile(
+                        book: book,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  BookDetailScreen(book: book),
+                            ),
+                          );
+                        },
+                        onAddToCart: () {
+                          context.read<CartProvider>().addToCart(book);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('已將《${book.title}》加入購物車'),
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                            ),
+                          );
+                        },
                       );
                     },
                   ),
                 ),
-
-                // 載入更多按鈕
-                if (bookProvider.hasMore && !bookProvider.isLoading)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    child: ElevatedButton(
-                      onPressed: _loadMoreBooks,
-                      child: const Text('載入更多'),
-                    ),
-                  ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildLoadingMoreIndicator() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: _isLoadingMore
+            ? const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  SizedBox(width: 12),
+                  Text('載入更多...'),
+                ],
+              )
+            : const Text('沒有更多資料了', style: TextStyle(color: Colors.grey)),
       ),
     );
   }
