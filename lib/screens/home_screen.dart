@@ -694,7 +694,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // 暢銷排行榜板塊
   Widget _buildBestsellersSection(List<dynamic> bestsellers) {
-    return _buildBookSection(
+    return _buildRankedBookSection(
       title: '暢銷排行榜',
       books: bestsellers,
       onViewAll: () {
@@ -783,6 +783,68 @@ class _HomeScreenState extends State<HomeScreen> {
                 margin: const EdgeInsets.only(right: 12),
                 child: BookCard(
                   book: book,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => BookDetailScreen(book: book),
+                      ),
+                    );
+                  },
+                  onAddToCart: () {
+                    context.read<CartProvider>().addToCart(book);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('已將《${book.title}》加入購物車'),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  // 帶排行數字的書籍板塊構建方法（專用於暢銷排行榜）
+  Widget _buildRankedBookSection({
+    required String title,
+    required List<dynamic> books,
+    required VoidCallback onViewAll,
+  }) {
+    if (books.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.headlineSmall),
+              TextButton(onPressed: onViewAll, child: const Text('查看更多')),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 280,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: books.length,
+            itemBuilder: (context, index) {
+              final book = books[index];
+              return Container(
+                width: 160,
+                margin: const EdgeInsets.only(right: 12),
+                child: RankedBookCard(
+                  book: book,
+                  rank: index + 1, // 使用索引+1作為排行數字
                   onTap: () {
                     Navigator.push(
                       context,

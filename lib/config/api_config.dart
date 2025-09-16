@@ -49,6 +49,7 @@ class ApiConfig {
 
   /// API 端點路徑
   static const String bannersEndpoint = '/content/banner';
+  static const String bestsellersEndpoint = '/content/bestsellers';
 
   /// 獲取所有可用的 API 端點
   static List<ApiEndpoint> get availableEndpoints => [

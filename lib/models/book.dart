@@ -43,7 +43,9 @@ class Book {
       rating: (json['rating'] ?? 0.0).toDouble(),
       reviewCount: json['reviewCount'] ?? 0,
       isAvailable: json['isAvailable'] ?? true,
-      publishDate: DateTime.parse(json['publishDate'] ?? DateTime.now().toIso8601String()),
+      publishDate: DateTime.parse(
+        json['publishDate'] ?? DateTime.now().toIso8601String(),
+      ),
       isbn: json['isbn'] ?? '',
       pages: json['pages'] ?? 0,
       publisher: json['publisher'] ?? '',

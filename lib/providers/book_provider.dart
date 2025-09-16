@@ -339,10 +339,9 @@ class BookProvider with ChangeNotifier {
 
     // 同時載入四個板塊的模擬資料
     _todayDeals = _mockBooks.where((book) => book.price < 500).take(6).toList();
-    _bestsellers = _mockBooks
-        .where((book) => book.rating > 4.5)
-        .take(6)
-        .toList();
+    _bestsellers = _mockBooks.where((book) => book.rating > 4.5).toList()
+      ..sort((a, b) => b.rating.compareTo(a.rating)) // 按評分降序排序
+      ..take(6).toList();
     _newReleases = _mockBooks
         .where(
           (book) => book.publishDate.isAfter(

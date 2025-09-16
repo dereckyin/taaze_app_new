@@ -230,3 +230,183 @@ class BookListTile extends StatelessWidget {
     );
   }
 }
+
+/// 帶排行數字的書籍卡片，專用於暢銷排行榜
+class RankedBookCard extends StatelessWidget {
+  final Book book;
+  final VoidCallback? onTap;
+  final VoidCallback? onAddToCart;
+  final bool showAddToCartButton;
+  final int? rank; // 排行數字，如果為null則使用book.rank
+
+  const RankedBookCard({
+    super.key,
+    required this.book,
+    this.onTap,
+    this.onAddToCart,
+    this.showAddToCartButton = true,
+    this.rank,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayRank = rank; // 直接使用傳入的rank參數
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 書籍封面（帶排行數字）
+            Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: 0.8,
+                  child: BookCoverImage(
+                    imageUrl: book.imageUrl,
+                    fit: BoxFit.cover,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                  ),
+                ),
+                // 排行數字標籤
+                if (displayRank != null)
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _getRankColor(displayRank),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        '$displayRank',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+
+            // 書籍資訊
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(2),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 書名
+                    Text(
+                      book.title,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.titleSmall?.copyWith(fontSize: 9),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: 1),
+                    // 作者
+                    Text(
+                      book.author,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(fontSize: 7),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+
+                    const SizedBox(height: 1),
+                    // 評分
+                    Row(
+                      children: [
+                        const Icon(Icons.star, size: 7, color: Colors.amber),
+                        const SizedBox(width: 1),
+                        Expanded(
+                          child: Text(
+                            '${book.rating} (${book.reviewCount})',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(fontSize: 6),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 1),
+                    // 價格
+                    Text(
+                      'NT\$ ${book.price.toStringAsFixed(0)}',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontSize: 8,
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const Spacer(),
+                    // 加入購物車按鈕
+                    if (showAddToCartButton)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 20,
+                        child: IconButton(
+                          onPressed: onAddToCart,
+                          icon: const Icon(FontAwesomeIcons.cartPlus, size: 8),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.all(1),
+                            minimumSize: const Size(0, 0),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 根據排行獲取對應的顏色
+  Color _getRankColor(int rank) {
+    switch (rank) {
+      case 1:
+        return Colors.amber[700]!; // 金色
+      case 2:
+        return Colors.grey[600]!; // 銀色
+      case 3:
+        return Colors.brown[600]!; // 銅色
+      default:
+        return Colors.blue[600]!; // 藍色
+    }
+  }
+}
