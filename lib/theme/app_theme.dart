@@ -38,11 +38,11 @@ class AppTheme {
         error: errorColor,
       ),
       
-      // AppBar主題
+      // AppBar主題 - 平坦化設計
       appBarTheme: const AppBarTheme(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
-        elevation: 0,
+        elevation: 0, // 保持無陰影
         centerTitle: true,
         titleTextStyle: TextStyle(
           fontSize: 20,
@@ -51,56 +51,56 @@ class AppTheme {
         ),
       ),
       
-      // 卡片主題
+      // 卡片主題 - 平坦化設計
       cardTheme: CardThemeData(
         color: cardColor,
-        elevation: 2,
+        elevation: 0, // 移除陰影
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(4), // 減少圓角
         ),
         margin: const EdgeInsets.all(8),
       ),
       
-      // 按鈕主題
+      // 按鈕主題 - 平坦化設計
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
-          elevation: 2,
+          elevation: 0, // 移除陰影
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(2), // 減少圓角
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
       ),
       
-      // 文字按鈕主題
+      // 文字按鈕主題 - 平坦化設計
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primaryColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(2), // 減少圓角
           ),
         ),
       ),
       
-      // 輸入框主題
+      // 輸入框主題 - 平坦化設計
       inputDecorationTheme: InputDecorationTheme(
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: textHintColor),
+          borderRadius: BorderRadius.circular(2), // 減少圓角
+          borderSide: const BorderSide(color: textHintColor, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: textHintColor),
+          borderRadius: BorderRadius.circular(2), // 減少圓角
+          borderSide: const BorderSide(color: textHintColor, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(2), // 減少圓角
           borderSide: const BorderSide(color: primaryColor, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: errorColor),
+          borderRadius: BorderRadius.circular(2), // 減少圓角
+          borderSide: const BorderSide(color: errorColor, width: 1),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
@@ -184,20 +184,20 @@ class AppTheme {
         ),
       ),
       
-      // 底部導航欄主題
+      // 底部導航欄主題 - 平坦化設計
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
         backgroundColor: surfaceColor,
         selectedItemColor: primaryColor,
         unselectedItemColor: textSecondaryColor,
         type: BottomNavigationBarType.fixed,
-        elevation: 8,
+        elevation: 0, // 移除陰影
       ),
       
-      // 浮動按鈕主題
+      // 浮動按鈕主題 - 平坦化設計
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
-        elevation: 4,
+        elevation: 0, // 移除陰影
       ),
     );
   }

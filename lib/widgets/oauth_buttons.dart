@@ -144,7 +144,7 @@ class OAuthButtons extends StatelessWidget {
           foregroundColor: textColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(2), // 平坦化設計 - 減少圓角
             side: BorderSide(color: borderColor, width: 1),
           ),
         ),
@@ -289,7 +289,7 @@ class OAuthButton extends StatelessWidget {
           foregroundColor: textColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(2), // 平坦化設計 - 減少圓角
             side: BorderSide(color: borderColor, width: 1),
           ),
         ),

@@ -20,11 +20,11 @@ class BookCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0, // 平坦化設計 - 移除陰影
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)), // 平坦化設計 - 減少圓角
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4), // 平坦化設計 - 減少圓角
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -36,7 +36,7 @@ class BookCard extends StatelessWidget {
                 imageUrl: book.imageUrl,
                 fit: BoxFit.cover,
                 borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
+                  top: Radius.circular(4), // 平坦化設計 - 減少圓角
                 ),
               ),
             ),
@@ -120,7 +120,7 @@ class BookCard extends StatelessWidget {
                             height: 18,
                             decoration: BoxDecoration(
                               color: Theme.of(context).colorScheme.primary,
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius: BorderRadius.circular(2), // 平坦化設計 - 減少圓角
                             ),
                             child: IconButton(
                               onPressed: onAddToCart,
@@ -166,6 +166,7 @@ class BookListTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      elevation: 0, // 平坦化設計 - 移除陰影
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: ListTile(
         onTap: onTap,
@@ -174,7 +175,7 @@ class BookListTile extends StatelessWidget {
           width: 60,
           height: 80,
           fit: BoxFit.cover,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(2), // 平坦化設計 - 減少圓角
         ),
         title: Text(
           book.title,
@@ -253,11 +254,11 @@ class RankedBookCard extends StatelessWidget {
     final displayRank = rank; // 直接使用傳入的rank參數
 
     return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 0, // 平坦化設計 - 移除陰影
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)), // 平坦化設計 - 減少圓角
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(4), // 平坦化設計 - 減少圓角
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -271,7 +272,7 @@ class RankedBookCard extends StatelessWidget {
                     imageUrl: book.imageUrl,
                     fit: BoxFit.cover,
                     borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(12),
+                      top: Radius.circular(4), // 平坦化設計 - 減少圓角
                     ),
                   ),
                 ),
@@ -287,14 +288,8 @@ class RankedBookCard extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: _getRankColor(displayRank),
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.3),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        borderRadius: BorderRadius.circular(2), // 平坦化設計 - 減少圓角
+                        // 平坦化設計 - 移除陰影
                       ),
                       child: Text(
                         '$displayRank',

@@ -67,7 +67,7 @@ class SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
         height: 40,
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(4), // 平坦化設計 - 減少圓角
         ),
         child: TextField(
           controller: controller,
