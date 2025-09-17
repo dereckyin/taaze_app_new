@@ -12,15 +12,36 @@ class SearchService {
   /// [keyword] 搜尋關鍵字
   /// [page] 頁碼，從1開始
   /// [pageSize] 每頁數量，預設20
+  /// [sort] 排序方式，可選值：title, author, price, rating, publishDate
+  /// [order] 排序順序，可選值：asc, desc
   ///
   /// 返回搜尋結果列表
   static Future<List<Book>> searchBooks({
     required String keyword,
     int page = 1,
     int pageSize = 20,
+    String? sort,
+    String? order,
   }) async {
     try {
-      final uri = Uri.parse('$_baseUrl/search/$keyword');
+      // 構建查詢參數
+      final queryParams = <String, String>{
+        'q': keyword,
+        'page': page.toString(),
+        'pageSize': pageSize.toString(),
+      };
+
+      // 添加可選的排序參數
+      if (sort != null) {
+        queryParams['sort'] = sort;
+      }
+      if (order != null) {
+        queryParams['order'] = order;
+      }
+
+      final uri = Uri.parse(
+        '$_baseUrl/search',
+      ).replace(queryParameters: queryParams);
       DebugHelper.logApiRequest('GET', uri.toString());
 
       final response = await http.get(uri).timeout(_timeout);
@@ -53,7 +74,13 @@ class SearchService {
       DebugHelper.log('搜尋API調用失敗: ${e.toString()}', tag: 'SearchService');
 
       // 如果API調用失敗，返回模擬搜尋結果
-      return _getMockSearchResults(keyword, page: page, pageSize: pageSize);
+      return getMockSearchResults(
+        keyword,
+        page: page,
+        pageSize: pageSize,
+        sort: sort,
+        order: order,
+      );
     }
   }
 
@@ -83,10 +110,12 @@ class SearchService {
   }
 
   /// 獲取模擬搜尋結果（當API不可用時使用）
-  static List<Book> _getMockSearchResults(
+  static List<Book> getMockSearchResults(
     String keyword, {
     int page = 1,
     int pageSize = 20,
+    String? sort,
+    String? order,
   }) {
     final mockBooks = [
       // 程式設計類書籍
@@ -591,7 +620,7 @@ class SearchService {
     // 根據關鍵字篩選模擬結果
     List<Book> filteredBooks;
     if (keyword.isEmpty) {
-      filteredBooks = mockBooks;
+      filteredBooks = List.from(mockBooks);
     } else {
       filteredBooks = mockBooks.where((book) {
         return book.title.toLowerCase().contains(keyword.toLowerCase()) ||
@@ -599,6 +628,39 @@ class SearchService {
             book.description.toLowerCase().contains(keyword.toLowerCase()) ||
             book.category.toLowerCase().contains(keyword.toLowerCase());
       }).toList();
+    }
+
+    // 應用排序
+    if (sort != null) {
+      filteredBooks.sort((a, b) {
+        int comparison = 0;
+        switch (sort) {
+          case 'title':
+            comparison = a.title.compareTo(b.title);
+            break;
+          case 'author':
+            comparison = a.author.compareTo(b.author);
+            break;
+          case 'price':
+            comparison = a.price.compareTo(b.price);
+            break;
+          case 'rating':
+            comparison = a.rating.compareTo(b.rating);
+            break;
+          case 'publishDate':
+            comparison = a.publishDate.compareTo(b.publishDate);
+            break;
+          default:
+            comparison = 0;
+        }
+
+        // 根據排序順序決定是否反轉
+        if (order == 'desc') {
+          comparison = -comparison;
+        }
+
+        return comparison;
+      });
     }
 
     // 模擬分頁

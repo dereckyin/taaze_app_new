@@ -84,6 +84,10 @@ class _SearchScreenState extends State<SearchScreen> {
           } else {
             _searchResults.addAll(moreResults);
             _currentPage++;
+            // 如果返回的結果少於請求的數量，表示沒有更多資料
+            if (moreResults.length < 20) {
+              _hasMoreData = false;
+            }
           }
           _isLoadingMore = false;
         });
@@ -92,6 +96,7 @@ class _SearchScreenState extends State<SearchScreen> {
       if (mounted) {
         setState(() {
           _isLoadingMore = false;
+          // 載入更多失敗時不顯示錯誤，只是停止載入
         });
       }
     }
@@ -135,7 +140,8 @@ class _SearchScreenState extends State<SearchScreen> {
               _searchResults = results;
               _isSearching = false;
               _currentPage = 1;
-              _hasMoreData = results.length >= 20; // 如果結果少於20個，表示沒有更多資料
+              // 如果結果少於20個，表示沒有更多資料
+              _hasMoreData = results.length >= 20;
             });
           }
         } catch (e) {
