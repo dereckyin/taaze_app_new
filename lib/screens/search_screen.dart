@@ -360,20 +360,12 @@ class _SearchScreenState extends State<SearchScreen> {
               final book = _searchResults[index];
               return BookListTile(
                 book: book,
+                showAddToCartButton: false, // 移除購物車按鈕
                 onTap: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => BookDetailScreen(book: book),
-                    ),
-                  );
-                },
-                onAddToCart: () {
-                  context.read<CartProvider>().addToCart(book);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('已將《${book.title}》加入購物車'),
-                      backgroundColor: Theme.of(context).colorScheme.primary,
                     ),
                   );
                 },

@@ -244,6 +244,200 @@ class BookProvider with ChangeNotifier {
       pages: 400,
       publisher: '區塊鏈出版社',
     ),
+    // 注目新品 - 最近30天內出版
+    Book(
+      id: '13',
+      title: 'Vue.js 3.0 完全指南',
+      author: '張新星',
+      description: 'Vue.js 3.0 的最新特性與實戰應用，從基礎到進階的完整學習路徑。',
+      price: 599.0,
+      imageUrl: 'https://picsum.photos/300/400?random=13',
+      category: '程式設計',
+      rating: 4.8,
+      reviewCount: 45,
+      isAvailable: true,
+      publishDate: DateTime.now().subtract(const Duration(days: 5)),
+      isbn: '9781234567902',
+      pages: 420,
+      publisher: '前端新星出版社',
+    ),
+    Book(
+      id: '14',
+      title: 'SwiftUI 設計模式',
+      author: '李蘋果',
+      description: '使用 SwiftUI 開發 iOS 應用的最佳實踐和設計模式。',
+      price: 699.0,
+      imageUrl: 'https://picsum.photos/300/400?random=14',
+      category: '程式設計',
+      rating: 4.7,
+      reviewCount: 32,
+      isAvailable: true,
+      publishDate: DateTime.now().subtract(const Duration(days: 12)),
+      isbn: '9781234567903',
+      pages: 380,
+      publisher: '蘋果開發出版社',
+    ),
+    Book(
+      id: '15',
+      title: 'Figma 設計系統',
+      author: '王設計師',
+      description: '使用 Figma 建立企業級設計系統的完整指南。',
+      price: 499.0,
+      imageUrl: 'https://picsum.photos/300/400?random=15',
+      category: '設計',
+      rating: 4.6,
+      reviewCount: 28,
+      isAvailable: true,
+      publishDate: DateTime.now().subtract(const Duration(days: 8)),
+      isbn: '9781234567904',
+      pages: 320,
+      publisher: '設計工具出版社',
+    ),
+    Book(
+      id: '16',
+      title: 'ChatGPT 應用開發',
+      author: '陳AI',
+      description: '使用 ChatGPT API 開發智能應用的實戰教程。',
+      price: 799.0,
+      imageUrl: 'https://picsum.photos/300/400?random=16',
+      category: '人工智慧',
+      rating: 4.9,
+      reviewCount: 67,
+      isAvailable: true,
+      publishDate: DateTime.now().subtract(const Duration(days: 3)),
+      isbn: '9781234567905',
+      pages: 450,
+      publisher: 'AI應用出版社',
+    ),
+    Book(
+      id: '17',
+      title: 'Kubernetes 實戰',
+      author: '趙雲端',
+      description: 'Kubernetes 容器編排的實戰應用和最佳實踐。',
+      price: 649.0,
+      imageUrl: 'https://picsum.photos/300/400?random=17',
+      category: '雲端運算',
+      rating: 4.5,
+      reviewCount: 41,
+      isAvailable: true,
+      publishDate: DateTime.now().subtract(const Duration(days: 15)),
+      isbn: '9781234567906',
+      pages: 480,
+      publisher: '雲端技術出版社',
+    ),
+    Book(
+      id: '18',
+      title: 'TypeScript 進階',
+      author: '孫類型',
+      description: 'TypeScript 進階特性與大型專案開發實戰。',
+      price: 549.0,
+      imageUrl: 'https://picsum.photos/300/400?random=18',
+      category: '程式設計',
+      rating: 4.7,
+      reviewCount: 38,
+      isAvailable: true,
+      publishDate: DateTime.now().subtract(const Duration(days: 20)),
+      isbn: '9781234567907',
+      pages: 360,
+      publisher: '類型安全出版社',
+    ),
+    // 二手書 - 價格較低
+    Book(
+      id: '19',
+      title: 'Java 基礎教程',
+      author: '周咖啡',
+      description: 'Java 程式設計基礎教程，適合初學者學習。',
+      price: 199.0,
+      imageUrl: 'https://picsum.photos/300/400?random=19',
+      category: '程式設計',
+      rating: 4.2,
+      reviewCount: 156,
+      isAvailable: true,
+      publishDate: DateTime(2023, 8, 15),
+      isbn: '9781234567908',
+      pages: 280,
+      publisher: '咖啡豆出版社',
+    ),
+    Book(
+      id: '20',
+      title: 'HTML5 與 CSS3',
+      author: '吳網頁',
+      description: 'HTML5 和 CSS3 的基礎知識與實戰應用。',
+      price: 179.0,
+      imageUrl: 'https://picsum.photos/300/400?random=20',
+      category: '程式設計',
+      rating: 4.1,
+      reviewCount: 89,
+      isAvailable: true,
+      publishDate: DateTime(2023, 6, 20),
+      isbn: '9781234567909',
+      pages: 240,
+      publisher: '網頁技術出版社',
+    ),
+    Book(
+      id: '21',
+      title: 'Photoshop 入門',
+      author: '鄭美工',
+      description: 'Photoshop 基礎操作與圖片處理技巧。',
+      price: 159.0,
+      imageUrl: 'https://picsum.photos/300/400?random=21',
+      category: '設計',
+      rating: 4.0,
+      reviewCount: 124,
+      isAvailable: true,
+      publishDate: DateTime(2023, 5, 10),
+      isbn: '9781234567910',
+      pages: 200,
+      publisher: '美工設計出版社',
+    ),
+    Book(
+      id: '22',
+      title: 'Excel 進階應用',
+      author: '劉表格',
+      description: 'Excel 進階功能與數據分析技巧。',
+      price: 129.0,
+      imageUrl: 'https://picsum.photos/300/400?random=22',
+      category: '辦公軟體',
+      rating: 3.9,
+      reviewCount: 78,
+      isAvailable: true,
+      publishDate: DateTime(2023, 4, 25),
+      isbn: '9781234567911',
+      pages: 180,
+      publisher: '辦公軟體出版社',
+    ),
+    Book(
+      id: '23',
+      title: 'Word 文書處理',
+      author: '陳文書',
+      description: 'Microsoft Word 文書處理與排版技巧。',
+      price: 149.0,
+      imageUrl: 'https://picsum.photos/300/400?random=23',
+      category: '辦公軟體',
+      rating: 3.8,
+      reviewCount: 65,
+      isAvailable: true,
+      publishDate: DateTime(2023, 3, 18),
+      isbn: '9781234567912',
+      pages: 160,
+      publisher: '文書處理出版社',
+    ),
+    Book(
+      id: '24',
+      title: 'PowerPoint 簡報設計',
+      author: '林簡報',
+      description: 'PowerPoint 簡報設計與製作技巧。',
+      price: 139.0,
+      imageUrl: 'https://picsum.photos/300/400?random=24',
+      category: '辦公軟體',
+      rating: 3.7,
+      reviewCount: 52,
+      isAvailable: true,
+      publishDate: DateTime(2023, 2, 28),
+      isbn: '9781234567913',
+      pages: 140,
+      publisher: '簡報設計出版社',
+    ),
   ];
 
   BookProvider() {
@@ -339,18 +533,27 @@ class BookProvider with ChangeNotifier {
 
     // 同時載入四個板塊的模擬資料
     _todayDeals = _mockBooks.where((book) => book.price < 500).take(6).toList();
+    
+    // 暢銷排行榜 - 按評分降序排序
     _bestsellers = _mockBooks.where((book) => book.rating > 4.5).toList()
-      ..sort((a, b) => b.rating.compareTo(a.rating)) // 按評分降序排序
+      ..sort((a, b) => b.rating.compareTo(a.rating))
       ..take(6).toList();
+    
+    // 注目新品 - 最近30天內出版的書籍，按出版日期降序排序
     _newReleases = _mockBooks
         .where(
           (book) => book.publishDate.isAfter(
             DateTime.now().subtract(const Duration(days: 30)),
           ),
         )
-        .take(6)
-        .toList();
-    _usedBooks = _mockBooks.where((book) => book.price < 300).take(6).toList();
+        .toList()
+      ..sort((a, b) => b.publishDate.compareTo(a.publishDate))
+      ..take(6).toList();
+    
+    // 最新上架二手書 - 價格較低的書籍，按出版日期降序排序
+    _usedBooks = _mockBooks.where((book) => book.price < 300).toList()
+      ..sort((a, b) => b.publishDate.compareTo(a.publishDate))
+      ..take(6).toList();
   }
 
   List<Book> getBooksByCategory(String category) {
@@ -518,10 +721,12 @@ class BookProvider with ChangeNotifier {
                   DateTime.now().subtract(const Duration(days: 30)),
                 ),
               )
-              .toList();
+              .toList()
+            ..sort((a, b) => b.publishDate.compareTo(a.publishDate));
           break;
         case '/api/books/used-books':
-          _books = _mockBooks.where((book) => book.price < 300).toList();
+          _books = _mockBooks.where((book) => book.price < 300).toList()
+            ..sort((a, b) => b.publishDate.compareTo(a.publishDate));
           break;
         default:
           _books = List.from(_mockBooks);

@@ -168,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context, bannerProvider, child) {
         if (bannerProvider.isLoading) {
           return Container(
-            height: 200,
+            height: 160,
             margin: const EdgeInsets.all(16),
             child: const Center(child: CircularProgressIndicator()),
           );
@@ -176,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (bannerProvider.error != null) {
           return Container(
-            height: 200,
+            height: 160,
             margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
@@ -201,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         return Container(
-          height: 200,
+          height: 160,
           margin: const EdgeInsets.all(16),
           child: Stack(
             children: [
@@ -440,22 +440,46 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _launchExternalUrl(String url) async {
     try {
       final Uri uri = Uri.parse(url);
+      
+      // 嘗試多種啟動模式
+      bool launched = false;
+      
+      // 首先嘗試在外部瀏覽器中開啟
       if (await canLaunchUrl(uri)) {
-        await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication, // 在外部瀏覽器中開啟
-        );
-        DebugHelper.log('成功開啟外部連結: $url', tag: 'HomeScreen');
-      } else {
-        throw Exception('無法開啟連結: $url');
+        try {
+          await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+          launched = true;
+          DebugHelper.log('成功在外部瀏覽器開啟連結: $url', tag: 'HomeScreen');
+        } catch (e) {
+          DebugHelper.log('外部瀏覽器開啟失敗，嘗試其他方式: ${e.toString()}', tag: 'HomeScreen');
+        }
+      }
+      
+      // 如果外部瀏覽器失敗，嘗試預設模式
+      if (!launched) {
+        try {
+          await launchUrl(uri);
+          launched = true;
+          DebugHelper.log('成功開啟連結: $url', tag: 'HomeScreen');
+        } catch (e) {
+          DebugHelper.log('預設模式開啟失敗: ${e.toString()}', tag: 'HomeScreen');
+        }
+      }
+      
+      if (!launched) {
+        throw Exception('無法開啟連結，請檢查網路連線或瀏覽器設定');
       }
     } catch (e) {
       DebugHelper.log('開啟外部連結失敗: ${e.toString()}', tag: 'HomeScreen');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('無法開啟連結: ${e.toString()}'),
+            content: Text('無法開啟連結，請檢查網路連線或瀏覽器設定'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -783,20 +807,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 margin: const EdgeInsets.only(right: 12),
                 child: BookCard(
                   book: book,
+                  showAddToCartButton: false, // 移除購物車按鈕
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => BookDetailScreen(book: book),
-                      ),
-                    );
-                  },
-                  onAddToCart: () {
-                    context.read<CartProvider>().addToCart(book);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('已將《${book.title}》加入購物車'),
-                        backgroundColor: Theme.of(context).colorScheme.primary,
                       ),
                     );
                   },
@@ -845,20 +861,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: RankedBookCard(
                   book: book,
                   rank: index + 1, // 使用索引+1作為排行數字
+                  showAddToCartButton: false, // 移除購物車按鈕
                   onTap: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => BookDetailScreen(book: book),
-                      ),
-                    );
-                  },
-                  onAddToCart: () {
-                    context.read<CartProvider>().addToCart(book);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('已將《${book.title}》加入購物車'),
-                        backgroundColor: Theme.of(context).colorScheme.primary,
                       ),
                     );
                   },

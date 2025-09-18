@@ -54,7 +54,11 @@ class BookCard extends StatelessWidget {
                       book.title,
                       style: Theme.of(
                         context,
-                      ).textTheme.titleSmall?.copyWith(fontSize: 11),
+                      ).textTheme.titleSmall?.copyWith(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -105,11 +109,11 @@ class BookCard extends StatelessWidget {
                         Flexible(
                           child: Text(
                             'NT\$ ${book.price.toStringAsFixed(0)}',
-                            style: Theme.of(context).textTheme.titleSmall
+                            style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
                                   color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 9,
+                                  fontSize: 13,
                                 ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -167,66 +171,95 @@ class BookListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0, // 平坦化設計 - 移除陰影
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: ListTile(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: InkWell(
         onTap: onTap,
-        leading: BookCoverImage(
-          imageUrl: book.imageUrl,
-          width: 60,
-          height: 80,
-          fit: BoxFit.cover,
-          borderRadius: BorderRadius.circular(2), // 平坦化設計 - 減少圓角
-        ),
-        title: Text(
-          book.title,
-          style: Theme.of(context).textTheme.titleMedium,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              book.author,
-              style: Theme.of(context).textTheme.bodySmall,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                const Icon(Icons.star, size: 12, color: Colors.amber),
-                const SizedBox(width: 2),
-                Expanded(
-                  child: Text(
-                    '${book.rating} (${book.reviewCount})',
-                    style: Theme.of(context).textTheme.bodySmall,
-                    overflow: TextOverflow.ellipsis,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 書籍封面 - 放大圖片
+              BookCoverImage(
+                imageUrl: book.imageUrl,
+                width: 80,
+                height: 110,
+                fit: BoxFit.cover,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              const SizedBox(width: 12),
+              // 書籍資訊
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 書名 - 更顯眼
+                    Text(
+                      book.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    // 作者
+                    Text(
+                      book.author,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    // 評分
+                    Row(
+                      children: [
+                        const Icon(Icons.star, size: 14, color: Colors.amber),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${book.rating} (${book.reviewCount})',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // 價格 - 更顯眼
+                    Text(
+                      'NT\$ ${book.price.toStringAsFixed(0)}',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 購物車按鈕（如果需要的話）
+              if (showAddToCartButton)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: IconButton(
+                    onPressed: onAddToCart,
+                    icon: const Icon(FontAwesomeIcons.cartPlus, size: 20),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'NT\$ ${book.price.toStringAsFixed(0)}',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-        trailing: showAddToCartButton
-            ? IconButton(
-                onPressed: onAddToCart,
-                icon: const Icon(FontAwesomeIcons.cartPlus, size: 20),
-                style: IconButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                ),
-              )
-            : null,
       ),
     );
   }
@@ -317,7 +350,11 @@ class RankedBookCard extends StatelessWidget {
                       book.title,
                       style: Theme.of(
                         context,
-                      ).textTheme.titleSmall?.copyWith(fontSize: 9),
+                      ).textTheme.titleSmall?.copyWith(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -355,8 +392,8 @@ class RankedBookCard extends StatelessWidget {
                     // 價格
                     Text(
                       'NT\$ ${book.price.toStringAsFixed(0)}',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontSize: 8,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontSize: 11,
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
                       ),
