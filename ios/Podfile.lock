@@ -124,26 +124,26 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   AppAuth: d4f13a8fe0baf391b2108511793e4b479691fb73
   AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
-  camera_avfoundation: adb0207d868b2d873e895371d88448399ab78d87
+  camera_avfoundation: be3be85408cd4126f250386828e9b1dfa40ab436
   FBAEMKit: 9900b2edd99a2d21629a6277e6166f14c6215799
   FBSDKCoreKit: 0791f8f68a8630931a4c12aa23a56cc021551596
   FBSDKCoreKit_Basics: 46d6b472c0dd0a5a7e972c025033d1c567f54eb4
   FBSDKLoginKit: b4a4eba1d62eb452544411824f41689adabd5bd2
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_facebook_auth: 66188df7905bfcaf3d6d2bd6527302c56448f04d
-  flutter_secure_storage: d33dac7ae2ea08509be337e775f6b59f1ff45f12
-  google_sign_in_ios: 7411fab6948df90490dc4620ecbcabdc3ca04017
+  flutter_facebook_auth: 2f28c889d5727b4538ed8d25be3367092b2cbef7
+  flutter_secure_storage: 1ed9476fba7e7a782b22888f956cce43e2c62f13
+  google_sign_in_ios: b48bb9af78576358a168361173155596c845f0b9
   GoogleSignIn: ce8c89bb9b37fb624b92e7514cc67335d1e277e4
   GoogleUtilities: 00c88b9a86066ef77f0da2fab05f65d7768ed8e1
   GTMAppAuth: f69bd07d68cd3b766125f7e072c45d7340dea0de
   GTMSessionFetcher: 5aea5ba6bd522a239e236100971f10cb71b96ab6
-  image_picker_ios: c560581cceedb403a6ff17f2f816d7fea1421fc1
-  path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
+  image_picker_ios: 7fe1ff8e34c1790d6fff70a32484959f563a928a
+  path_provider_foundation: 080d55be775b7414fd5a5ef3ac137b97b097e564
   PromisesObjC: f5707f49cb48b9636751c5b2e7d227e43fba9f47
-  shared_preferences_foundation: fcdcbc04712aee1108ac7fda236f363274528f78
-  sign_in_with_apple: f3bf75217ea4c2c8b91823f225d70230119b8440
-  sqflite_darwin: 5a7236e3b501866c1c9befc6771dfd73ffb8702d
-  url_launcher_ios: 5334b05cef931de560670eeae103fd3e431ac3fe
+  shared_preferences_foundation: 9e1978ff2562383bd5676f64ec4e9aa8fa06a6f7
+  sign_in_with_apple: c5dcc141574c8c54d5ac99dd2163c0c72ad22418
+  sqflite_darwin: 20b2a3a3b70e43edae938624ce550a3cbf66a3d0
+  url_launcher_ios: 694010445543906933d732453a59da0a173ae33d
 
 PODFILE CHECKSUM: 0ca756f5f525a5c5e94c9fc5a914410c0518c95f
 

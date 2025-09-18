@@ -1,7 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/cart_provider.dart';
 import '../widgets/book_card.dart';
 import '../widgets/loading_widget.dart';
 import '../services/search_service.dart';

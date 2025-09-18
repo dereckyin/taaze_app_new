@@ -19,7 +19,7 @@ class AuthProvider with ChangeNotifier {
   bool _isAccountLocked = false;
   DateTime? _lockoutUntil;
   String? _lockedEmail;
-  List<String> _blockedIPs = [];
+  final List<String> _blockedIPs = [];
 
   // API相關屬性
   CaptchaResponse? _currentCaptcha;
@@ -65,11 +65,14 @@ class AuthProvider with ChangeNotifier {
       // 測試模式檢查
       if (TestConfig.enableTestMode) {
         print('🔧 [AuthProvider] ${TestConfig.testModeInfo}');
-        print('🔧 [AuthProvider] 跳過的檢查: ${TestConfig.skippedChecks.join(', ')}');
+        print(
+          '🔧 [AuthProvider] 跳過的檢查: ${TestConfig.skippedChecks.join(', ')}',
+        );
       }
-      
+
       // 1. 檢查帳戶是否被鎖定
-      if (!TestConfig.skipAccountLockCheck && await _isAccountLockedForEmail(email)) {
+      if (!TestConfig.skipAccountLockCheck &&
+          await _isAccountLockedForEmail(email)) {
         _error = '帳戶已被鎖定，請稍後再試';
         _isLoading = false;
         notifyListeners();
@@ -77,7 +80,8 @@ class AuthProvider with ChangeNotifier {
       }
 
       // 2. 檢查登入嘗試次數
-      if (!TestConfig.skipLoginAttemptLimit && _loginAttempts >= maxLoginAttempts) {
+      if (!TestConfig.skipLoginAttemptLimit &&
+          _loginAttempts >= maxLoginAttempts) {
         await _lockAccount(email);
         _error = '登入嘗試次數過多，帳戶已被鎖定15分鐘';
         _isLoading = false;
@@ -566,7 +570,7 @@ class AuthProvider with ChangeNotifier {
       final captcha = await AuthApiService.getCaptcha();
       _currentCaptcha = captcha;
 
-      print('🔧 [AuthProvider] 驗證碼獲取成功: ${captcha?.captchaId}');
+      print('🔧 [AuthProvider] 驗證碼獲取成功: ${captcha.captchaId}');
 
       _isLoading = false;
       notifyListeners();

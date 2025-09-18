@@ -38,7 +38,7 @@ class ApiDebugHelper {
                           _showApiChangedSnackBar(context);
                         },
                 );
-              }).toList(),
+              }),
             ],
           ),
           actions: [

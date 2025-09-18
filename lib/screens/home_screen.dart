@@ -5,7 +5,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/cached_image_widget.dart';
 import '../providers/book_provider.dart';
-import '../providers/cart_provider.dart';
 import '../providers/banner_provider.dart';
 import '../providers/today_deals_provider.dart';
 import '../models/banner.dart' as banner_model;
@@ -440,24 +439,24 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _launchExternalUrl(String url) async {
     try {
       final Uri uri = Uri.parse(url);
-      
+
       // 嘗試多種啟動模式
       bool launched = false;
-      
+
       // 首先嘗試在外部瀏覽器中開啟
       if (await canLaunchUrl(uri)) {
         try {
-          await launchUrl(
-            uri,
-            mode: LaunchMode.externalApplication,
-          );
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
           launched = true;
           DebugHelper.log('成功在外部瀏覽器開啟連結: $url', tag: 'HomeScreen');
         } catch (e) {
-          DebugHelper.log('外部瀏覽器開啟失敗，嘗試其他方式: ${e.toString()}', tag: 'HomeScreen');
+          DebugHelper.log(
+            '外部瀏覽器開啟失敗，嘗試其他方式: ${e.toString()}',
+            tag: 'HomeScreen',
+          );
         }
       }
-      
+
       // 如果外部瀏覽器失敗，嘗試預設模式
       if (!launched) {
         try {
@@ -468,7 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
           DebugHelper.log('預設模式開啟失敗: ${e.toString()}', tag: 'HomeScreen');
         }
       }
-      
+
       if (!launched) {
         throw Exception('無法開啟連結，請檢查網路連線或瀏覽器設定');
       }

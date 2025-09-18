@@ -153,9 +153,9 @@ class LoginAttemptsWidget extends StatelessWidget {
     final minutes = difference.inMinutes % 60;
 
     if (hours > 0) {
-      return '${hours}小時${minutes}分鐘後重置';
+      return '$hours小時$minutes分鐘後重置';
     } else {
-      return '${minutes}分鐘後重置';
+      return '$minutes分鐘後重置';
     }
   }
 

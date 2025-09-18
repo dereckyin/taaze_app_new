@@ -154,7 +154,7 @@ class ApiDebugScreen extends StatelessWidget {
                         padding: const EdgeInsets.only(left: 16, top: 4),
                         child: Text('• ${endpoint.name}: ${endpoint.url}'),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               ),
