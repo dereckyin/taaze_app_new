@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../models/identified_book.dart';
 import '../utils/debug_helper.dart';
 
@@ -21,16 +22,38 @@ class BookIdentificationService {
       final request = http.MultipartRequest('POST', uri);
 
       // 添加圖片文件
+      final fileExtension = imageFile.path.split('.').last.toLowerCase();
+      String contentType;
+      String filename;
+
+      switch (fileExtension) {
+        case 'jpg':
+        case 'jpeg':
+          contentType = 'image/jpeg';
+          filename = 'book_image.jpg';
+          break;
+        case 'png':
+          contentType = 'image/png';
+          filename = 'book_image.png';
+          break;
+        case 'webp':
+          contentType = 'image/webp';
+          filename = 'book_image.webp';
+          break;
+        default:
+          // 默認轉換為JPEG格式
+          contentType = 'image/jpeg';
+          filename = 'book_image.jpg';
+      }
+
       request.files.add(
         await http.MultipartFile.fromPath(
           'file',
           imageFile.path,
-          filename: 'book_image.jpg',
+          filename: filename,
+          contentType: MediaType.parse(contentType),
         ),
       );
-
-      // 設置Content-Type
-      request.headers['Content-Type'] = 'multipart/form-data';
 
       // 發送請求
       final streamedResponse = await request.send().timeout(_timeout);
@@ -51,7 +74,18 @@ class BookIdentificationService {
         );
         return identifiedBooks;
       } else {
-        throw Exception('書籍識別API返回錯誤狀態碼: ${response.statusCode}');
+        // 解析錯誤響應
+        String errorMessage = '書籍識別API返回錯誤狀態碼: ${response.statusCode}';
+        try {
+          final errorData = json.decode(response.body);
+          if (errorData is Map<String, dynamic> &&
+              errorData.containsKey('detail')) {
+            errorMessage = errorData['detail'].toString();
+          }
+        } catch (e) {
+          // 如果無法解析錯誤響應，使用默認錯誤信息
+        }
+        throw Exception(errorMessage);
       }
     } catch (e) {
       DebugHelper.log(

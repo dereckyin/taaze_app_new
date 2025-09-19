@@ -23,6 +23,24 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
+        leading: Consumer<AiListingWizardProvider>(
+          builder: (context, provider, child) {
+            // 如果有識別結果，顯示重新識別按鈕而不是返回按鈕
+            if (provider.identifiedBooks.isNotEmpty) {
+              return IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: _showReidentifyOptions,
+                tooltip: '重新識別',
+              );
+            }
+            // 默認返回按鈕
+            return IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(),
+              tooltip: '返回',
+            );
+          },
+        ),
         actions: [
           Consumer<AiListingWizardProvider>(
             builder: (context, provider, child) {
@@ -132,6 +150,19 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.blue[700],
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _showReidentifyOptions,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('重新識別'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.blue[700],
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                     ),
                   ),
                 ],
@@ -343,5 +374,59 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
         SnackBar(content: Text(message), backgroundColor: Colors.red),
       );
     }
+  }
+
+  void _showReidentifyOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: const Text(
+                  '重新識別書籍',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('拍照識別'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _takePhoto();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('從相簿選擇'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickFromGallery();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.clear),
+                title: const Text('清除結果'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _clearAll();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.arrow_back),
+                title: const Text('返回上一頁'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

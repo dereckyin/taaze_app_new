@@ -11,6 +11,7 @@ import '../models/banner.dart' as banner_model;
 import '../widgets/book_card.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/custom_app_bar.dart';
+import '../widgets/coupon_slider.dart';
 import '../utils/debug_helper.dart';
 import 'book_detail_screen.dart';
 import 'search_screen.dart';
@@ -131,7 +132,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 橫幅廣告區域
+                  // 橫幅廣告區域 - 增強視覺突出度
                   _buildBannerSection(),
 
                   // 快速功能區域
@@ -142,6 +143,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // 今日特惠
                   _buildTodayDealsSection(),
+
+                  // 折價券區域 - 移到更下方，降低視覺權重
+                  _buildCouponSection(),
 
                   // 暢銷排行榜
                   _buildBestsellersSection(bookProvider.bestsellers),
@@ -200,8 +204,8 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         return Container(
-          height: 160,
-          margin: const EdgeInsets.all(16),
+          height: 180,
+          margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Stack(
             children: [
               // 輪播頁面
@@ -268,9 +272,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+              spreadRadius: 2,
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+              spreadRadius: 4,
             ),
           ],
         ),
@@ -487,7 +498,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildQuickActionsSection() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -669,7 +680,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -876,6 +887,35 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 20),
       ],
+    );
+  }
+
+  // 折價券區域 - 降低視覺權重
+  Widget _buildCouponSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 標題區域
+          Row(
+            children: [
+              Icon(Icons.local_offer, size: 20, color: Colors.grey[600]),
+              const SizedBox(width: 8),
+              Text(
+                '優惠券',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Colors.grey[700],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // 折價券滑動器
+          const CouponSlider(),
+        ],
+      ),
     );
   }
 

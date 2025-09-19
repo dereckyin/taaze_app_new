@@ -9,6 +9,7 @@ import 'providers/banner_provider.dart';
 import 'providers/today_deals_provider.dart';
 import 'providers/ai_chat_provider.dart';
 import 'providers/ai_listing_wizard_provider.dart';
+import 'providers/coupon_provider.dart';
 import 'screens/main_screen.dart';
 
 void main() {
@@ -70,6 +71,7 @@ class BookStoreApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TodayDealsProvider()),
         ChangeNotifierProvider(create: (_) => AiChatProvider()),
         ChangeNotifierProvider(create: (_) => AiListingWizardProvider()),
+        ChangeNotifierProvider(create: (_) => CouponProvider()),
       ],
       child: MaterialApp(
         title: '讀冊生活網路書店',
