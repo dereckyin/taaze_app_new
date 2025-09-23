@@ -119,3 +119,4 @@ class Coupon {
     return difference.inDays;
   }
 }
+

@@ -119,3 +119,4 @@ void _drawSpecialMarkings(Canvas canvas, Size size, Paint paint) {
 5. **個性化**：根據用戶偏好調整顯示效果
 
 這個設計更新讓折價券既保持了視覺一致性，又通過線條等特徵清晰地區分了金額等級，提升了整體的專業感和用戶體驗。
+

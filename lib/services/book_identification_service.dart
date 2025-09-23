@@ -21,37 +21,38 @@ class BookIdentificationService {
       // 創建multipart請求
       final request = http.MultipartRequest('POST', uri);
 
-      // 添加圖片文件
+      // 添加圖片文件（強制設置 part 的 Content-Type，避免被默認為 application/octet-stream）
       final fileExtension = imageFile.path.split('.').last.toLowerCase();
-      String contentType;
+      MediaType mediaType;
       String filename;
 
       switch (fileExtension) {
         case 'jpg':
         case 'jpeg':
-          contentType = 'image/jpeg';
+          mediaType = MediaType('image', 'jpeg');
           filename = 'book_image.jpg';
           break;
         case 'png':
-          contentType = 'image/png';
+          mediaType = MediaType('image', 'png');
           filename = 'book_image.png';
           break;
         case 'webp':
-          contentType = 'image/webp';
+          mediaType = MediaType('image', 'webp');
           filename = 'book_image.webp';
           break;
         default:
           // 默認轉換為JPEG格式
-          contentType = 'image/jpeg';
+          mediaType = MediaType('image', 'jpeg');
           filename = 'book_image.jpg';
       }
 
+      final fileBytes = await imageFile.readAsBytes();
       request.files.add(
-        await http.MultipartFile.fromPath(
+        http.MultipartFile.fromBytes(
           'file',
-          imageFile.path,
+          fileBytes,
           filename: filename,
-          contentType: MediaType.parse(contentType),
+          contentType: mediaType,
         ),
       );
 

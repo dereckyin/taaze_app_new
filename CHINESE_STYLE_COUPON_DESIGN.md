@@ -139,3 +139,4 @@ void _drawRuyiPattern(Canvas canvas, Size size, Paint paint) {
 5. **互動效果**：點擊時的傳統動畫反饋
 
 這個中國風設計讓折價券不僅具有實用功能，更承載了豐富的文化內涵，為用戶帶來更深層次的情感體驗。
+
