@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
+import 'services/notification_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/book_provider.dart';
 import 'providers/cart_provider.dart';
@@ -12,7 +13,8 @@ import 'providers/ai_listing_wizard_provider.dart';
 import 'providers/coupon_provider.dart';
 import 'screens/main_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const BookStoreApp());
 }
 
@@ -31,6 +33,7 @@ class _AppHomeState extends State<AppHome> {
   void initState() {
     super.initState();
     _initializeAuth();
+    _initializeNotifications();
   }
 
   Future<void> _initializeAuth() async {
@@ -42,6 +45,11 @@ class _AppHomeState extends State<AppHome> {
         _isInitialized = true;
       });
     }
+  }
+
+  Future<void> _initializeNotifications() async {
+    final notifProvider = context.read<NotificationProvider>();
+    await NotificationService.instance.initialize(provider: notifProvider);
   }
 
   @override

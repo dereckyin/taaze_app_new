@@ -50,11 +50,9 @@ post_install do |installer|
       config.build_settings['CLANG_WARN_COMMA'] = 'NO'
       config.build_settings['CLANG_WARN_UNGUARDED_AVAILABILITY'] = 'NO'
       
-      # Firebase specific fixes
+      # Firebase: ensure modules are defined so Swift/Clang can import them
       if target.name.include?('firebase') || target.name.include?('Firebase')
-        config.build_settings['DEFINES_MODULE'] = 'NO'
-        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-        config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
+        config.build_settings['DEFINES_MODULE'] = 'YES'
       end
       
       # iOS deployment target
@@ -62,6 +60,11 @@ post_install do |installer|
     end
   end
   
+  # Exclude arm64 for iOS simulator (Apple Silicon) to avoid module import issues
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+  end
+
   # Fix for dependency conflicts
   installer.pods_project.targets.each do |target|
     if target.name == 'GoogleUtilities'
