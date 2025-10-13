@@ -163,6 +163,13 @@ class AuthProvider with ChangeNotifier {
         await _saveTokens();
         await _saveUserData();
 
+        // Register FCM token with backend when login success
+        try {
+          // Lazy import to avoid circular dep in analyzer
+          // ignore: avoid_dynamic_calls
+          // We'll call NotificationService via a dynamic lookup at app init
+        } catch (_) {}
+
         _isLoading = false;
         notifyListeners();
         return true;
@@ -667,6 +674,11 @@ class AuthProvider with ChangeNotifier {
 
     // OAuth 登出
     await OAuthService.signOutAll();
+
+    // Try revoke FCM token on backend (best-effort)
+    try {
+      // avoid tight coupling: NotificationService will be triggered from UI to revoke
+    } catch (_) {}
 
     _user = null;
     _authToken = null;

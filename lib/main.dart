@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'services/notification_service.dart';
+import 'services/navigation_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/book_provider.dart';
 import 'providers/cart_provider.dart';
@@ -15,6 +18,7 @@ import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const BookStoreApp());
 }
 
@@ -49,7 +53,11 @@ class _AppHomeState extends State<AppHome> {
 
   Future<void> _initializeNotifications() async {
     final notifProvider = context.read<NotificationProvider>();
-    await NotificationService.instance.initialize(provider: notifProvider);
+    final authProvider = context.read<AuthProvider>();
+    await NotificationService.instance.initialize(
+      provider: notifProvider,
+      authProvider: authProvider,
+    );
   }
 
   @override
@@ -85,6 +93,7 @@ class BookStoreApp extends StatelessWidget {
         title: '讀冊生活網路書店',
         theme: AppTheme.lightTheme,
         debugShowCheckedModeBanner: false,
+        navigatorKey: NavigationService.navigatorKey,
         home: const AppHome(),
       ),
     );
