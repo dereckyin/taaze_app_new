@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/notification_provider.dart';
+import '../services/local_notification_service.dart';
 // import '../utils/debug_helper.dart'; // Debug功能已隱藏
 import 'home_screen.dart';
 import 'search_screen.dart';
@@ -34,16 +35,50 @@ class _MainScreenState extends State<MainScreen> {
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
       // AI智能對話按鈕
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AiChatScreen()),
-          );
-        },
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        tooltip: 'AI 智能助手',
-        child: const Icon(Icons.smart_toy, color: Colors.white),
+      floatingActionButton: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          // 測試通知按鈕
+          FloatingActionButton(
+            onPressed: () async {
+              final notificationProvider = context.read<NotificationProvider>();
+              final hasPermission = await LocalNotificationService.instance.checkNotificationPermissions();
+              
+              LocalNotificationService.instance.simulateNotification(
+                title: '測試通知',
+                body: '這是一個本地通知測試',
+                provider: notificationProvider,
+              );
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(hasPermission 
+                    ? '已發送測試通知' 
+                    : '通知權限未開啟，請到設定中允許通知'),
+                  backgroundColor: hasPermission ? Colors.green : Colors.orange,
+                ),
+              );
+            },
+            backgroundColor: Colors.orange,
+            tooltip: '測試通知',
+            heroTag: 'test_notification',
+            child: const Icon(Icons.notifications, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          // AI智能對話按鈕
+          FloatingActionButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AiChatScreen()),
+              );
+            },
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            tooltip: 'AI 智能助手',
+            heroTag: 'ai_chat',
+            child: const Icon(Icons.smart_toy, color: Colors.white),
+          ),
+        ],
       ),
       bottomNavigationBar: Consumer<NotificationProvider>(
         builder: (context, notificationProvider, child) {

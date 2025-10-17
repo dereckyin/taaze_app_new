@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'services/notification_service.dart';
+import 'services/local_notification_service.dart';
 import 'services/navigation_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/book_provider.dart';
@@ -18,7 +18,8 @@ import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // 暫時註釋掉 Firebase，避免因配置問題導致閃退
+  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const BookStoreApp());
 }
 
@@ -53,11 +54,7 @@ class _AppHomeState extends State<AppHome> {
 
   Future<void> _initializeNotifications() async {
     final notifProvider = context.read<NotificationProvider>();
-    final authProvider = context.read<AuthProvider>();
-    await NotificationService.instance.initialize(
-      provider: notifProvider,
-      authProvider: authProvider,
-    );
+    await LocalNotificationService.instance.initialize(provider: notifProvider);
   }
 
   @override
