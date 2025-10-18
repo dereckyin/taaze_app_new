@@ -4,6 +4,7 @@ import 'theme/app_theme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/local_notification_service.dart';
+import 'services/notification_service.dart';
 import 'services/navigation_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/book_provider.dart';
@@ -18,8 +19,12 @@ import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // 暫時註釋掉 Firebase，避免因配置問題導致閃退
+  // 重新啟用 Firebase 初始化
   // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // 在 runApp() 之前初始化通知服務
+  await LocalNotificationService.instance.initialize();
+  
   runApp(const BookStoreApp());
 }
 
@@ -54,7 +59,12 @@ class _AppHomeState extends State<AppHome> {
 
   Future<void> _initializeNotifications() async {
     final notifProvider = context.read<NotificationProvider>();
-    await LocalNotificationService.instance.initialize(provider: notifProvider);
+    // 通知服務已在 main() 中初始化，這裡只需要設定 provider
+    // 暫時不初始化 Firebase 推播通知，專注於本地通知
+    // await NotificationService.instance.initialize(
+    //   provider: notifProvider,
+    //   authProvider: authProvider,
+    // );
   }
 
   @override

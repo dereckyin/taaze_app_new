@@ -59,6 +59,7 @@ class DefaultFirebaseOptions {
     appId: '1:123456789:ios:dummy',
     messagingSenderId: '123456789',
     projectId: 'my-app-dummy',
+    storageBucket: 'my-app-dummy.appspot.com',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(

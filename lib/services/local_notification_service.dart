@@ -24,6 +24,12 @@ class LocalNotificationService {
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
+      // 預設前景行為（iOS 14+ 還可控制 banner/list）    
+      defaultPresentAlert: true,    
+      defaultPresentSound: true,    
+      defaultPresentBadge: true,    
+      defaultPresentBanner: true,    
+      defaultPresentList: true,
     );
     const initSettings = InitializationSettings(
       android: androidInit,
@@ -58,11 +64,14 @@ class LocalNotificationService {
           .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin
           >();
-      await iosPlugin?.requestPermissions(
+      final result = await iosPlugin?.requestPermissions(
         alert: true,
         badge: true,
         sound: true,
       );
+      if (kDebugMode) {
+        debugPrint('iOS notification permission result: $result');
+      }
     }
   }
 
@@ -88,6 +97,10 @@ class LocalNotificationService {
       return;
     }
 
+    if (kDebugMode) {
+      debugPrint('準備發送本地通知: $title - $body');
+    }
+
     const androidDetails = AndroidNotificationDetails(
       'default_channel',
       'General Notifications',
@@ -95,6 +108,8 @@ class LocalNotificationService {
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,
+      enableVibration: true,
+      showWhen: true,
     );
 
     const iosDetails = DarwinNotificationDetails(
@@ -102,6 +117,8 @@ class LocalNotificationService {
       presentBadge: true,
       presentSound: true,
       sound: 'default',
+      badgeNumber: 1,
+      interruptionLevel: InterruptionLevel.active,
     );
 
     const details = NotificationDetails(
@@ -109,13 +126,23 @@ class LocalNotificationService {
       iOS: iosDetails,
     );
 
-    await _localNotifications.show(
-      id ?? DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      title,
-      body,
-      details,
-      payload: payload,
-    );
+    try {
+      await _localNotifications.show(
+        id ?? DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        title,
+        body,
+        details,
+        payload: payload,
+      );
+      if (kDebugMode) {
+        debugPrint('本地通知發送成功');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('發送本地通知失敗: $e');
+      }
+      rethrow;
+    }
   }
 
   /// 顯示預定通知
@@ -208,14 +235,34 @@ class LocalNotificationService {
     required String body,
     NotificationProvider? provider,
   }) async {
+    if (kDebugMode) {
+      debugPrint('=== 開始測試本地通知 ===');
+      debugPrint('標題: $title');
+      debugPrint('內容: $body');
+    }
+    
     // 檢查權限狀態
     final hasPermission = await checkNotificationPermissions();
     if (kDebugMode) {
-      debugPrint('Notification permission status: $hasPermission');
+      debugPrint('通知權限狀態: $hasPermission');
+    }
+    
+    // 檢查服務是否已初始化
+    if (kDebugMode) {
+      debugPrint('通知服務已初始化: $_initialized');
     }
     
     // 顯示本地通知
-    await showNotification(title: title, body: body);
+    try {
+      await showNotification(title: title, body: body);
+      if (kDebugMode) {
+        debugPrint('本地通知已發送');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('發送本地通知時發生錯誤: $e');
+      }
+    }
 
     // 添加到通知列表
     if (provider != null) {
@@ -227,6 +274,13 @@ class LocalNotificationService {
         createdAt: DateTime.now(),
       );
       provider.addNotification(notification);
+      if (kDebugMode) {
+        debugPrint('通知已添加到列表');
+      }
+    }
+    
+    if (kDebugMode) {
+      debugPrint('=== 測試本地通知完成 ===');
     }
   }
 }
