@@ -28,6 +28,8 @@
 
 ## 🚀 快速開始
 
+> 開發者請優先閱讀：`DEVELOPER_GUIDE.md`（整合通知、建置與常見問題）
+
 ### 環境要求
 - Flutter SDK 3.9.0 或更高版本
 - Dart SDK
