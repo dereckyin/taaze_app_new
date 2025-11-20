@@ -100,30 +100,41 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
   }
 
   Widget _buildErrorState(String error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
-            const SizedBox(height: 16),
-            Text('識別失敗', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text(
-              error,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight:
+              MediaQuery.of(context).size.height -
+              MediaQuery.of(context).padding.top -
+              kToolbarHeight,
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 60, color: Colors.red[300]),
+                const SizedBox(height: 16),
+                Text('識別失敗', style: Theme.of(context).textTheme.headlineSmall),
+                const SizedBox(height: 8),
+                Text(
+                  error,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _retryIdentification,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('重新識別'),
+                ),
+                const SizedBox(height: 12),
+                TextButton(onPressed: _clearAll, child: const Text('重新開始')),
+              ],
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _retryIdentification,
-              icon: const Icon(Icons.refresh),
-              label: const Text('重新識別'),
-            ),
-            const SizedBox(height: 12),
-            TextButton(onPressed: _clearAll, child: const Text('重新開始')),
-          ],
+          ),
         ),
       ),
     );
@@ -194,109 +205,126 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
   }
 
   Widget _buildInitialState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.camera_alt,
-              size: 80,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'AI上架精靈',
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '拍攝或上傳書櫃照片，AI將自動識別書籍並幫您快速上架',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // 拍照按鈕
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton.icon(
-                onPressed: _takePhoto,
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('拍照識別'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+    return SingleChildScrollView(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          minHeight:
+              MediaQuery.of(context).size.height -
+              MediaQuery.of(context).padding.top -
+              kToolbarHeight,
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.camera_alt,
+                  size: 70,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'AI上架精靈',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            // 從相簿選擇按鈕
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: OutlinedButton.icon(
-                onPressed: _pickFromGallery,
-                icon: const Icon(Icons.photo_library),
-                label: const Text('從相簿選擇'),
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 12),
+                Text(
+                  '拍攝或上傳書櫃照片，AI將自動識別書籍並幫您快速上架',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.grey[600],
+                    height: 1.4,
                   ),
                 ),
-              ),
-            ),
+                const SizedBox(height: 24),
 
-            const SizedBox(height: 32),
+                // 拍照按鈕
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _takePhoto,
+                    icon: const Icon(Icons.camera_alt),
+                    label: const Text('拍照識別'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
 
-            // 使用說明
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+                const SizedBox(height: 12),
+
+                // 從相簿選擇按鈕
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: _pickFromGallery,
+                    icon: const Icon(Icons.photo_library),
+                    label: const Text('從相簿選擇'),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // 使用說明
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.info_outline, color: Colors.blue[600]),
-                      const SizedBox(width: 8),
-                      Text(
-                        '使用說明',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue[600],
-                        ),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.blue[600],
+                            size: 18,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '使用說明',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[600],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        '• 確保照片清晰，書籍封面完整可見\n'
+                        '• 建議在光線充足的地方拍攝\n'
+                        '• 一次最多可識別多本書籍\n'
+                        '• 識別後可選擇正確版本並設定價格',
+                        style: TextStyle(fontSize: 13),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '• 確保照片清晰，書籍封面完整可見\n'
-                    '• 建議在光線充足的地方拍攝\n'
-                    '• 一次最多可識別多本書籍\n'
-                    '• 識別後可選擇正確版本並設定價格',
-                    style: TextStyle(fontSize: 14),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

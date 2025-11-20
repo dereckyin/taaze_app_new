@@ -44,67 +44,64 @@ class BookCard extends StatelessWidget {
             // 書籍資訊
             Flexible(
               child: Padding(
-                padding: const EdgeInsets.all(2), // 進一步減少padding
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // 書名
-                    Text(
-                      book.title,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleSmall?.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                    Flexible(
+                      child: Text(
+                        book.title,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleSmall?.copyWith(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                          height: 1.2,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
 
-                    const SizedBox(height: 1), // 減少間距
+                    const SizedBox(height: 1),
                     // 作者
                     Text(
                       book.author,
                       style: Theme.of(
                         context,
-                      ).textTheme.bodySmall?.copyWith(fontSize: 9),
+                      ).textTheme.bodySmall?.copyWith(fontSize: 8, height: 1.1),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
 
-                    const SizedBox(height: 1), // 減少間距
+                    const SizedBox(height: 1),
                     // 評分
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.star, size: 7, color: Colors.amber),
+                        const Icon(Icons.star, size: 6, color: Colors.amber),
                         const SizedBox(width: 1),
-                        Text(
-                          book.rating.toString(),
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(fontSize: 8),
-                        ),
-                        const SizedBox(width: 1),
-                        Expanded(
+                        Flexible(
                           child: Text(
-                            '(${book.reviewCount})',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Colors.grey[600],
-                                  fontSize: 8,
-                                ),
+                            '${book.rating} (${book.reviewCount})',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(fontSize: 7, height: 1.1),
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 1), // 減少間距
+                    const SizedBox(height: 1),
                     // 價格和按鈕
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Flexible(
                           child: Text(
@@ -113,29 +110,31 @@ class BookCard extends StatelessWidget {
                                 ?.copyWith(
                                   color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                                  fontSize: 11,
+                                  height: 1.1,
                                 ),
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (showAddToCartButton)
                           Container(
-                            width: 18,
-                            height: 18,
+                            width: 16,
+                            height: 16,
                             decoration: BoxDecoration(
                               color: Theme.of(context).colorScheme.primary,
-                              borderRadius: BorderRadius.circular(2), // 平坦化設計 - 減少圓角
+                              borderRadius: BorderRadius.circular(2),
                             ),
                             child: IconButton(
                               onPressed: onAddToCart,
                               icon: const Icon(
                                 FontAwesomeIcons.cartPlus,
-                                size: 5,
+                                size: 6,
                               ),
                               style: IconButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.white,
-                                minimumSize: const Size(18, 18),
+                                minimumSize: const Size(16, 16),
                                 padding: EdgeInsets.zero,
                               ),
                             ),
@@ -338,25 +337,28 @@ class RankedBookCard extends StatelessWidget {
             ),
 
             // 書籍資訊
-            Expanded(
+            Flexible(
               child: Padding(
-                padding: const EdgeInsets.all(2),
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     // 書名
-                    Text(
-                      book.title,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleSmall?.copyWith(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+                    Flexible(
+                      child: Text(
+                        book.title,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.titleSmall?.copyWith(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                          height: 1.2,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
 
                     const SizedBox(height: 1),
@@ -365,7 +367,7 @@ class RankedBookCard extends StatelessWidget {
                       book.author,
                       style: Theme.of(
                         context,
-                      ).textTheme.bodySmall?.copyWith(fontSize: 7),
+                      ).textTheme.bodySmall?.copyWith(fontSize: 7, height: 1.1),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -373,15 +375,17 @@ class RankedBookCard extends StatelessWidget {
                     const SizedBox(height: 1),
                     // 評分
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.star, size: 7, color: Colors.amber),
+                        const Icon(Icons.star, size: 6, color: Colors.amber),
                         const SizedBox(width: 1),
-                        Expanded(
+                        Flexible(
                           child: Text(
                             '${book.rating} (${book.reviewCount})',
                             style: Theme.of(
                               context,
-                            ).textTheme.bodySmall?.copyWith(fontSize: 6),
+                            ).textTheme.bodySmall?.copyWith(fontSize: 6, height: 1.1),
+                            maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -393,21 +397,23 @@ class RankedBookCard extends StatelessWidget {
                     Text(
                       'NT\$ ${book.price.toStringAsFixed(0)}',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontSize: 11,
+                        fontSize: 10,
                         color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
+                        height: 1.1,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
 
-                    const Spacer(),
-                    // 加入購物車按鈕
-                    if (showAddToCartButton)
+                    if (showAddToCartButton) ...[
+                      const SizedBox(height: 2),
                       SizedBox(
                         width: double.infinity,
-                        height: 20,
+                        height: 18,
                         child: IconButton(
                           onPressed: onAddToCart,
-                          icon: const Icon(FontAwesomeIcons.cartPlus, size: 8),
+                          icon: const Icon(FontAwesomeIcons.cartPlus, size: 7),
                           style: IconButton.styleFrom(
                             backgroundColor: Theme.of(
                               context,
@@ -418,6 +424,7 @@ class RankedBookCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),
