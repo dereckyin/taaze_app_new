@@ -3,28 +3,30 @@
 <plist version="1.0">
 <dict>
 	<key>API_KEY</key>
-	<string>AIzaSyDummyKeyForIOS</string>
+	<string>AIzaSyAyp6QkcoAZUjUqs3bZ32hVvyvEcG-UiAI</string>
 	<key>GCM_SENDER_ID</key>
-	<string>123456789</string>
+	<string>598821018378</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.myApp</string>
+	<string>tw.taaze.bookstore</string>
 	<key>PROJECT_ID</key>
-	<string>my-app-dummy</string>
+	<string>main-manager-center</string>
 	<key>STORAGE_BUCKET</key>
-	<string>my-app-dummy.appspot.com</string>
+	<string>main-manager-center.appspot.com</string>
 	<key>IS_ADS_ENABLED</key>
-	<false/>
+	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
-	<false/>
+	<false></false>
 	<key>IS_APPINVITE_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>IS_GCM_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>IS_SIGNIN_ENABLED</key>
-	<true/>
+	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:123456789:ios:dummy</string>
+	<string>1:598821018378:ios:5644901bcb091a37c038f3</string>
+	<key>DATABASE_URL</key>
+	<string>https://main-manager-center.firebaseio.com</string>
 </dict>
 </plist>

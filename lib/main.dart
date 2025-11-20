@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 import 'services/local_notification_service.dart';
-import 'services/notification_service.dart';
 import 'services/navigation_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/book_provider.dart';
@@ -16,6 +13,7 @@ import 'providers/ai_chat_provider.dart';
 import 'providers/ai_listing_wizard_provider.dart';
 import 'providers/coupon_provider.dart';
 import 'screens/main_screen.dart';
+import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,7 +56,6 @@ class _AppHomeState extends State<AppHome> {
   }
 
   Future<void> _initializeNotifications() async {
-    final notifProvider = context.read<NotificationProvider>();
     // 通知服務已在 main() 中初始化，這裡只需要設定 provider
     // 暫時不初始化 Firebase 推播通知，專注於本地通知
     // await NotificationService.instance.initialize(
@@ -74,8 +71,17 @@ class _AppHomeState extends State<AppHome> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    // 無論登入狀態如何，都直接進入主畫面
-    return const MainScreen();
+    // 根據登入狀態決定顯示哪個畫面
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        // 如果已登入（有token和用戶資料），直接進入主畫面
+        if (authProvider.isAuthenticated && authProvider.authToken != null) {
+          return const MainScreen();
+        }
+        // 否則顯示登入畫面
+        return const LoginScreen();
+      },
+    );
   }
 }
 

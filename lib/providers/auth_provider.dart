@@ -706,6 +706,8 @@ class AuthProvider with ChangeNotifier {
       if (response.success) {
         _authToken = response.token;
         _refreshToken = response.refreshToken;
+        // 保存刷新後的token到本地存儲
+        await _saveTokens();
         notifyListeners();
         return true;
       } else {
