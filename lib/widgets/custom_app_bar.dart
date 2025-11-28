@@ -16,6 +16,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool canPop = Navigator.canPop(context);
+    final bool shouldShowBack = showBackButton && canPop;
     return AppBar(
       title: Text(
         title,
@@ -29,10 +31,11 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       foregroundColor: Colors.white,
       elevation: 0,
       centerTitle: true,
-      leading: showBackButton
+      leading: shouldShowBack
           ? IconButton(
               icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-              onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
+              onPressed:
+                  onBackPressed ?? () => Navigator.of(context).maybePop(),
             )
           : null,
       actions: actions,
