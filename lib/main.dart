@@ -68,7 +68,7 @@ class _AppHomeState extends State<AppHome> {
   Widget build(BuildContext context) {
     if (!_isInitialized) {
       // 顯示載入畫面
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const SplashScreen();
     }
 
     // 根據登入狀態決定顯示哪個畫面
@@ -81,6 +81,37 @@ class _AppHomeState extends State<AppHome> {
         // 否則顯示登入畫面
         return const LoginScreen();
       },
+    );
+  }
+}
+
+/// 啟動載入畫面（置中顯示 Logo）
+class SplashScreen extends StatelessWidget {
+  const SplashScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 將專案圖示置中作為啟動畫面 Logo
+            Image.asset(
+              'temp_icons/taaze_icon.png',
+              width: 120,
+              height: 120,
+              fit: BoxFit.contain,
+            ),
+            const SizedBox(height: 16),
+            const SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
