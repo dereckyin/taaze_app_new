@@ -36,10 +36,13 @@ class AppHome extends StatefulWidget {
 
 class _AppHomeState extends State<AppHome> {
   bool _isInitialized = false;
+  late final DateTime _splashStartAt;
+  static const Duration _minSplash = Duration(milliseconds: 900);
 
   @override
   void initState() {
     super.initState();
+    _splashStartAt = DateTime.now();
     _initializeAuth();
     _initializeNotifications();
   }
@@ -47,6 +50,12 @@ class _AppHomeState extends State<AppHome> {
   Future<void> _initializeAuth() async {
     final authProvider = context.read<AuthProvider>();
     await authProvider.initializeAuth();
+
+    // 確保啟動畫面至少顯示一小段時間，避免瞬間跳轉
+    final elapsed = DateTime.now().difference(_splashStartAt);
+    if (elapsed < _minSplash) {
+      await Future.delayed(_minSplash - elapsed);
+    }
 
     if (mounted) {
       setState(() {
