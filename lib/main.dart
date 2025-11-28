@@ -80,17 +80,8 @@ class _AppHomeState extends State<AppHome> {
       return const SplashScreen();
     }
 
-    // 根據登入狀態決定顯示哪個畫面
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        // 如果已登入（有token和用戶資料），直接進入主畫面
-        if (authProvider.isAuthenticated && authProvider.authToken != null) {
-          return const MainScreen();
-        }
-        // 否則顯示登入畫面
-        return const LoginScreen();
-      },
-    );
+    // 不論是否登入，皆可先進入主畫面（受限功能再另行要求登入）
+    return const MainScreen();
   }
 }
 
