@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/book.dart';
 import '../utils/debug_helper.dart';
+import '../config/api_config.dart';
 
 class SearchService {
-  static const String _baseUrl = 'https://api.taaze.tw/api/v1';
+  static String get baseUrl => ApiConfig.baseUrl;
   static const Duration _timeout = Duration(seconds: 10);
 
   /// 搜尋書籍
@@ -40,7 +41,7 @@ class SearchService {
       }
 
       final uri = Uri.parse(
-        '$_baseUrl/search',
+        '$baseUrl/search',
       ).replace(queryParameters: queryParams);
       DebugHelper.logApiRequest('GET', uri.toString());
 

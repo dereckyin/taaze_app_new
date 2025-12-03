@@ -4,9 +4,10 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import '../models/identified_book.dart';
 import '../utils/debug_helper.dart';
+import '../config/api_config.dart';
 
 class BookIdentificationService {
-  static const String _baseUrl = 'https://api.taaze.tw/api/v1';
+  static String get baseUrl => ApiConfig.baseUrl;
   static const Duration _timeout = Duration(seconds: 30);
 
   /// 識別書籍照片
@@ -15,7 +16,7 @@ class BookIdentificationService {
   /// 返回識別結果列表
   static Future<List<IdentifiedBook>> identifyBooks(File imageFile) async {
     try {
-      final uri = Uri.parse('$_baseUrl/vision/identify-book');
+      final uri = Uri.parse('$baseUrl/vision/identify-book');
       DebugHelper.logApiRequest('POST', uri.toString());
 
       // 創建multipart請求
@@ -141,7 +142,7 @@ class BookIdentificationService {
   /// 返回是否成功
   static Future<bool> importToDraft(List<IdentifiedBook> selectedBooks) async {
     try {
-      final uri = Uri.parse('$_baseUrl/listing/draft/import');
+      final uri = Uri.parse('$baseUrl/listing/draft/import');
       DebugHelper.logApiRequest('POST', uri.toString());
 
       // 準備請求數據
