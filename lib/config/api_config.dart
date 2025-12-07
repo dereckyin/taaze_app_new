@@ -2,8 +2,8 @@
 class ApiConfig {
   // API 端點配置
   static const String productionUrl = 'https://api.taaze.tw/api/v1';
-  //static const String testUrl = 'http://192.168.0.229:8000/api/v1';
-  static const String testUrl = 'https://api.taaze.tw/api/v1';
+  static const String testUrl = 'http://192.168.0.229:8000/api/v1';
+  //static const String testUrl = 'https://api.taaze.tw/api/v1';
 
   // 當前使用的 API 端點
   static String _currentBaseUrl = testUrl; // 預設使用測試環境

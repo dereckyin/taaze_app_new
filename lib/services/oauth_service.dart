@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
@@ -24,11 +26,35 @@ class OAuthService {
   static const List<String> _facebookPermissions =
       OAuthConfig.facebookPermissions;
 
+  static void _log(
+    String message, {
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    if (kDebugMode) {
+      debugPrint('[OAuthService] $message');
+      if (error != null) {
+        debugPrint('  error: $error');
+      }
+      if (stackTrace != null) {
+        debugPrint('  stackTrace: $stackTrace');
+      }
+      developer.log(
+        message,
+        name: 'OAuthService',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
+
   /// Google 登入
   static Future<OAuthLoginResponse> signInWithGoogle() async {
     try {
+      _log('Start Google sign-in');
       // 檢查 Google 配置
       if (!OAuthConfig.isGoogleConfigured()) {
+        _log('Google sign-in blocked: config disabled');
         return const OAuthLoginResponse(
           success: false,
           error: 'Google 登入未正確配置，請聯繫開發者',
@@ -37,19 +63,30 @@ class OAuthService {
 
       // 執行 Google 登入
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      _log('Google sign-in result: user=${googleUser?.email ?? 'null'}');
 
       if (googleUser == null) {
+        _log('Google sign-in cancelled by user');
         return const OAuthLoginResponse(success: false, error: 'Google 登入被取消');
       }
 
       // 獲取認證詳情
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
+      _log(
+        'Google authentication fetched '
+        '(accessToken? ${googleAuth.accessToken != null}, idToken? ${googleAuth.idToken != null})',
+      );
 
-      if (googleAuth.accessToken == null) {
+      // 在部分 Android 環境下可能拿不到 accessToken；改以 idToken 作為後端驗證回退
+      final String? accessToken = googleAuth.accessToken ?? googleAuth.idToken;
+      final String? idToken = googleAuth.idToken;
+
+      if (accessToken == null) {
+        _log('Google tokens missing (both null)');
         return const OAuthLoginResponse(
           success: false,
-          error: '無法獲取 Google 存取權杖',
+          error: '無法獲取 Google 憑證（accessToken/idToken 皆為空）',
         );
       }
 
@@ -60,15 +97,18 @@ class OAuthService {
         name: googleUser.displayName ?? '',
         avatar: googleUser.photoUrl,
         provider: 'google',
-        accessToken: googleAuth.accessToken,
-        refreshToken: googleAuth.idToken,
+        accessToken: accessToken,
+        idToken: idToken,
         createdAt: DateTime.now(),
         lastLoginAt: DateTime.now(),
       );
 
       // 發送到後端驗證
-      return await _sendOAuthToBackend(oauthUser);
-    } catch (e) {
+      final response = await _sendOAuthToBackend(oauthUser);
+      _log('Google sign-in backend response success=${response.success}');
+      return response;
+    } catch (e, stackTrace) {
+      _log('Google sign-in exception', error: e, stackTrace: stackTrace);
       return OAuthLoginResponse(
         success: false,
         error: 'Google 登入失敗：${e.toString()}',
@@ -182,9 +222,11 @@ class OAuthService {
     OAuthUser oauthUser,
   ) async {
     try {
+      _log('Send OAuth user to backend: provider=${oauthUser.provider}, email=${oauthUser.email}');
       final request = OAuthLoginRequest(
         provider: oauthUser.provider,
         accessToken: oauthUser.accessToken!,
+        idToken: oauthUser.idToken,
         userInfo: oauthUser.toJson(),
       );
 
@@ -202,8 +244,12 @@ class OAuthService {
       final responseData = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200) {
+        _log('OAuth backend success');
         return OAuthLoginResponse.fromJson(responseData);
       } else {
+        _log(
+          'OAuth backend failed: status=${response.statusCode}, body=$responseData',
+        );
         return OAuthLoginResponse(
           success: false,
           error: responseData['message'] ?? 'OAuth 登入失敗',
@@ -215,13 +261,17 @@ class OAuthService {
               : null,
         );
       }
-    } on SocketException {
+    } on SocketException catch (e, stackTrace) {
+      _log('OAuth backend SocketException', error: e, stackTrace: stackTrace);
       return const OAuthLoginResponse(success: false, error: '網路連接失敗，請檢查網路設置');
-    } on HttpException {
+    } on HttpException catch (e, stackTrace) {
+      _log('OAuth backend HttpException', error: e, stackTrace: stackTrace);
       return const OAuthLoginResponse(success: false, error: 'HTTP請求失敗');
-    } on FormatException {
+    } on FormatException catch (e, stackTrace) {
+      _log('OAuth backend FormatException', error: e, stackTrace: stackTrace);
       return const OAuthLoginResponse(success: false, error: '響應格式錯誤');
-    } catch (e) {
+    } catch (e, stackTrace) {
+      _log('OAuth backend unknown exception', error: e, stackTrace: stackTrace);
       return OAuthLoginResponse(
         success: false,
         error: 'OAuth 登入失敗：${e.toString()}',
@@ -274,8 +324,8 @@ class OAuthService {
             name: googleUser.displayName ?? '',
             avatar: googleUser.photoUrl,
             provider: 'google',
-            accessToken: googleAuth.accessToken,
-            refreshToken: googleAuth.idToken,
+            accessToken: googleAuth.accessToken ?? googleAuth.idToken,
+            idToken: googleAuth.idToken,
             createdAt: DateTime.now(),
             lastLoginAt: DateTime.now(),
           );

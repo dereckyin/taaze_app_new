@@ -22,11 +22,11 @@ class OAuthConfig {
 
   /// Facebook 應用 ID
   /// 從 Facebook Developers Console 獲取
-  static const String facebookAppId = 'YOUR_FACEBOOK_APP_ID';
+  static const String facebookAppId = '362610148222713';
 
   /// Facebook 客戶端令牌
   /// 從 Facebook Developers Console 獲取
-  static const String facebookClientToken = 'YOUR_FACEBOOK_CLIENT_TOKEN';
+  static const String facebookClientToken = '2437e6fb6a7be26586cccb1c24b8240d';
 
   /// Facebook 登入權限
   static const List<String> facebookPermissions = ['email', 'public_profile'];

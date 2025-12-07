@@ -1,4 +1,4 @@
-package com.example.my_app
+package tw.taaze.bookstore
 
 import io.flutter.embedding.android.FlutterActivity
 

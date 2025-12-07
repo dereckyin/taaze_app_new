@@ -10,6 +10,7 @@ class OAuthUser {
   final String? avatar;
   final String provider; // 'google', 'facebook', 'line'
   final String? accessToken;
+  final String? idToken;
   final String? refreshToken;
   final DateTime? createdAt;
   final DateTime? lastLoginAt;
@@ -21,6 +22,7 @@ class OAuthUser {
     this.avatar,
     required this.provider,
     this.accessToken,
+    this.idToken,
     this.refreshToken,
     this.createdAt,
     this.lastLoginAt,
@@ -34,6 +36,7 @@ class OAuthUser {
       avatar: json['avatar'] as String?,
       provider: json['provider'] as String,
       accessToken: json['access_token'] as String?,
+      idToken: json['id_token'] as String?,
       refreshToken: json['refresh_token'] as String?,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
@@ -52,6 +55,7 @@ class OAuthUser {
       'avatar': avatar,
       'provider': provider,
       'access_token': accessToken,
+      'id_token': idToken,
       'refresh_token': refreshToken,
       'created_at': createdAt?.toIso8601String(),
       'last_login_at': lastLoginAt?.toIso8601String(),
