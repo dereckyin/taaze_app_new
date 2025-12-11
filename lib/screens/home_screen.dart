@@ -7,11 +7,11 @@ import '../widgets/cached_image_widget.dart';
 import '../providers/book_provider.dart';
 import '../providers/banner_provider.dart';
 import '../providers/today_deals_provider.dart';
+import '../providers/bestsellers_provider.dart';
 import '../models/banner.dart' as banner_model;
 import '../widgets/book_card.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/custom_app_bar.dart';
-import '../widgets/coupon_slider.dart';
 import '../utils/debug_helper.dart';
 import 'book_detail_screen.dart';
 import 'search_screen.dart';
@@ -148,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildCouponSection(),
 
                   // 暢銷排行榜
-                  _buildBestsellersSection(bookProvider.bestsellers),
+                  _buildBestsellersSection(),
 
                   // 注目新品
                   _buildNewReleasesSection(bookProvider.newReleases),
@@ -425,6 +425,8 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context) => const BookListScreen(
               title: '特價書籍',
               endpoint: '/api/books/today-deals',
+              startNum: 0,
+              endNum: 19,
             ),
           ),
         );
@@ -436,6 +438,8 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context) => const BookListScreen(
               title: '新書上架',
               endpoint: '/api/books/new-releases',
+              startNum: 0,
+              endNum: 19,
             ),
           ),
         );
@@ -512,6 +516,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   builder: (context) => const BookListScreen(
                     title: '今日特惠',
                     endpoint: '/api/books/today-deals',
+                    startNum: 0,
+                    endNum: 19,
                   ),
                 ),
               );
@@ -526,7 +532,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 MaterialPageRoute(
                   builder: (context) => const BookListScreen(
                     title: '暢銷排行榜',
-                    endpoint: '/api/books/bestsellers',
+                    endpoint: '/content/bestsellers',
+                    startNum: 0,
+                    endNum: 9,
                   ),
                 ),
               );
@@ -542,6 +550,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   builder: (context) => const BookListScreen(
                     title: '注目新品',
                     endpoint: '/api/books/new-releases',
+                    startNum: 0,
+                    endNum: 19,
                   ),
                 ),
               );
@@ -557,6 +567,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   builder: (context) => const BookListScreen(
                     title: '最新上架二手書',
                     endpoint: '/api/books/used-books',
+                    startNum: 0,
+                    endNum: 19,
                   ),
                 ),
               );
@@ -700,6 +712,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   builder: (context) => const BookListScreen(
                     title: '今日特惠',
                     endpoint: '/content/deals/today',
+              startNum: 0,
+              endNum: 19,
                   ),
                 ),
               );
@@ -717,6 +731,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 builder: (context) => const BookListScreen(
                   title: '今日特惠',
                   endpoint: '/content/deals/today',
+              startNum: 0,
+              endNum: 19,
                 ),
               ),
             );
@@ -726,20 +742,49 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 暢銷排行榜板塊
-  Widget _buildBestsellersSection(List<dynamic> bestsellers) {
-    return _buildRankedBookSection(
-      title: '暢銷排行榜',
-      books: bestsellers,
-      onViewAll: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const BookListScreen(
-              title: '暢銷排行榜',
-              endpoint: '/api/books/bestsellers',
-            ),
-          ),
+  // 暢銷排行榜板塊（使用 BestsellersProvider）
+  Widget _buildBestsellersSection() {
+    return Consumer<BestsellersProvider>(
+      builder: (context, bestsellersProvider, child) {
+        if (bestsellersProvider.isLoading) {
+          return _buildRankedBookSection(
+            title: '暢銷排行榜',
+            books: const [],
+            onViewAll: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BookListScreen(
+                    title: '暢銷排行榜',
+                    endpoint: '/content/bestsellers',
+                    startNum: 0,
+                    endNum: 9,
+                  ),
+                ),
+              );
+            },
+          );
+        }
+
+        final bestsellers = bestsellersProvider.bestsellers;
+        if (bestsellers.isEmpty) return const SizedBox.shrink();
+
+        return _buildRankedBookSection(
+          title: '暢銷排行榜',
+          books: bestsellers,
+          onViewAll: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const BookListScreen(
+                  title: '暢銷排行榜',
+                  endpoint: '/content/bestsellers',
+                  startNum: 0,
+                  endNum: 9,
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -757,6 +802,8 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context) => const BookListScreen(
               title: '注目新品',
               endpoint: '/api/books/new-releases',
+              startNum: 0,
+              endNum: 19,
             ),
           ),
         );
@@ -776,6 +823,8 @@ class _HomeScreenState extends State<HomeScreen> {
             builder: (context) => const BookListScreen(
               title: '最新上架二手書',
               endpoint: '/api/books/used-books',
+              startNum: 0,
+              endNum: 19,
             ),
           ),
         );
@@ -800,7 +849,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(title, style: Theme.of(context).textTheme.headlineSmall),
-              TextButton(onPressed: onViewAll, child: const Text('查看更多')),
+              TextButton(onPressed: onViewAll, child: const Text('')),
             ],
           ),
         ),
@@ -890,33 +939,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 折價券區域 - 降低視覺權重
+  // 折價券區域 - 暫時隱藏
   Widget _buildCouponSection() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 標題區域
-          Row(
-            children: [
-              Icon(Icons.local_offer, size: 20, color: Colors.grey[600]),
-              const SizedBox(width: 8),
-              Text(
-                '優惠券',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.grey[700],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // 折價券滑動器
-          const CouponSlider(),
-        ],
-      ),
-    );
+    // 暫時不顯示折價券，保留方法方便日後恢復
+    return const SizedBox.shrink();
   }
 
   IconData _getCategoryIcon(String category) {

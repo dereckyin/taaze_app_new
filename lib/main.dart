@@ -9,11 +9,11 @@ import 'providers/cart_provider.dart';
 import 'providers/notification_provider.dart';
 import 'providers/banner_provider.dart';
 import 'providers/today_deals_provider.dart';
+import 'providers/bestsellers_provider.dart';
 import 'providers/ai_chat_provider.dart';
 import 'providers/ai_listing_wizard_provider.dart';
 import 'providers/coupon_provider.dart';
 import 'screens/main_screen.dart';
-import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -129,6 +129,7 @@ class BookStoreApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => BannerProvider()),
         ChangeNotifierProvider(create: (_) => TodayDealsProvider()),
+        ChangeNotifierProvider(create: (_) => BestsellersProvider()),
         ChangeNotifierProvider(create: (_) => AiChatProvider()),
         ChangeNotifierProvider(create: (_) => AiListingWizardProvider()),
         ChangeNotifierProvider(create: (_) => CouponProvider()),
