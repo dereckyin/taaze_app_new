@@ -11,6 +11,8 @@ class BookListScreen extends StatefulWidget {
   final String? category;
   final String? searchQuery;
   final String? endpoint;
+  final int startNum;
+  final int endNum;
 
   const BookListScreen({
     super.key,
@@ -18,6 +20,8 @@ class BookListScreen extends StatefulWidget {
     this.category,
     this.searchQuery,
     this.endpoint,
+    this.startNum = 0,
+    this.endNum = 19,
   });
 
   @override
@@ -27,11 +31,18 @@ class BookListScreen extends StatefulWidget {
 class _BookListScreenState extends State<BookListScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _isLoadingMore = false;
+  late int _nextStart;
+  late int _pageSize;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+
+    // 依據傳入的 start/end 計算分頁範圍
+    final computedSize = widget.endNum - widget.startNum + 1;
+    _pageSize = computedSize > 0 ? computedSize : 20;
+    _nextStart = widget.startNum;
 
     // 載入第一頁資料
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -55,6 +66,7 @@ class _BookListScreenState extends State<BookListScreen> {
   Future<void> _loadFirstPage() async {
     final bookProvider = context.read<BookProvider>();
     bookProvider.resetPagination();
+    _nextStart = widget.startNum;
 
     // 根據endpoint決定載入策略
     if (widget.endpoint != null) {
@@ -72,21 +84,36 @@ class _BookListScreenState extends State<BookListScreen> {
   Future<void> _loadBooksByEndpoint() async {
     final bookProvider = context.read<BookProvider>();
 
-    // 使用BookProvider的公共方法載入對應的假資料
-    await bookProvider.loadBooksByEndpoint(widget.endpoint!);
+    // 使用BookProvider的公共方法載入對應的資料
+    await bookProvider.loadBooksByEndpoint(
+      widget.endpoint!,
+      startNum: _nextStart,
+      endNum: _nextStart + _pageSize - 1,
+      append: _nextStart != widget.startNum,
+    );
+
+    // 更新下一次的起迄
+    _nextStart += _pageSize;
   }
 
   Future<void> _loadMoreBooks() async {
     if (_isLoadingMore) return;
+    final bookProvider = context.read<BookProvider>();
+    if (!bookProvider.hasMore) return;
 
     setState(() {
       _isLoadingMore = true;
     });
 
-    await context.read<BookProvider>().loadMoreBooks(
-      category: widget.category,
-      searchQuery: widget.searchQuery,
-    );
+    if (widget.endpoint != null) {
+      // endpoint 模式，根據 start/end 取下一頁
+      await _loadBooksByEndpoint();
+    } else {
+      await context.read<BookProvider>().loadMoreBooks(
+        category: widget.category,
+        searchQuery: widget.searchQuery,
+      );
+    }
 
     setState(() {
       _isLoadingMore = false;

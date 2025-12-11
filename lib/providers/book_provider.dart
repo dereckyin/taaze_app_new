@@ -1,8 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
-// import 'package:http/http.dart' as http; // 暫時註解，使用假資料模式
-// import 'dart:convert'; // 暫時註解，使用假資料模式
+import 'package:http/http.dart' as http;
 import '../models/book.dart';
 import '../utils/debug_helper.dart';
+import '../config/api_config.dart';
 
 class BookProvider with ChangeNotifier {
   List<Book> _books = [];
@@ -467,42 +468,49 @@ class BookProvider with ChangeNotifier {
   }
 
   // 從 API 獲取書籍資料（暫時註解，使用假資料模式）
-  /*
-  Future<List<Book>> _fetchBooksFromAPI([String? endpoint]) async {
+  // 從 API 取得資料（指定 endpoint 與範圍），失敗時拋出例外
+  Future<List<Book>> _fetchBooksFromAPI({
+    required String endpoint,
+    int startNum = 0,
+    int endNum = 19,
+  }) async {
     try {
-      final url = endpoint ?? _booksEndpoint;
-      final uri = Uri.parse('$_baseUrl$url');
+      final uri = Uri.parse(
+        '${ApiConfig.baseUrl}$endpoint?startNum=$startNum&endNum=$endNum',
+      );
       DebugHelper.logApiRequest('GET', uri.toString());
 
-      final response = await http.get(uri).timeout(_timeout);
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
       DebugHelper.logApiResponse(response.statusCode, response.body);
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-
-        // 處理分頁響應格式
-        if (responseData.containsKey('data')) {
-          final List<dynamic> jsonData = responseData['data'];
-          _totalCount = responseData['total_count'] ?? 0;
-          _hasMore = responseData['has_more'] ?? false;
-          return jsonData.map((json) => _bookFromJson(json)).toList();
-        } else {
-          // 處理簡單數組格式
-          final List<dynamic> jsonData = responseData as List<dynamic>;
-          return jsonData.map((json) => _bookFromJson(json)).toList();
-        }
-      } else {
-        throw Exception('API 返回錯誤狀態碼: ${response.statusCode}');
+      if (response.statusCode != 200) {
+        throw Exception('status ${response.statusCode}');
       }
+
+      final dynamic decoded = json.decode(response.body);
+      List<dynamic> jsonList;
+
+      if (decoded is Map && decoded['data'] is List) {
+        jsonList = decoded['data'] as List<dynamic>;
+        _totalCount = decoded['total_count'] ??
+            decoded['totalCount'] ??
+            decoded['total'] ??
+            jsonList.length;
+      } else if (decoded is List) {
+        jsonList = decoded;
+        _totalCount = jsonList.length;
+      } else {
+        throw Exception('unexpected response format');
+      }
+
+      return jsonList.map((json) => _bookFromJson(json)).toList();
     } catch (e) {
       DebugHelper.log('API調用異常: ${e.toString()}', tag: 'BookProvider');
-      throw Exception('API 調用失敗: ${e.toString()}');
+      rethrow;
     }
   }
-  */
 
   // 從 JSON 創建 Book 物件（暫時註解，使用假資料模式）
-  /*
   Book _bookFromJson(Map<String, dynamic> json) {
     return Book(
       id: json['id']?.toString() ?? '',
@@ -510,20 +518,21 @@ class BookProvider with ChangeNotifier {
       author: json['author']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       price: (json['price'] ?? 0).toDouble(),
-      imageUrl: json['imageUrl']?.toString() ?? '',
+      imageUrl: json['imageUrl']?.toString() ??
+          json['coverImage']?.toString() ??
+          '',
       category: json['category']?.toString() ?? '',
       rating: (json['rating'] ?? 0).toDouble(),
-      reviewCount: json['reviewCount'] ?? 0,
-      isAvailable: json['isAvailable'] ?? true,
+      reviewCount: json['reviewCount'] ?? json['reviews'] ?? 0,
+      isAvailable: json['isAvailable'] ?? json['stock'] != 0,
       publishDate: json['publishDate'] != null
-          ? DateTime.parse(json['publishDate'])
+          ? DateTime.tryParse(json['publishDate']) ?? DateTime.now()
           : DateTime.now(),
       isbn: json['isbn']?.toString() ?? '',
       pages: json['pages'] ?? 0,
       publisher: json['publisher']?.toString() ?? '',
     );
   }
-  */
 
   // 載入模擬資料
   void _loadMockData() {
@@ -698,8 +707,13 @@ class BookProvider with ChangeNotifier {
     _books.clear();
   }
 
-  // 根據endpoint載入對應的假資料
-  Future<void> loadBooksByEndpoint(String endpoint) async {
+  // 根據endpoint載入對應的假資料，可附帶起迄索引；append可累加資料
+  Future<void> loadBooksByEndpoint(
+    String endpoint, {
+    int startNum = 0,
+    int endNum = 19,
+    bool append = false,
+  }) async {
     try {
       _isLoading = true;
       notifyListeners();
@@ -707,15 +721,33 @@ class BookProvider with ChangeNotifier {
       DebugHelper.log('根據endpoint載入假資料: $endpoint', tag: 'BookProvider');
 
       // 根據endpoint載入對應的假資料
+      List<Book> filteredBooks;
       switch (endpoint) {
+        case '/content/deals/today':
         case '/api/books/today-deals':
-          _books = _mockBooks.where((book) => book.price < 500).toList();
+          filteredBooks = _mockBooks.where((book) => book.price < 500).toList();
           break;
+        case '/content/bestsellers':
         case '/api/books/bestsellers':
-          _books = _mockBooks.where((book) => book.rating > 4.5).toList();
+          // 先嘗試 API，失敗再回落 mock，並記錄 log
+          try {
+            filteredBooks = await _fetchBooksFromAPI(
+              endpoint: endpoint,
+              startNum: startNum,
+              endNum: endNum,
+            );
+            DebugHelper.log('暢銷榜資料已由API取得', tag: 'BookProvider');
+          } catch (e) {
+            DebugHelper.log(
+              '暢銷榜API取得失敗，改用mock資料: ${e.toString()}',
+              tag: 'BookProvider',
+            );
+            filteredBooks =
+                _mockBooks.where((book) => book.rating > 4.5).toList();
+          }
           break;
         case '/api/books/new-releases':
-          _books = _mockBooks
+          filteredBooks = _mockBooks
               .where(
                 (book) => book.publishDate.isAfter(
                   DateTime.now().subtract(const Duration(days: 30)),
@@ -725,15 +757,31 @@ class BookProvider with ChangeNotifier {
             ..sort((a, b) => b.publishDate.compareTo(a.publishDate));
           break;
         case '/api/books/used-books':
-          _books = _mockBooks.where((book) => book.price < 300).toList()
+          filteredBooks = _mockBooks.where((book) => book.price < 300).toList()
             ..sort((a, b) => b.publishDate.compareTo(a.publishDate));
           break;
         default:
-          _books = List.from(_mockBooks);
+          filteredBooks = List.from(_mockBooks);
       }
 
-      _totalCount = _books.length;
-      _hasMore = false; // 假資料模式下，一次性載入所有資料
+      _totalCount = filteredBooks.length;
+
+      // 套用起迄索引（endNum 包含），避免越界
+      final safeStart = startNum < 0 ? 0 : startNum;
+      final safeEndExclusive =
+          (endNum + 1).clamp(safeStart, filteredBooks.length).toInt();
+      final chunk = filteredBooks
+          .skip(safeStart)
+          .take(safeEndExclusive - safeStart)
+          .toList();
+
+      if (append) {
+        _books.addAll(chunk);
+      } else {
+        _books = chunk;
+      }
+
+      _hasMore = safeEndExclusive < filteredBooks.length;
       _currentPage = 1;
       _error = null;
 
