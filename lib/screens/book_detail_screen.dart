@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/book.dart';
 import '../providers/cart_provider.dart';
+import '../providers/ai_chat_provider.dart';
+import 'ai_chat_screen.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/cached_image_widget.dart';
 
@@ -27,6 +29,9 @@ class BookDetailScreen extends StatelessWidget {
 
             // 書籍描述
             _buildBookDescription(context),
+
+            // AI 智能助手
+            _buildAiAssistant(context),
 
             // 評論區域
             _buildReviewsSection(context),
@@ -172,6 +177,82 @@ class BookDetailScreen extends StatelessWidget {
             book.description,
             style: Theme.of(context).textTheme.bodyLarge,
             textAlign: TextAlign.justify,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiAssistant(BuildContext context) {
+    final presetQuestions = [
+      '請幫我抓取《${book.title}》的大綱',
+      '這本書適合哪些讀者？',
+      '讀完《${book.title}》能獲得的三個重點是什麼？',
+    ];
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.smart_toy, color: Colors.blueAccent),
+              const SizedBox(width: 8),
+              Text(
+                'AI 智能助手',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '快速提問或開啟對話，AI 可根據本書提供摘要、讀者族群與重點收穫。',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[700],
+                ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: presetQuestions.map((q) {
+              return ActionChip(
+                label: Text(q),
+                onPressed: () {
+                  // 發送預設問題並開啟 AI 對話畫面
+                  context.read<AiChatProvider>().sendMessage(q);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AiChatScreen(),
+                    ),
+                  );
+                },
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AiChatScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.chat_bubble_outline),
+              label: const Text('開啟問答'),
+            ),
           ),
         ],
       ),
