@@ -5,6 +5,7 @@ import '../models/book.dart';
 import '../providers/cart_provider.dart';
 import '../providers/ai_chat_provider.dart';
 import 'ai_chat_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/cached_image_widget.dart';
 
@@ -27,11 +28,11 @@ class BookDetailScreen extends StatelessWidget {
             // 書籍詳細資訊
             _buildBookDetails(context),
 
+            // AI 專區（Talk to the Book + Podcast 試聽）
+            _buildAiAssistant(context),
+
             // 書籍描述
             _buildBookDescription(context),
-
-            // AI 智能助手
-            _buildAiAssistant(context),
 
             // 評論區域
             _buildReviewsSection(context),
@@ -194,19 +195,19 @@ class BookDetailScreen extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Colors.pink[50],
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: Colors.pink[100]!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.smart_toy, color: Colors.blueAccent),
+              const Icon(Icons.smart_toy, color: Colors.pink),
               const SizedBox(width: 8),
               Text(
-                'AI 智能助手',
+                'AI 專區',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ],
@@ -239,6 +240,8 @@ class BookDetailScreen extends StatelessWidget {
             }).toList(),
           ),
           const SizedBox(height: 12),
+          _buildPodcastCard(context),
+          const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
@@ -257,6 +260,85 @@ class BookDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildPodcastCard(BuildContext context) {
+    const samplePodcastUrl =
+        'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.pink[100]!),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.pink[100],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.headset, color: Colors.pink, size: 28),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '有聲書試聽',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '播放本書的 AI 聲音導讀，約 30 秒摘要',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[700],
+                      ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            onPressed: () => _launchPodcastSample(context, samplePodcastUrl),
+            icon: const Icon(Icons.play_arrow),
+            label: const Text('播放試聽'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.pink,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _launchPodcastSample(
+    BuildContext context,
+    String url,
+  ) async {
+    try {
+      final uri = Uri.parse(url);
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('無法開啟試聽連結')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('開啟失敗：$e')),
+        );
+      }
+    }
   }
 
   Widget _buildReviewsSection(BuildContext context) {
