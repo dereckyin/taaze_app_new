@@ -4,10 +4,14 @@ import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/cached_image_widget.dart';
+import '../config/api_config.dart';
 import '../providers/book_provider.dart';
 import '../providers/banner_provider.dart';
 import '../providers/today_deals_provider.dart';
 import '../providers/bestsellers_provider.dart';
+import '../providers/new_arrivals_provider.dart';
+import '../providers/ebook_new_arrivals_provider.dart';
+import '../providers/used_books_latest_provider.dart';
 import '../models/banner.dart' as banner_model;
 import '../widgets/book_card.dart';
 import '../widgets/loading_widget.dart';
@@ -151,10 +155,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildBestsellersSection(),
 
                   // 注目新品
-                  _buildNewReleasesSection(bookProvider.newReleases),
+                  _buildNewReleasesSection(),
+
+                  // 電子書注目新品
+                  _buildEbookNewArrivalsSection(),
 
                   // 最新上架二手書
-                  _buildUsedBooksSection(bookProvider.usedBooks),
+                  _buildUsedBooksSection(),
 
                   const SizedBox(height: 20),
                 ],
@@ -547,9 +554,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const BookListScreen(
+                  builder: (context) => BookListScreen(
                     title: '注目新品',
-                    endpoint: '/api/books/new-releases',
+                    endpoint: BookProvider.taazeNewArrivalsEndpoint,
                     startNum: 0,
                     endNum: 19,
                   ),
@@ -564,9 +571,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const BookListScreen(
+                  builder: (context) => BookListScreen(
                     title: '最新上架二手書',
-                    endpoint: '/api/books/used-books',
+                    endpoint: ApiConfig.usedBooksLatestEndpoint,
                     startNum: 0,
                     endNum: 19,
                   ),
@@ -791,44 +798,131 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // 注目新品板塊
-  Widget _buildNewReleasesSection(List<dynamic> newReleases) {
-    return _buildBookSection(
-      title: '注目新品',
-      books: newReleases,
-      onViewAll: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const BookListScreen(
-              title: '注目新品',
-              endpoint: '/api/books/new-releases',
-              startNum: 0,
-              endNum: 19,
-            ),
-          ),
+  Widget _buildNewReleasesSection() {
+    return Consumer<NewArrivalsProvider>(
+      builder: (context, newArrivalsProvider, child) {
+        if (newArrivalsProvider.isLoading) {
+          return _buildBookSection(
+            title: '注目新品',
+            books: const [],
+            onViewAll: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BookListScreen(
+                    title: '注目新品',
+                    endpoint: BookProvider.taazeNewArrivalsEndpoint,
+                    startNum: 0,
+                    endNum: 19,
+                  ),
+                ),
+              );
+            },
+          );
+        }
+
+        final newArrivals = newArrivalsProvider.newArrivals;
+        if (newArrivals.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return _buildBookSection(
+          title: '注目新品',
+          books: newArrivals,
+          onViewAll: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => BookListScreen(
+                  title: '注目新品',
+                  endpoint: BookProvider.taazeNewArrivalsEndpoint,
+                  startNum: 0,
+                  endNum: 19,
+                ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  // 最新上架二手書板塊
-  Widget _buildUsedBooksSection(List<dynamic> usedBooks) {
-    return _buildBookSection(
-      title: '最新上架二手書',
-      books: usedBooks,
-      onViewAll: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const BookListScreen(
-              title: '最新上架二手書',
-              endpoint: '/api/books/used-books',
-              startNum: 0,
-              endNum: 19,
-            ),
-          ),
+  Widget _buildEbookNewArrivalsSection() {
+    return Consumer<EbookNewArrivalsProvider>(
+      builder: (context, ebookProvider, child) {
+        if (ebookProvider.isLoading) {
+          return _buildBookSection(
+            title: '電子書注目新品',
+            books: const [],
+            onViewAll: _navigateToEbookNewArrivals,
+          );
+        }
+
+        final ebooks = ebookProvider.ebooks;
+        if (ebooks.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return _buildBookSection(
+          title: '電子書注目新品',
+          books: ebooks,
+          onViewAll: _navigateToEbookNewArrivals,
         );
       },
+    );
+  }
+
+  void _navigateToEbookNewArrivals() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookListScreen(
+          title: '電子書注目新品',
+          endpoint: ApiConfig.ebookNewArrivalsEndpoint,
+          startNum: 0,
+          endNum: 19,
+        ),
+      ),
+    );
+  }
+
+  // 最新上架二手書板塊
+  Widget _buildUsedBooksSection() {
+    return Consumer<UsedBooksLatestProvider>(
+      builder: (context, usedProvider, child) {
+        if (usedProvider.isLoading) {
+          return _buildBookSection(
+            title: '最新上架二手書',
+            books: const [],
+            onViewAll: _navigateToUsedBooksLatest,
+          );
+        }
+
+        final usedBooks = usedProvider.usedBooks;
+        if (usedBooks.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return _buildBookSection(
+          title: '最新上架二手書',
+          books: usedBooks,
+          onViewAll: _navigateToUsedBooksLatest,
+        );
+      },
+    );
+  }
+
+  void _navigateToUsedBooksLatest() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BookListScreen(
+          title: '最新上架二手書',
+          endpoint: ApiConfig.usedBooksLatestEndpoint,
+          startNum: 0,
+          endNum: 19,
+        ),
+      ),
     );
   }
 
@@ -849,7 +943,10 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(title, style: Theme.of(context).textTheme.headlineSmall),
-              TextButton(onPressed: onViewAll, child: const Text('')),
+              TextButton(
+                onPressed: onViewAll,
+                child: const Text('查看更多'),
+              ),
             ],
           ),
         ),

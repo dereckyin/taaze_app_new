@@ -24,6 +24,9 @@ class BookProvider with ChangeNotifier {
   int _totalCount = 0;
   bool _hasMore = true;
 
+  static const String taazeNewArrivalsEndpoint =
+      'https://www.taaze.tw/beta/actAllBooksDataAgent.jsp?t=11&a=02&d=00&l=0&c=00&k=01';
+
   // API 配置（暫時註解，使用假資料模式）
   // static const String _baseUrl = 'https://api.taaze.tw/api/v1'; // 替換為實際的 API URL
   // static const String _booksEndpoint = '/api/books';
@@ -718,7 +721,17 @@ class BookProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      DebugHelper.log('根據endpoint載入假資料: $endpoint', tag: 'BookProvider');
+      DebugHelper.log('根據endpoint載入資料: $endpoint', tag: 'BookProvider');
+
+      if (_isTaazeActEndpoint(endpoint)) {
+        final chunk = await _fetchTaazeActBooks(
+          url: endpoint,
+          startNum: startNum,
+          endNum: endNum,
+        );
+        _updateBooksFromEndpointChunk(chunk, append);
+        return;
+      }
 
       // 根據endpoint載入對應的假資料
       List<Book> filteredBooks;
@@ -756,6 +769,14 @@ class BookProvider with ChangeNotifier {
               .toList()
             ..sort((a, b) => b.publishDate.compareTo(a.publishDate));
           break;
+        case ApiConfig.newArrivalsEndpoint:
+        case ApiConfig.ebookNewArrivalsEndpoint:
+          filteredBooks = await _fetchBooksFromAPI(
+            endpoint: endpoint,
+            startNum: startNum,
+            endNum: endNum,
+          );
+          break;
         case '/api/books/used-books':
           filteredBooks = _mockBooks.where((book) => book.price < 300).toList()
             ..sort((a, b) => b.publishDate.compareTo(a.publishDate));
@@ -775,15 +796,7 @@ class BookProvider with ChangeNotifier {
           .take(safeEndExclusive - safeStart)
           .toList();
 
-      if (append) {
-        _books.addAll(chunk);
-      } else {
-        _books = chunk;
-      }
-
-      _hasMore = safeEndExclusive < filteredBooks.length;
-      _currentPage = 1;
-      _error = null;
+      _updateBooksFromEndpointChunk(chunk, append);
 
       DebugHelper.log(
         'endpoint假資料載入完成: $endpoint，共 ${_books.length} 本書籍',
@@ -796,5 +809,104 @@ class BookProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  bool _isTaazeActEndpoint(String endpoint) {
+    return endpoint.contains('actAllBooksDataAgent.jsp');
+  }
+
+  Future<List<Book>> _fetchTaazeActBooks({
+    required String url,
+    required int startNum,
+    required int endNum,
+  }) async {
+    try {
+      final uri = Uri.parse(url);
+      final params = Map<String, String>.from(uri.queryParameters);
+      params['startNum'] = startNum.toString();
+      params['endNum'] = endNum.toString();
+      final finalUri = uri.replace(queryParameters: params);
+
+      DebugHelper.logApiRequest('GET', finalUri.toString());
+      final response = await http
+          .get(finalUri)
+          .timeout(const Duration(seconds: 10));
+
+      final encoding = Encoding.getByName('big5') ?? utf8;
+      final body = encoding.decode(response.bodyBytes);
+      DebugHelper.logApiResponse(response.statusCode, body);
+
+      if (response.statusCode != 200) {
+        throw Exception('status ${response.statusCode}');
+      }
+
+      final decoded = json.decode(body);
+      final List<dynamic> items =
+          (decoded['result1'] as List?) ?? (decoded['result'] as List?) ?? [];
+      final totalValue =
+          decoded['totalsize'] ?? decoded['totalSize'] ?? decoded['total'];
+      _totalCount =
+          int.tryParse(totalValue?.toString() ?? '') ?? items.length;
+
+      return items
+          .map(
+            (item) =>
+                _bookFromTaazeJson(Map<String, dynamic>.from(item as Map)),
+          )
+          .toList();
+    } catch (e) {
+      DebugHelper.log('Taaze API 調用異常: ${e.toString()}', tag: 'BookProvider');
+      rethrow;
+    }
+  }
+
+  Book _bookFromTaazeJson(Map<String, dynamic> json) {
+    final prodId = json['prodId']?.toString() ??
+        json['orgProdId']?.toString() ??
+        '';
+    final salePrice = double.tryParse(json['salePrice']?.toString() ?? '') ??
+        double.tryParse(json['listPrice']?.toString() ?? '') ??
+        0.0;
+    final publishDate = DateTime.tryParse(
+          json['publishDate']?.toString() ?? '',
+        ) ??
+        DateTime.now();
+    final isOutOfPrint =
+        (json['outOfPrint']?.toString().toUpperCase() ?? 'N') == 'Y';
+
+    final description =
+        (json['prodPf']?.toString() ?? '').replaceAll('<br>', '\n');
+    final imageUrl = prodId.isNotEmpty
+        ? 'https://media.taaze.tw/showThumbnail.html?sc=$prodId&height=400&width=310'
+        : '';
+
+    return Book(
+      id: prodId,
+      title: json['titleMain']?.toString() ?? '',
+      author: json['author']?.toString() ?? '',
+      description: description,
+      price: salePrice,
+      imageUrl: imageUrl,
+      category: json['prodCatNm']?.toString() ?? '',
+      rating: double.tryParse(json['starLevel']?.toString() ?? '') ?? 0,
+      reviewCount: int.tryParse(json['seekNum']?.toString() ?? '') ?? 0,
+      isAvailable: !isOutOfPrint,
+      publishDate: publishDate,
+      isbn: json['isbn']?.toString() ?? '',
+      pages: 0,
+      publisher: json['pubNmMain']?.toString() ?? '',
+    );
+  }
+
+  void _updateBooksFromEndpointChunk(List<Book> chunk, bool append) {
+    if (append) {
+      _books.addAll(chunk);
+    } else {
+      _books = chunk;
+    }
+
+    _hasMore = _books.length < _totalCount;
+    _currentPage = 1;
+    _error = null;
   }
 }

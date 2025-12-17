@@ -33,11 +33,13 @@ class _BookListScreenState extends State<BookListScreen> {
   bool _isLoadingMore = false;
   late int _nextStart;
   late int _pageSize;
+  String? _resolvedEndpoint;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _resolvedEndpoint = widget.endpoint ?? _inferEndpointFromTitle(widget.title);
 
     // 依據傳入的 start/end 計算分頁範圍
     final computedSize = widget.endNum - widget.startNum + 1;
@@ -69,7 +71,7 @@ class _BookListScreenState extends State<BookListScreen> {
     _nextStart = widget.startNum;
 
     // 根據endpoint決定載入策略
-    if (widget.endpoint != null) {
+    if (_resolvedEndpoint != null) {
       await _loadBooksByEndpoint();
     } else {
       await bookProvider.loadBooksWithPagination(
@@ -82,11 +84,12 @@ class _BookListScreenState extends State<BookListScreen> {
   }
 
   Future<void> _loadBooksByEndpoint() async {
+    if (_resolvedEndpoint == null) return;
     final bookProvider = context.read<BookProvider>();
 
     // 使用BookProvider的公共方法載入對應的資料
     await bookProvider.loadBooksByEndpoint(
-      widget.endpoint!,
+      _resolvedEndpoint!,
       startNum: _nextStart,
       endNum: _nextStart + _pageSize - 1,
       append: _nextStart != widget.startNum,
@@ -105,7 +108,7 @@ class _BookListScreenState extends State<BookListScreen> {
       _isLoadingMore = true;
     });
 
-    if (widget.endpoint != null) {
+    if (_resolvedEndpoint != null) {
       // endpoint 模式，根據 start/end 取下一頁
       await _loadBooksByEndpoint();
     } else {
@@ -122,6 +125,13 @@ class _BookListScreenState extends State<BookListScreen> {
 
   Future<void> _onRefresh() async {
     await _loadFirstPage();
+  }
+
+  String? _inferEndpointFromTitle(String title) {
+    if (title.contains('注目新品')) {
+      return BookProvider.taazeNewArrivalsEndpoint;
+    }
+    return null;
   }
 
   @override
