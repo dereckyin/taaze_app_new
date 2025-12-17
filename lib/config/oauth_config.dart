@@ -9,7 +9,8 @@ class OAuthConfig {
 
   /// Google OAuth 2.0 客戶端 ID
   /// 從 Google Cloud Console 獲取
-  static const String googleClientId = 'YOUR_GOOGLE_CLIENT_ID';
+  static const String googleClientId =
+      '865371152530-u1uhnl1t0nqh2hu1762mbsiik9dh3f7g.apps.googleusercontent.com';
 
   /// Google OAuth 2.0 客戶端密鑰
   /// 從 Google Cloud Console 獲取
@@ -71,20 +72,26 @@ class OAuthConfig {
 
   /// 驗證 Google 配置
   static bool isGoogleConfigured() {
-    // 臨時啟用用於測試顯示
-    return true; // googleClientId != 'YOUR_GOOGLE_CLIENT_ID' && googleClientId.isNotEmpty;
+    // 僅在實際填入有效 clientId 時才啟用，避免未配置時誤開啟造成崩潰
+    return googleClientId != 'YOUR_GOOGLE_CLIENT_ID' &&
+        googleClientId.isNotEmpty;
   }
 
   /// 驗證 Facebook 配置
   static bool isFacebookConfigured() {
-    // 臨時啟用用於測試顯示
-    return true; // facebookAppId != 'YOUR_FACEBOOK_APP_ID' && facebookAppId.isNotEmpty && facebookClientToken != 'YOUR_FACEBOOK_CLIENT_TOKEN' && facebookClientToken.isNotEmpty;
+    // 若未正確填入 appId / clientToken，視為未配置
+    return facebookAppId.isNotEmpty && facebookClientToken.isNotEmpty;
   }
 
   /// 驗證 LINE 配置
   static bool isLineConfigured() {
-    // 臨時啟用用於測試顯示
-    return true; // lineChannelId != 'YOUR_LINE_CHANNEL_ID' && lineChannelId.isNotEmpty && lineChannelSecret != 'YOUR_LINE_CHANNEL_SECRET' && lineChannelSecret.isNotEmpty && lineRedirectUri != 'YOUR_LINE_REDIRECT_URI' && lineRedirectUri.isNotEmpty;
+    // 需要有 channelId / channelSecret / redirectUri 才視為已配置
+    return lineChannelId != 'YOUR_LINE_CHANNEL_ID' &&
+        lineChannelSecret != 'YOUR_LINE_CHANNEL_SECRET' &&
+        lineRedirectUri != 'YOUR_LINE_REDIRECT_URI' &&
+        lineChannelId.isNotEmpty &&
+        lineChannelSecret.isNotEmpty &&
+        lineRedirectUri.isNotEmpty;
   }
 
   /// 獲取所有已配置的 OAuth 提供商

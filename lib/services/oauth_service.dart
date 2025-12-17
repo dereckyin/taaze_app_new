@@ -19,6 +19,8 @@ class OAuthService {
 
   // Google Sign-In 配置
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
+    // 對 iOS 來說，顯式指定 clientId，可以避免部分環境下因為抓不到配置而在原生層崩潰
+    clientId: OAuthConfig.googleClientId,
     scopes: OAuthConfig.googleScopes,
   );
 
@@ -26,11 +28,7 @@ class OAuthService {
   static const List<String> _facebookPermissions =
       OAuthConfig.facebookPermissions;
 
-  static void _log(
-    String message, {
-    Object? error,
-    StackTrace? stackTrace,
-  }) {
+  static void _log(String message, {Object? error, StackTrace? stackTrace}) {
     if (kDebugMode) {
       debugPrint('[OAuthService] $message');
       if (error != null) {
@@ -222,7 +220,9 @@ class OAuthService {
     OAuthUser oauthUser,
   ) async {
     try {
-      _log('Send OAuth user to backend: provider=${oauthUser.provider}, email=${oauthUser.email}');
+      _log(
+        'Send OAuth user to backend: provider=${oauthUser.provider}, email=${oauthUser.email}',
+      );
       final request = OAuthLoginRequest(
         provider: oauthUser.provider,
         accessToken: oauthUser.accessToken!,
