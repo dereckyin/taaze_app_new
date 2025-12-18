@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import 'dart:io';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -27,36 +25,6 @@ class OAuthButtons extends StatelessWidget {
       ],
     );
   }
-
-  // #region agent log helper
-  Future<void> _agentDebugLog({
-    required String hypothesisId,
-    required String location,
-    required String message,
-    Map<String, Object?> data = const {},
-    String runId = 'pre-fix-1',
-  }) async {
-    const String logPath = '/Users/yinteming/my_app/.cursor/debug.log';
-    try {
-      final logEntry = {
-        'sessionId': 'debug-session',
-        'runId': runId,
-        'hypothesisId': hypothesisId,
-        'location': location,
-        'message': message,
-        'data': data,
-        'timestamp': DateTime
-            .now()
-            .millisecondsSinceEpoch,
-      };
-      final file = File(logPath);
-      await file.writeAsString('${jsonEncode(logEntry)}\n',
-          mode: FileMode.append, flush: true);
-    } catch (_) {
-      // 靜默失敗，避免影響正常 UI
-    }
-  }
-  // #endregion
 
   Widget _buildDivider(BuildContext context) {
     return Row(
@@ -204,54 +172,16 @@ class OAuthButtons extends StatelessWidget {
     final authProvider = context.read<AuthProvider>();
 
     try {
-      // #region agent log
-      _agentDebugLog(
-        hypothesisId: 'G1',
-        location: 'OAuthButtons._handleGoogleSignIn:175',
-        message: 'Google sign-in button tapped',
-        data: {
-          'isLoading': authProvider.isLoading,
-        },
-      );
-      // #endregion
       final success = await authProvider.signInWithGoogle();
 
       if (success && context.mounted) {
-        // #region agent log
-        _agentDebugLog(
-          hypothesisId: 'G4',
-          location: 'OAuthButtons._handleGoogleSignIn:185',
-          message: 'Google sign-in reported success from AuthProvider',
-          data: {},
-        );
-        // #endregion
         onSuccess?.call();
         _showSuccessMessage(context, 'Google 登入成功');
       } else if (context.mounted) {
-        // #region agent log
-        _agentDebugLog(
-          hypothesisId: 'G4',
-          location: 'OAuthButtons._handleGoogleSignIn:193',
-          message: 'Google sign-in reported failure from AuthProvider',
-          data: {
-            'hasErrorMessage': authProvider.error != null,
-          },
-        );
-        // #endregion
         onError?.call();
         _showErrorMessage(context, authProvider.error ?? 'Google 登入失敗');
       }
     } catch (e) {
-      // #region agent log
-      _agentDebugLog(
-        hypothesisId: 'G5',
-        location: 'OAuthButtons._handleGoogleSignIn:205',
-        message: 'Exception thrown in _handleGoogleSignIn',
-        data: {
-          'errorType': e.runtimeType.toString(),
-        },
-      );
-      // #endregion
       if (context.mounted) {
         onError?.call();
         _showErrorMessage(context, 'Google 登入發生錯誤：${e.toString()}');

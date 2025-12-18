@@ -50,6 +50,17 @@ post_install do |installer|
       config.build_settings['CLANG_WARN_COMMA'] = 'NO'
       config.build_settings['CLANG_WARN_UNGUARDED_AVAILABILITY'] = 'NO'
       
+      # Fix for sqflite_darwin and other modules that need Flutter headers
+      if target.name.include?('sqflite') || target.name.include?('Sqflite')
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        config.build_settings['DEFINES_MODULE'] = 'YES'
+        # Add Flutter framework search path
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] ||= ['$(inherited)']
+        config.build_settings['FRAMEWORK_SEARCH_PATHS'] << '$(PROJECT_DIR)/../Flutter'
+        config.build_settings['HEADER_SEARCH_PATHS'] ||= ['$(inherited)']
+        config.build_settings['HEADER_SEARCH_PATHS'] << '$(PROJECT_DIR)/../Flutter'
+      end
+      
       # Firebase: ensure modules are defined so Swift/Clang can import them
       if target.name.include?('firebase') || target.name.include?('Firebase')
         config.build_settings['DEFINES_MODULE'] = 'YES'

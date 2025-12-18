@@ -7,9 +7,14 @@ class OAuthConfig {
 
   // ========== Google 配置 ==========
 
-  /// Google OAuth 2.0 客戶端 ID
-  /// 從 Google Cloud Console 獲取
-  static const String googleClientId =
+  /// Google OAuth 2.0 客戶端 ID (iOS)
+  /// 從 Google Cloud Console 獲取 iOS 類型的 OAuth Client ID
+  static const String googleClientIdIOS =
+      '742486726494-0hrekm20m41n75j1moucd5ag54d25da6.apps.googleusercontent.com';
+
+  /// Google OAuth 2.0 客戶端 ID (Android)
+  /// 從 Google Cloud Console 獲取 Android 類型的 OAuth Client ID
+  static const String googleClientIdAndroid =
       '742486726494-gf7057p166hbtvlr4gq72dsvlvuqhuva.apps.googleusercontent.com';
 
   /// Google OAuth 2.0 客戶端密鑰
@@ -70,11 +75,29 @@ class OAuthConfig {
 
   // ========== 驗證方法 ==========
 
-  /// 驗證 Google 配置
+  /// 驗證 Google 配置（檢查 iOS 和 Android 是否至少有一個已配置）
   static bool isGoogleConfigured() {
-    // 僅在實際填入有效 clientId 時才啟用，避免未配置時誤開啟造成崩潰
-    return googleClientId != 'YOUR_GOOGLE_CLIENT_ID' &&
-        googleClientId.isNotEmpty;
+    // 檢查 iOS 或 Android 是否至少有一個已配置
+    final iosConfigured =
+        googleClientIdIOS != 'YOUR_GOOGLE_CLIENT_ID_IOS' &&
+        googleClientIdIOS.isNotEmpty;
+    final androidConfigured =
+        googleClientIdAndroid != 'YOUR_GOOGLE_CLIENT_ID_ANDROID' &&
+        googleClientIdAndroid.isNotEmpty;
+    return iosConfigured || androidConfigured;
+  }
+
+  /// 獲取當前平台的 Google Client ID
+  static String? getGoogleClientIdForPlatform() {
+    // 使用 dart:io 來檢測平台
+    try {
+      if (identical(0, 0.0)) {
+        // 這是一個編譯時檢查，無法在運行時檢測平台
+        // 所以我們需要在 OAuthService 中根據平台動態選擇
+        return null;
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// 驗證 Facebook 配置
@@ -130,7 +153,7 @@ class OAuthConfig {
 
 /// OAuth 提供商枚舉
 enum OAuthProvider {
-  google('google', 'Google', OAuthConfig.googleClientId),
+  google('google', 'Google', OAuthConfig.googleClientIdIOS),
   facebook('facebook', 'Facebook', OAuthConfig.facebookAppId),
   line('line', 'LINE', OAuthConfig.lineChannelId);
 

@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../models/oauth_user.dart';
@@ -18,13 +17,22 @@ class OAuthService {
   static String get baseUrl => ApiConfig.baseUrl;
   static const Duration timeout = OAuthConfig.requestTimeout;
 
-  // Google Sign-In 配置
-  static final GoogleSignIn _googleSignIn = GoogleSignIn(
-    // 對 Android 而言，serverClientId 需填寫 Web OAuth client，
-    // Flutter 會自動由 google-services.json 解析 Android client。
-    serverClientId: OAuthConfig.googleClientId,
-    scopes: OAuthConfig.googleScopes,
-  );
+  // Google Sign-In 配置（根據平台使用不同的 Client ID）
+  static GoogleSignIn get _googleSignIn {
+    if (Platform.isIOS) {
+      // iOS 使用 iOS 專用的 Client ID
+      return GoogleSignIn(
+        clientId: OAuthConfig.googleClientIdIOS,
+        scopes: OAuthConfig.googleScopes,
+      );
+    } else {
+      // Android 使用 Android 專用的 Client ID
+      return GoogleSignIn(
+        serverClientId: OAuthConfig.googleClientIdAndroid,
+        scopes: OAuthConfig.googleScopes,
+      );
+    }
+  }
 
   // Facebook 配置
   static const List<String> _facebookPermissions =
@@ -60,7 +68,6 @@ class OAuthService {
           error: 'Google 登入未正確配置，請聯繫開發者',
         );
       }
-      final bool alreadySignedIn = await _googleSignIn.isSignedIn();
 
       // 執行 Google 登入
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -356,5 +363,4 @@ class OAuthService {
       return null;
     }
   }
-
 }

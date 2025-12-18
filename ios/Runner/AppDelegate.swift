@@ -15,6 +15,16 @@ import UserNotifications
     
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
+  
+  // 處理 URL scheme 回調（用於 Google Sign-In 等 OAuth 流程）
+  override func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+  ) -> Bool {
+    // 讓 FlutterAppDelegate 處理 URL（包括 Google Sign-In 的回調）
+    return super.application(app, open: url, options: options)
+  }
 }
 
 // 實現通知 delegate 方法
