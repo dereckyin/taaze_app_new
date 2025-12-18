@@ -10,7 +10,7 @@ class OAuthConfig {
   /// Google OAuth 2.0 客戶端 ID
   /// 從 Google Cloud Console 獲取
   static const String googleClientId =
-      '865371152530-u1uhnl1t0nqh2hu1762mbsiik9dh3f7g.apps.googleusercontent.com';
+      '742486726494-gf7057p166hbtvlr4gq72dsvlvuqhuva.apps.googleusercontent.com';
 
   /// Google OAuth 2.0 客戶端密鑰
   /// 從 Google Cloud Console 獲取

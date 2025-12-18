@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../models/oauth_user.dart';
 import '../models/captcha_response.dart';
@@ -19,8 +20,9 @@ class OAuthService {
 
   // Google Sign-In 配置
   static final GoogleSignIn _googleSignIn = GoogleSignIn(
-    // 對 iOS 來說，顯式指定 clientId，可以避免部分環境下因為抓不到配置而在原生層崩潰
-    clientId: OAuthConfig.googleClientId,
+    // 對 Android 而言，serverClientId 需填寫 Web OAuth client，
+    // Flutter 會自動由 google-services.json 解析 Android client。
+    serverClientId: OAuthConfig.googleClientId,
     scopes: OAuthConfig.googleScopes,
   );
 
@@ -58,6 +60,7 @@ class OAuthService {
           error: 'Google 登入未正確配置，請聯繫開發者',
         );
       }
+      final bool alreadySignedIn = await _googleSignIn.isSignedIn();
 
       // 執行 Google 登入
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -353,4 +356,5 @@ class OAuthService {
       return null;
     }
   }
+
 }
