@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/custom_app_bar.dart';
 import 'login_screen.dart';
+import 'order_list_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -153,8 +154,11 @@ class ProfileScreen extends StatelessWidget {
             title: '我的訂單',
             subtitle: '查看訂單狀態',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('訂單功能開發中')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const OrderListScreen(),
+                ),
               );
             },
           ),
