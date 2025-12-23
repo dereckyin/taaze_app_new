@@ -10,6 +10,7 @@ import 'cart_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_screen.dart';
 import 'ai_chat_screen.dart';
+import '../providers/ai_chat_provider.dart';
 // import 'debug_screen.dart'; // Debug功能已隱藏
 
 class MainScreen extends StatefulWidget {
@@ -68,6 +69,7 @@ class _MainScreenState extends State<MainScreen> {
           // AI智能對話按鈕
           FloatingActionButton(
             onPressed: () {
+              context.read<AiChatProvider>().setProductContext(null);
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const AiChatScreen()),

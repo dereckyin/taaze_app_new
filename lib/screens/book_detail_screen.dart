@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/book.dart';
 import '../providers/cart_provider.dart';
+import '../providers/auth_provider.dart';
 import '../providers/ai_chat_provider.dart';
 import 'ai_chat_screen.dart';
+import 'login_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/cached_image_widget.dart';
@@ -219,6 +221,13 @@ class BookDetailScreen extends StatelessWidget {
                   color: Colors.grey[700],
                 ),
           ),
+          const SizedBox(height: 8),
+          Text(
+            '每次提問後，AI 會回傳可點選的下一步建議，不需要手動輸入。',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[600],
+                ),
+          ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -226,9 +235,18 @@ class BookDetailScreen extends StatelessWidget {
             children: presetQuestions.map((q) {
               return ActionChip(
                 label: Text(q),
-                onPressed: () {
-                  // 發送預設問題並開啟 AI 對話畫面
-                  context.read<AiChatProvider>().sendMessage(q);
+                onPressed: () async {
+                  final token = await _requireAuthToken(context);
+                  if (token == null) return;
+
+                  final aiProvider = context.read<AiChatProvider>();
+                  aiProvider.setProductContext(book.id);
+                  await aiProvider.sendMessage(
+                    q,
+                    productId: book.id,
+                    token: token,
+                  );
+                  if (!context.mounted) return;
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -245,7 +263,12 @@ class BookDetailScreen extends StatelessWidget {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
-              onPressed: () {
+              onPressed: () async {
+                final token = await _requireAuthToken(context);
+                if (token == null) return;
+
+                context.read<AiChatProvider>().setProductContext(book.id);
+                if (!context.mounted) return;
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -260,6 +283,32 @@ class BookDetailScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<String?> _requireAuthToken(BuildContext context) async {
+    final authProvider = context.read<AuthProvider>();
+    final existingToken = authProvider.authToken;
+    if (existingToken != null && existingToken.isNotEmpty) {
+      return existingToken;
+    }
+
+    if (!context.mounted) return null;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('請先登入會員才能使用 AI 對話功能。')),
+    );
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+
+    final refreshedToken = context.read<AuthProvider>().authToken;
+    if (refreshedToken != null && refreshedToken.isNotEmpty) {
+      return refreshedToken;
+    }
+
+    return null;
   }
 
   Widget _buildPodcastCard(BuildContext context) {

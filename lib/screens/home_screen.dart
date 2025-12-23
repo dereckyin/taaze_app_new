@@ -57,17 +57,27 @@ class _HomeScreenState extends State<HomeScreen> {
   void _startBannerTimer() {
     _bannerTimer?.cancel();
     _bannerTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (mounted) {
-        final bannerProvider = context.read<BannerProvider>();
-        final banners = bannerProvider.banners;
-        if (banners.isNotEmpty) {
-          final nextIndex = (_currentBannerIndex + 1) % banners.length;
-          _bannerPageController.animateToPage(
-            nextIndex,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
-        }
+      if (!mounted) return;
+
+      final bannerProvider = context.read<BannerProvider>();
+      final banners = bannerProvider.banners;
+      if (banners.isEmpty) return;
+      if (!_bannerPageController.hasClients) return;
+
+      final nextIndex = (_currentBannerIndex + 1) % banners.length;
+
+      // PageController 會在還沒 attach 時丟出 assertion，需要防護。
+      try {
+        _bannerPageController.animateToPage(
+          nextIndex,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      } catch (e) {
+        DebugHelper.log(
+          'HomeScreen banner auto-scroll skipped: $e',
+          tag: 'HomeScreen',
+        );
       }
     });
   }
