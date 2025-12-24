@@ -55,6 +55,7 @@ class ApiConfig {
   static const String usedBooksLatestEndpoint = '/book/second-hand/latest';
   static const String aiTalkToBooksEndpoint = '/ai/talk-to-the-books/chat';
   static const String ordersEndpoint = '/orders';
+  static const String orderItemsEndpoint = '/orders/items';
 
   /// 獲取所有可用的 API 端點
   static List<ApiEndpoint> get availableEndpoints => [

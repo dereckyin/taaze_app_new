@@ -13,6 +13,7 @@ class Book {
   final String isbn;
   final int pages;
   final String publisher;
+  final String? orgProdId;
 
   Book({
     required this.id,
@@ -29,6 +30,7 @@ class Book {
     required this.isbn,
     required this.pages,
     required this.publisher,
+    this.orgProdId,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
@@ -49,6 +51,7 @@ class Book {
       isbn: json['isbn'] ?? '',
       pages: json['pages'] ?? 0,
       publisher: json['publisher'] ?? '',
+      orgProdId: json['orgProdId'],
     );
   }
 
@@ -68,6 +71,7 @@ class Book {
       'isbn': isbn,
       'pages': pages,
       'publisher': publisher,
+      'orgProdId': orgProdId,
     };
   }
 
@@ -86,6 +90,7 @@ class Book {
     String? isbn,
     int? pages,
     String? publisher,
+      String? orgProdId,
   }) {
     return Book(
       id: id ?? this.id,
@@ -102,6 +107,7 @@ class Book {
       isbn: isbn ?? this.isbn,
       pages: pages ?? this.pages,
       publisher: publisher ?? this.publisher,
+      orgProdId: orgProdId ?? this.orgProdId,
     );
   }
 }

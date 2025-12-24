@@ -895,6 +895,7 @@ class BookProvider with ChangeNotifier {
       isbn: json['isbn']?.toString() ?? '',
       pages: 0,
       publisher: json['pubNmMain']?.toString() ?? '',
+      orgProdId: json['orgProdId']?.toString(),
     );
   }
 
