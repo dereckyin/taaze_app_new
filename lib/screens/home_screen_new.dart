@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/book_provider.dart';
 import '../providers/bestsellers_provider.dart';
 import '../providers/cart_provider.dart';
@@ -379,24 +380,32 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _openTodayDealsPage() async {
+    const url = 'https://www.taaze.tw/act66.html';
+    final uri = Uri.parse(url);
+    try {
+      final openedExternally =
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!openedExternally) {
+        final openedInApp = await launchUrl(uri);
+        if (!openedInApp) {
+          throw Exception('unable to open');
+        }
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('無法開啟今日特惠頁面，請稍後再試')),
+      );
+    }
+  }
+
   // 今日特惠板塊
   Widget _buildTodayDealsSection(List<dynamic> todayDeals) {
     return _buildBookSection(
       title: '今日特惠',
       books: todayDeals,
-      onViewAll: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const BookListScreen(
-              title: '今日特惠',
-              endpoint: '/api/books/today-deals',
-              startNum: 0,
-              endNum: 19,
-            ),
-          ),
-        );
-      },
+      onViewAll: _openTodayDealsPage,
     );
   }
 

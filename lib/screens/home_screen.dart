@@ -517,6 +517,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _openTodayDealsPage() {
+    _launchExternalUrl('https://www.taaze.tw/act66.html');
+  }
+
   Widget _buildQuickActionsSection() {
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -722,38 +726,14 @@ class _HomeScreenState extends State<HomeScreen> {
           return _buildBookSection(
             title: '今日特惠',
             books: [],
-            onViewAll: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const BookListScreen(
-                    title: '今日特惠',
-                    endpoint: '/content/deals/today',
-              startNum: 0,
-              endNum: 19,
-                  ),
-                ),
-              );
-            },
+            onViewAll: _openTodayDealsPage,
           );
         }
 
         return _buildBookSection(
           title: '今日特惠',
           books: todayDealsProvider.todayDeals,
-          onViewAll: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const BookListScreen(
-                  title: '今日特惠',
-                  endpoint: '/content/deals/today',
-              startNum: 0,
-              endNum: 19,
-                ),
-              ),
-            );
-          },
+          onViewAll: _openTodayDealsPage,
         );
       },
     );

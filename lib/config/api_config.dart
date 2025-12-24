@@ -6,7 +6,7 @@ class ApiConfig {
   //static const String testUrl = 'https://api.taaze.tw/api/v1';
 
   // 當前使用的 API 端點
-  static String _currentBaseUrl = testUrl; // 預設使用測試環境
+  static String _currentBaseUrl = productionUrl; // 預設使用測試環境
 
   /// 獲取當前 API 端點
   static String get baseUrl => _currentBaseUrl;

@@ -72,20 +72,16 @@ class _SearchScreenState extends State<SearchScreen> {
       final moreResults = await SearchService.searchBooks(
         keyword: _currentQuery,
         page: _currentPage + 1,
-        pageSize: 20,
       );
 
       if (mounted) {
         setState(() {
-          if (moreResults.isEmpty) {
+          if (moreResults.books.isEmpty) {
             _hasMoreData = false;
           } else {
-            _searchResults.addAll(moreResults);
+            _searchResults.addAll(moreResults.books);
             _currentPage++;
-            // 如果返回的結果少於請求的數量，表示沒有更多資料
-            if (moreResults.length < 20) {
-              _hasMoreData = false;
-            }
+            _hasMoreData = moreResults.hasMore;
           }
           _isLoadingMore = false;
         });
@@ -131,15 +127,13 @@ class _SearchScreenState extends State<SearchScreen> {
           final results = await SearchService.searchBooks(
             keyword: query,
             page: 1,
-            pageSize: 20,
           );
           if (mounted) {
             setState(() {
-              _searchResults = results;
+              _searchResults = results.books;
               _isSearching = false;
               _currentPage = 1;
-              // 如果結果少於20個，表示沒有更多資料
-              _hasMoreData = results.length >= 20;
+              _hasMoreData = results.hasMore;
             });
           }
         } catch (e) {
