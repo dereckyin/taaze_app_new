@@ -250,7 +250,7 @@ class CartScreen extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 if (authProvider.isAuthenticated) {
-                  _handleCheckout(context, authProvider);
+                  _handleCheckout(context, cartProvider, authProvider);
                 } else {
                   Navigator.push(
                     context,
@@ -282,8 +282,14 @@ class CartScreen extends StatelessWidget {
 
   Future<void> _handleCheckout(
     BuildContext context,
+    CartProvider cartProvider,
     AuthProvider authProvider,
   ) async {
+    if (cartProvider.items.isEmpty) {
+      _showSnackBar(context, '購物車目前沒有商品，請先加入商品後再結帳');
+      return;
+    }
+
     final token = authProvider.authToken;
     if (token == null || token.isEmpty) {
       _showSnackBar(context, '登入狀態已失效，請重新登入後再試');
@@ -296,6 +302,11 @@ class CartScreen extends StatelessWidget {
 
     _showLoadingDialog(context);
     try {
+      await CheckoutService.syncCartItems(
+        token: token,
+        items: cartProvider.items,
+      );
+
       final ticket =
           await CheckoutService.requestCheckoutTicket(token: token);
       await _openCheckoutUrl(context, ticket.checkoutUrl);
