@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/checkout_service.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/cached_image_widget.dart';
 import 'login_screen.dart';
-import 'checkout_screen.dart';
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
@@ -249,12 +250,7 @@ class CartScreen extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 if (authProvider.isAuthenticated) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CheckoutScreen(),
-                    ),
-                  );
+                  _handleCheckout(context, authProvider);
                 } else {
                   Navigator.push(
                     context,
@@ -282,6 +278,80 @@ class CartScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _handleCheckout(
+    BuildContext context,
+    AuthProvider authProvider,
+  ) async {
+    final token = authProvider.authToken;
+    if (token == null || token.isEmpty) {
+      _showSnackBar(context, '登入狀態已失效，請重新登入後再試');
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+      return;
+    }
+
+    _showLoadingDialog(context);
+    try {
+      final ticket =
+          await CheckoutService.requestCheckoutTicket(token: token);
+      await _openCheckoutUrl(context, ticket.checkoutUrl);
+    } on CheckoutException catch (e) {
+      _showSnackBar(context, e.message);
+    } catch (e) {
+      _showSnackBar(context, '建立結帳連結時發生錯誤，請稍後再試');
+    } finally {
+      _hideLoadingDialog(context);
+    }
+  }
+
+  Future<void> _openCheckoutUrl(BuildContext context, String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      _showSnackBar(context, '伺服器回傳的結帳連結格式不正確');
+      return;
+    }
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        _showSnackBar(context, '無法開啟結帳頁面，請確認裝置是否允許外部瀏覽器');
+      }
+    } catch (e) {
+      _showSnackBar(context, '開啟結帳頁面時發生錯誤，請稍後再試');
+    }
+  }
+
+  void _showLoadingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      useRootNavigator: true,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  void _hideLoadingDialog(BuildContext context) {
+    final navigator = Navigator.of(context, rootNavigator: true);
+    if (navigator.canPop()) {
+      navigator.pop();
+    }
+  }
+
+  void _showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message)),
+      );
   }
 
   void _showDeleteDialog(
