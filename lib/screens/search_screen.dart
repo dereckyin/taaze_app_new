@@ -26,7 +26,6 @@ class _SearchScreenState extends State<SearchScreen> {
   int _currentPage = 1;
   String _currentQuery = '';
   String? _error;
-  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -50,7 +49,6 @@ class _SearchScreenState extends State<SearchScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
-    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -96,11 +94,10 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _performSearch(String query) {
-    // 取消之前的延遲搜尋
-    _debounceTimer?.cancel();
+  Future<void> _performSearch(String query) async {
+    final trimmedQuery = query.trim();
 
-    if (query.isEmpty) {
+    if (trimmedQuery.isEmpty) {
       setState(() {
         _searchResults = [];
         _currentQuery = '';
@@ -112,40 +109,37 @@ class _SearchScreenState extends State<SearchScreen> {
       return;
     }
 
-    // 設置延遲搜尋，避免頻繁API調用
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+    if (mounted) {
+      setState(() {
+        _isSearching = true;
+        _currentQuery = trimmedQuery;
+        _error = null;
+        _currentPage = 1;
+        _hasMoreData = true;
+      });
+    }
+
+    try {
+      final results = await SearchService.searchBooks(
+        keyword: trimmedQuery,
+        page: 1,
+      );
       if (mounted) {
         setState(() {
-          _isSearching = true;
-          _currentQuery = query;
-          _error = null;
+          _searchResults = results.books;
+          _isSearching = false;
           _currentPage = 1;
-          _hasMoreData = true;
+          _hasMoreData = results.hasMore;
         });
-
-        try {
-          final results = await SearchService.searchBooks(
-            keyword: query,
-            page: 1,
-          );
-          if (mounted) {
-            setState(() {
-              _searchResults = results.books;
-              _isSearching = false;
-              _currentPage = 1;
-              _hasMoreData = results.hasMore;
-            });
-          }
-        } catch (e) {
-          if (mounted) {
-            setState(() {
-              _error = '搜尋失敗：${e.toString()}';
-              _isSearching = false;
-            });
-          }
-        }
       }
-    });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = '搜尋失敗：${e.toString()}';
+          _isSearching = false;
+        });
+      }
+    }
   }
 
   @override
@@ -192,9 +186,8 @@ class _SearchScreenState extends State<SearchScreen> {
                     )
                   : null,
             ),
-            onChanged: (value) {
+            onChanged: (_) {
               setState(() {}); // 重新構建以顯示/隱藏清除按鈕
-              _performSearch(value);
             },
             onSubmitted: _performSearch,
             textInputAction: TextInputAction.search,

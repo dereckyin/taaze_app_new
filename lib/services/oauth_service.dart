@@ -127,8 +127,10 @@ class OAuthService {
   /// Facebook 登入
   static Future<OAuthLoginResponse> signInWithFacebook() async {
     try {
+      _log('Start Facebook sign-in');
       // 檢查 Facebook 配置
       if (!OAuthConfig.isFacebookConfigured()) {
+        _log('Facebook sign-in blocked: config disabled');
         return const OAuthLoginResponse(
           success: false,
           error: 'Facebook 登入未正確配置，請聯繫開發者',
@@ -139,6 +141,7 @@ class OAuthService {
       final LoginResult result = await FacebookAuth.instance.login(
         permissions: _facebookPermissions,
       );
+      _log('Facebook login status: ${result.status}');
 
       if (result.status != LoginStatus.success) {
         return OAuthLoginResponse(
@@ -147,8 +150,19 @@ class OAuthService {
         );
       }
 
+      final accessToken = result.accessToken?.token;
+      if (accessToken == null || accessToken.isEmpty) {
+        _log('Facebook access token missing');
+        return const OAuthLoginResponse(
+          success: false,
+          error: '無法取得 Facebook 憑證，請稍後再試',
+        );
+      }
+
       // 獲取用戶資料
-      final userData = await FacebookAuth.instance.getUserData();
+      final userData = await FacebookAuth.instance.getUserData(
+        fields: 'id,name,email,picture.width(320).height(320)',
+      );
 
       if (userData['email'] == null) {
         return const OAuthLoginResponse(
@@ -158,20 +172,27 @@ class OAuthService {
       }
 
       // 創建 OAuth 用戶資料
+      final picture = userData['picture'] as Map<String, dynamic>?;
+      final pictureData = picture?['data'] as Map<String, dynamic>?;
+      final avatarUrl = pictureData?['url'] as String?;
+
       final oauthUser = OAuthUser(
         id: userData['id'] as String,
         email: userData['email'] as String,
         name: userData['name'] as String? ?? '',
-        avatar: userData['picture']?['data']?['url'] as String?,
+        avatar: avatarUrl,
         provider: 'facebook',
-        accessToken: result.accessToken?.token,
+        accessToken: accessToken,
         createdAt: DateTime.now(),
         lastLoginAt: DateTime.now(),
       );
 
       // 發送到後端驗證
-      return await _sendOAuthToBackend(oauthUser);
-    } catch (e) {
+      final response = await _sendOAuthToBackend(oauthUser);
+      _log('Facebook sign-in backend response success=${response.success}');
+      return response;
+    } catch (e, stackTrace) {
+      _log('Facebook sign-in exception', error: e, stackTrace: stackTrace);
       return OAuthLoginResponse(
         success: false,
         error: 'Facebook 登入失敗：${e.toString()}',

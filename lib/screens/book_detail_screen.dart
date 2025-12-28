@@ -225,19 +225,19 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               onRefresh: _onRefresh,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                     _buildBookHeader(context, book),
                     _buildBookDetails(context, book),
                     _buildTaazeExtras(context),
                     _buildAiAssistant(context, book),
                     _buildBookDescription(context, book),
                     _buildCatalogueSection(context),
-                    _buildReviewsSection(context),
-                  ],
-                ),
-              ),
+            _buildReviewsSection(context),
+          ],
+        ),
+      ),
             ),
           ),
         ],
@@ -520,9 +520,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   Widget _buildAiAssistant(BuildContext context, Book book) {
     final presetQuestions = [
-      '請幫我抓取《${book.title}》的大綱',
-      '這本書適合哪些讀者？',
-      '讀完《${book.title}》能獲得的三個重點是什麼？',
+      "AI 幫我抓這本書的重點",
+      "為什麼應該買這一本書？",
+      "我是一個上班族，我該用什麼角度去理解書中內容？",
+      "這本書怎麼幫助我變聰明有智慧？",
+      "告訴我這個作者有什麼特殊背景？"
     ];
 
     return Container(
@@ -662,46 +664,46 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Colors.pink[100],
-                  borderRadius: BorderRadius.circular(10),
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.pink[100],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.headset, color: Colors.pink, size: 28),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Podcast',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-                child: const Icon(Icons.headset, color: Colors.pink, size: 28),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '有聲書試聽',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
+                const SizedBox(height: 4),
+                Text(
                       hasSample
-                          ? '播放 Taaze 提供的 AI 導讀樣本'
+                          ? '播放 Taaze 提供的 Podcast'
                           : (_podcastError ??
                               (_isCheckingPodcast
-                                  ? '正在檢查試聽檔案…'
-                                  : '暫無試聽檔，可稍後再試')),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  ? '正在檢查Podcast檔案…'
+                                  : '暫無Podcast檔，可稍後再試')),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: hasSample
                                 ? Colors.grey[700]
                                 : Colors.grey[600],
-                          ),
+                      ),
                       maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
                 onPressed: hasSample
                     ? (_isPlayerLoading ? null : _togglePlayback)
                     : (_isCheckingPodcast ? null : () => _checkPodcastAvailability()),
@@ -730,15 +732,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   hasSample
                       ? (_isPlayerLoading
                           ? '載入中'
-                          : (_isPlaying ? '暫停' : '播放試聽'))
+                          : (_isPlaying ? '暫停' : '播放'))
                       : (_isCheckingPodcast ? '檢查中' : '重新搜尋'),
                 ),
-                style: ElevatedButton.styleFrom(
+            style: ElevatedButton.styleFrom(
                   backgroundColor:
                       hasSample ? Colors.pink : Colors.grey[500],
-                  foregroundColor: Colors.white,
-                ),
-              ),
+              foregroundColor: Colors.white,
+            ),
+          ),
             ],
           ),
           if (hasSample) ...[

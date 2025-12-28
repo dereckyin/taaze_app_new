@@ -46,17 +46,17 @@ class AiChatProvider with ChangeNotifier {
     notifyListeners();
 
     if (token == null || token.isEmpty) {
-      _messages.add(
-        ChatMessage(
+    _messages.add(
+      ChatMessage(
           content: '請先登入會員後再使用 AI 對話功能。',
           isUser: false,
-          timestamp: DateTime.now(),
-        ),
-      );
+        timestamp: DateTime.now(),
+      ),
+    );
       _isLoading = false;
-      notifyListeners();
+    notifyListeners();
       return;
-    }
+  }
 
     _messages.add(
       ChatMessage(

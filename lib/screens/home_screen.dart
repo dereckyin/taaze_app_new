@@ -59,20 +59,20 @@ class _HomeScreenState extends State<HomeScreen> {
     _bannerTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (!mounted) return;
 
-      final bannerProvider = context.read<BannerProvider>();
-      final banners = bannerProvider.banners;
+        final bannerProvider = context.read<BannerProvider>();
+        final banners = bannerProvider.banners;
       if (banners.isEmpty) return;
       if (!_bannerPageController.hasClients) return;
 
-      final nextIndex = (_currentBannerIndex + 1) % banners.length;
+          final nextIndex = (_currentBannerIndex + 1) % banners.length;
 
       // PageController 會在還沒 attach 時丟出 assertion，需要防護。
       try {
-        _bannerPageController.animateToPage(
-          nextIndex,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
+          _bannerPageController.animateToPage(
+            nextIndex,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
       } catch (e) {
         DebugHelper.log(
           'HomeScreen banner auto-scroll skipped: $e',
@@ -792,22 +792,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return Consumer<NewArrivalsProvider>(
       builder: (context, newArrivalsProvider, child) {
         if (newArrivalsProvider.isLoading) {
-          return _buildBookSection(
-            title: '注目新品',
+    return _buildBookSection(
+      title: '注目新品',
             books: const [],
-            onViewAll: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
+      onViewAll: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
                   builder: (context) => BookListScreen(
-                    title: '注目新品',
+              title: '注目新品',
                     endpoint: BookProvider.taazeNewArrivalsEndpoint,
-                    startNum: 0,
-                    endNum: 19,
-                  ),
-                ),
-              );
-            },
+              startNum: 0,
+              endNum: 19,
+            ),
+          ),
+        );
+      },
           );
         }
 
@@ -893,9 +893,9 @@ class _HomeScreenState extends State<HomeScreen> {
           return const SizedBox.shrink();
         }
 
-        return _buildBookSection(
-          title: '最新上架二手書',
-          books: usedBooks,
+    return _buildBookSection(
+      title: '最新上架二手書',
+      books: usedBooks,
           onViewAll: _navigateToUsedBooksLatest,
         );
       },
@@ -903,16 +903,16 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToUsedBooksLatest() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
+        Navigator.push(
+          context,
+          MaterialPageRoute(
         builder: (context) => BookListScreen(
-          title: '最新上架二手書',
+              title: '最新上架二手書',
           endpoint: ApiConfig.usedBooksLatestEndpoint,
-          startNum: 0,
-          endNum: 19,
-        ),
-      ),
+              startNum: 0,
+              endNum: 19,
+            ),
+          ),
     );
   }
 
