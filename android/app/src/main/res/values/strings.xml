@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">讀冊新生活</string>
-    <string name="facebook_app_id">362610148222713</string>
-    <string name="facebook_client_token">2437e6fb6a7be26586cccb1c24b8240d</string>
-    <string name="fb_login_protocol_scheme">fb362610148222713</string>
+    <string name="facebook_app_id">1556848302106102</string>
+    <string name="facebook_client_token">952e7929a31122f148758c7c766bbd83</string>
+    <string name="fb_login_protocol_scheme">fb1556848302106102</string>
 </resources>

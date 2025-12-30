@@ -16,12 +16,6 @@
 	<string>6.0</string>
 	<key>CFBundleName</key>
 	<string>讀冊新生活</string>
-	<key>FacebookAppID</key>
-	<string>362610148222713</string>
-	<key>FacebookClientToken</key>
-	<string>2437e6fb6a7be26586cccb1c24b8240d</string>
-	<key>FacebookDisplayName</key>
-	<string>讀冊新生活</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -77,21 +71,23 @@
 				<string>com.googleusercontent.apps.742486726494-0hrekm20m41n75j1moucd5ag54d25da6</string>
 			</array>
 		</dict>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>fb362610148222713</string>
-			</array>
-		</dict>
 	</array>
-	<key>LSApplicationQueriesSchemes</key>
+	<key>CFBundleURLTypes</key>
 	<array>
-		<string>fbapi</string>
-		<string>fb-messenger-share-api</string>
-		<string>fbauth2</string>
-		<string>fbshareextension</string>
+	<dict>
+	<key>CFBundleURLName</key>
+	<string>facebook</string>
+	<key>CFBundleURLSchemes</key>
+	<array>
+		<string>fb1556848302106102</string>
 	</array>
+	</dict>
+	</array>
+	<key>FacebookAppID</key>
+	<string>1556848302106102</string>
+	<key>FacebookClientToken</key>
+	<string>952e7929a31122f148758c7c766bbd83</string>
+	<key>FacebookDisplayName</key>
+	<string>讀冊新生活</string>
 </dict>
 </plist>

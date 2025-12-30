@@ -36,7 +36,7 @@
         </activity>
         <provider
             android:name="com.facebook.FacebookContentProvider"
-            android:authorities="com.facebook.app.FacebookContentProvider362610148222713"
+            android:authorities="com.facebook.app.FacebookContentProvider1556848302106102"
             android:exported="true" />
         <!-- Default notification channel for FCM (Android 8+) -->
         <meta-data

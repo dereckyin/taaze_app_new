@@ -1,5 +1,6 @@
 class Book {
   final String id;
+  final String? orgProdId;
   final String title;
   final String author;
   final String description;
@@ -13,10 +14,10 @@ class Book {
   final String isbn;
   final int pages;
   final String publisher;
-  final String? orgProdId;
 
   Book({
     required this.id,
+    this.orgProdId,
     required this.title,
     required this.author,
     required this.description,
@@ -30,12 +31,12 @@ class Book {
     required this.isbn,
     required this.pages,
     required this.publisher,
-    this.orgProdId,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
       id: json['id'] ?? '',
+      orgProdId: json['orgProdId']?.toString(),
       title: json['title'] ?? '',
       author: json['author'] ?? '',
       description: json['description'] ?? '',
@@ -51,13 +52,13 @@ class Book {
       isbn: json['isbn'] ?? '',
       pages: json['pages'] ?? 0,
       publisher: json['publisher'] ?? '',
-      orgProdId: json['orgProdId'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'orgProdId': orgProdId,
       'title': title,
       'author': author,
       'description': description,
@@ -71,12 +72,12 @@ class Book {
       'isbn': isbn,
       'pages': pages,
       'publisher': publisher,
-      'orgProdId': orgProdId,
     };
   }
 
   Book copyWith({
     String? id,
+    String? orgProdId,
     String? title,
     String? author,
     String? description,
@@ -90,10 +91,10 @@ class Book {
     String? isbn,
     int? pages,
     String? publisher,
-      String? orgProdId,
   }) {
     return Book(
       id: id ?? this.id,
+      orgProdId: orgProdId ?? this.orgProdId,
       title: title ?? this.title,
       author: author ?? this.author,
       description: description ?? this.description,
@@ -107,7 +108,6 @@ class Book {
       isbn: isbn ?? this.isbn,
       pages: pages ?? this.pages,
       publisher: publisher ?? this.publisher,
-      orgProdId: orgProdId ?? this.orgProdId,
     );
   }
 }
