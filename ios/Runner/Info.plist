@@ -64,6 +64,8 @@
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleURLName</key>
+			<string>google</string>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
@@ -71,17 +73,16 @@
 				<string>com.googleusercontent.apps.742486726494-0hrekm20m41n75j1moucd5ag54d25da6</string>
 			</array>
 		</dict>
-	</array>
-	<key>CFBundleURLTypes</key>
-	<array>
-	<dict>
-	<key>CFBundleURLName</key>
-	<string>facebook</string>
-	<key>CFBundleURLSchemes</key>
-	<array>
-		<string>fb1556848302106102</string>
-	</array>
-	</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>facebook</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb1556848302106102</string>
+			</array>
+		</dict>
 	</array>
 	<key>FacebookAppID</key>
 	<string>1556848302106102</string>
@@ -89,5 +90,23 @@
 	<string>952e7929a31122f148758c7c766bbd83</string>
 	<key>FacebookDisplayName</key>
 	<string>讀冊新生活</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>fbapi</string>
+		<string>fbapi20130214</string>
+		<string>fbapi20130410</string>
+		<string>fbapi20130702</string>
+		<string>fbapi20131010</string>
+		<string>fbapi20131219</string>
+		<string>fbapi20140410</string>
+		<string>fbapi20140116</string>
+		<string>fbapi20150313</string>
+		<string>fbapi20150629</string>
+		<string>fbapi20160328</string>
+		<string>fbauth</string>
+		<string>fbauth2</string>
+		<string>fb-messenger-share-api</string>
+		<string>fbshareextension</string>
+	</array>
 </dict>
 </plist>

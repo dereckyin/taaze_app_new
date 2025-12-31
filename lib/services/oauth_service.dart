@@ -56,10 +56,50 @@ class OAuthService {
     }
   }
 
+  // #region agent log helper (sync; NDJSON)
+  static void _agentDebugLogSync({
+    required String hypothesisId,
+    required String location,
+    required String message,
+    Map<String, Object?> data = const {},
+    required String runId,
+  }) {
+    const String logPath = '/Users/yinteming/my_app/.cursor/debug.log';
+    try {
+      final logEntry = {
+        'sessionId': 'debug-session',
+        'runId': runId,
+        'hypothesisId': hypothesisId,
+        'location': location,
+        'message': message,
+        'data': data,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+      };
+      File(logPath).writeAsStringSync('${jsonEncode(logEntry)}\n',
+          mode: FileMode.append, flush: true);
+    } catch (_) {
+      // ignore
+    }
+  }
+  // #endregion
+
   /// Google 登入
   static Future<OAuthLoginResponse> signInWithGoogle() async {
     try {
       _log('Start Google sign-in');
+      // #region agent log
+      _agentDebugLogSync(
+        hypothesisId: 'G1',
+        location: 'OAuthService.signInWithGoogle:START',
+        message: 'Enter signInWithGoogle',
+        data: {
+          'platform': Platform.operatingSystem,
+          'iosClientId': OAuthConfig.googleClientIdIOS,
+          'derivedUrlScheme': 'com.googleusercontent.apps.${OAuthConfig.googleClientIdIOS.split('.apps.googleusercontent.com').first}',
+        },
+        runId: 'g-pre-1',
+      );
+      // #endregion
       // 檢查 Google 配置
       if (!OAuthConfig.isGoogleConfigured()) {
         _log('Google sign-in blocked: config disabled');
@@ -70,21 +110,78 @@ class OAuthService {
       }
 
       // 執行 Google 登入
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // #region agent log
+      _agentDebugLogSync(
+        hypothesisId: 'G2',
+        location: 'OAuthService.signInWithGoogle:BEFORE_SIGNIN',
+        message: 'Before GoogleSignIn.signIn',
+        data: {},
+        runId: 'g-pre-1',
+      );
+      // #endregion
+      bool timedOut = false;
+      final GoogleSignInAccount? googleUser = await _googleSignIn
+          .signIn()
+          .timeout(const Duration(seconds: 20), onTimeout: () async {
+        timedOut = true;
+        // #region agent log
+        _agentDebugLogSync(
+          hypothesisId: 'G2',
+          location: 'OAuthService.signInWithGoogle:SIGNIN_TIMEOUT',
+          message: 'GoogleSignIn.signIn timed out',
+          data: {'timeoutSeconds': 20},
+          runId: 'g-pre-1',
+        );
+        // #endregion
+        return null;
+      });
       _log('Google sign-in result: user=${googleUser?.email ?? 'null'}');
+      // #region agent log
+      _agentDebugLogSync(
+        hypothesisId: 'G2',
+        location: 'OAuthService.signInWithGoogle:AFTER_SIGNIN',
+        message: 'After GoogleSignIn.signIn',
+        data: {'hasUser': googleUser != null, 'timedOut': timedOut},
+        runId: 'g-pre-1',
+      );
+      // #endregion
 
       if (googleUser == null) {
         _log('Google sign-in cancelled by user');
-        return const OAuthLoginResponse(success: false, error: 'Google 登入被取消');
+        return OAuthLoginResponse(
+          success: false,
+          error: timedOut ? 'Google 登入逾時（可能卡在授權頁/回呼）' : 'Google 登入被取消',
+        );
       }
 
       // 獲取認證詳情
+      // #region agent log
+      _agentDebugLogSync(
+        hypothesisId: 'G3',
+        location: 'OAuthService.signInWithGoogle:BEFORE_AUTH',
+        message: 'Before googleUser.authentication',
+        data: {},
+        runId: 'g-pre-1',
+      );
+      // #endregion
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
       _log(
         'Google authentication fetched '
         '(accessToken? ${googleAuth.accessToken != null}, idToken? ${googleAuth.idToken != null})',
       );
+      // #region agent log
+      _agentDebugLogSync(
+        hypothesisId: 'G3',
+        location: 'OAuthService.signInWithGoogle:AFTER_AUTH',
+        message: 'After googleUser.authentication (presence only)',
+        data: {
+          'hasAccessToken': googleAuth.accessToken != null,
+          'hasIdToken': googleAuth.idToken != null,
+        },
+        runId: 'g-pre-1',
+      );
+      // #endregion
 
       // 在部分 Android 環境下可能拿不到 accessToken；改以 idToken 作為後端驗證回退
       final String? accessToken = googleAuth.accessToken ?? googleAuth.idToken;

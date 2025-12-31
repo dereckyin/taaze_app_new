@@ -10,7 +10,16 @@ import 'register_screen.dart';
 import 'main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  /// 若從「結帳」等需要回到上一頁的情境進入，可用 [popOnSuccess] 讓登入成功後
+  /// `Navigator.pop(context, true)` 回傳成功，交由上一頁接續流程。
+  final bool popOnSuccess;
+  final VoidCallback? onLoginSuccess;
+
+  const LoginScreen({
+    super.key,
+    this.popOnSuccess = false,
+    this.onLoginSuccess,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -200,6 +209,12 @@ class _LoginScreenState extends State<LoginScreen> {
               // OAuth 登入按鈕
               OAuthButtons(
                 onSuccess: () {
+                  if (!context.mounted) return;
+                  if (widget.popOnSuccess) {
+                    widget.onLoginSuccess?.call();
+                    Navigator.pop(context, true);
+                    return;
+                  }
                   // OAuth 登入成功，導航到主頁面
                   Navigator.pushAndRemoveUntil(
                     context,
@@ -424,6 +439,12 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success && mounted) {
       // 登入成功，清除驗證碼輸入框
       _captchaController.clear();
+
+      if (widget.popOnSuccess) {
+        widget.onLoginSuccess?.call();
+        Navigator.pop(context, true);
+        return;
+      }
 
       Navigator.pushAndRemoveUntil(
         context,

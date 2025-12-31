@@ -252,12 +252,19 @@ class CartScreen extends StatelessWidget {
                 if (authProvider.isAuthenticated) {
                   _handleCheckout(context, cartProvider, authProvider);
                 } else {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(),
-                    ),
-                  );
+                  () async {
+                    final loggedIn = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginScreen(
+                          popOnSuccess: true,
+                        ),
+                      ),
+                    );
+                    if (loggedIn == true && context.mounted) {
+                      _handleCheckout(context, cartProvider, authProvider);
+                    }
+                  }();
                 }
               },
               style: ElevatedButton.styleFrom(
