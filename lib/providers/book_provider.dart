@@ -864,9 +864,9 @@ class BookProvider with ChangeNotifier {
     final prodId = json['prodId']?.toString() ??
         json['orgProdId']?.toString() ??
         '';
-    final salePrice = double.tryParse(json['salePrice']?.toString() ?? '') ??
-        double.tryParse(json['listPrice']?.toString() ?? '') ??
-        0.0;
+    final salePrice = double.tryParse(json['salePrice']?.toString() ?? '');
+    final listPrice = double.tryParse(json['listPrice']?.toString() ?? '');
+    final effectiveSalePrice = salePrice ?? listPrice ?? 0.0;
     final publishDate = DateTime.tryParse(
           json['publishDate']?.toString() ?? '',
         ) ??
@@ -885,7 +885,9 @@ class BookProvider with ChangeNotifier {
       title: json['titleMain']?.toString() ?? '',
       author: json['author']?.toString() ?? '',
       description: description,
-      price: salePrice,
+      price: effectiveSalePrice,
+      listPrice: listPrice,
+      salePrice: salePrice,
       imageUrl: imageUrl,
       category: json['prodCatNm']?.toString() ?? '',
       rating: double.tryParse(json['starLevel']?.toString() ?? '') ?? 0,

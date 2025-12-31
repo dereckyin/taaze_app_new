@@ -313,18 +313,82 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 const SizedBox(height: 16),
 
                 // 價格
-                Text(
-                  'NT\$ ${book.price.toStringAsFixed(0)}',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                _buildPriceBreakdown(context, book),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPriceBreakdown(BuildContext context, Book book) {
+    // 優先使用 Taaze 詳情的即時價格；抓不到時回退到 Book model
+    final raw = _taazeRaw;
+    final rawList = raw == null ? null : _tryParseOptionalDouble(raw['listPrice']);
+    final rawSale = raw == null ? null : _tryParseOptionalDouble(raw['salePrice']);
+
+    final double sale = rawSale ?? book.effectiveSalePrice;
+    final double? list = rawList ?? book.effectiveListPrice;
+
+    String? offLabel;
+    if (list != null && list > 0 && sale > 0 && sale < list) {
+      final off = (sale / list) * 10.0;
+      final rounded = ((off.clamp(0.0, 10.0)) * 10).round() / 10.0;
+      final text = (rounded % 1 == 0)
+          ? rounded.toStringAsFixed(0)
+          : rounded.toStringAsFixed(1);
+      offLabel = '${text}折';
+    }
+
+    final showList = list != null && offLabel != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showList)
+          Text(
+            '定價 NT\$ ${list.toStringAsFixed(0)}',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey[600],
+                  decoration: TextDecoration.lineThrough,
+                ),
+          ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(
+              '優惠價 NT\$ ${sale.toStringAsFixed(0)}',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
+            if (offLabel != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.12),
+                ),
+                child: Text(
+                  '折扣 $offLabel',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                    height: 1.0,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -365,10 +429,26 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         listPrice.isNotEmpty;
     if (!hasPromo) return const SizedBox.shrink();
 
+    final parsedList = _tryParseOptionalDouble(raw['listPrice']);
+    final parsedSale = _tryParseOptionalDouble(raw['salePrice']);
+    String? offLabel;
+    if (parsedList != null &&
+        parsedSale != null &&
+        parsedList > 0 &&
+        parsedSale > 0 &&
+        parsedSale < parsedList) {
+      final off = (parsedSale / parsedList) * 10.0;
+      final rounded = ((off.clamp(0.0, 10.0)) * 10).round() / 10.0;
+      final text = (rounded % 1 == 0)
+          ? rounded.toStringAsFixed(0)
+          : rounded.toStringAsFixed(1);
+      offLabel = '${text}折';
+    }
+
     final priceInfo = [
       if (listPrice.isNotEmpty) '定價 NT\$ $listPrice',
-      if (salePrice.isNotEmpty) '特價 NT\$ $salePrice',
-      if (saleDisc.isNotEmpty) '折扣 $saleDisc%',
+      if (salePrice.isNotEmpty) '優惠價 NT\$ $salePrice',
+      if (offLabel != null) '折扣 $offLabel' else if (saleDisc.isNotEmpty) '折扣 $saleDisc%',
     ].where((text) => text.isNotEmpty).join(' ｜ ');
 
     return Container(

@@ -164,6 +164,8 @@ class SearchService {
       author: author,
       description: description,
       price: price.toDouble(),
+      listPrice: listPrice,
+      salePrice: salePrice,
       imageUrl: imageUrl ?? '',
       category: category,
       rating: 0,

@@ -3,6 +3,95 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../models/book.dart';
 import 'cached_image_widget.dart';
 
+/// 價格顯示元件：定價 / 折扣(幾折) / 優惠價
+/// 若缺少定價/折扣資料，依需求只顯示「優惠價」。
+class PriceDisplay extends StatelessWidget {
+  final Book book;
+  final double saleFontSize;
+  final double listFontSize;
+  final double badgeFontSize;
+  final FontWeight saleWeight;
+
+  const PriceDisplay({
+    super.key,
+    required this.book,
+    this.saleFontSize = 11,
+    this.listFontSize = 8,
+    this.badgeFontSize = 8,
+    this.saleWeight = FontWeight.bold,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sale = book.effectiveSalePrice;
+    final list = book.effectiveListPrice;
+    final offLabel = book.discountOffLabel;
+
+    final showList = list != null && offLabel != null;
+
+    final saleText = '優惠價 NT\$ ${sale.toStringAsFixed(0)}';
+    final listText = showList ? '定價 NT\$ ${list.toStringAsFixed(0)}' : null;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (listText != null)
+          Text(
+            listText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: listFontSize,
+              height: 1.0,
+              color: Colors.grey[600],
+              decoration: TextDecoration.lineThrough,
+            ),
+          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                saleText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: saleWeight,
+                  fontSize: saleFontSize,
+                  height: 1.1,
+                ),
+              ),
+            ),
+            if (offLabel != null) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.12),
+                ),
+                child: Text(
+                  '折扣 $offLabel',
+                  style: TextStyle(
+                    fontSize: badgeFontSize,
+                    height: 1.0,
+                    color: Theme.of(context).colorScheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 class BookCard extends StatelessWidget {
   final Book book;
   final VoidCallback? onTap;
@@ -21,7 +110,9 @@ class BookCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       elevation: 0, // 平坦化設計 - 移除陰影
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)), // 平坦化設計 - 減少圓角
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(4),
+      ), // 平坦化設計 - 減少圓角
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(4), // 平坦化設計 - 減少圓角
@@ -53,9 +144,7 @@ class BookCard extends StatelessWidget {
                     Flexible(
                       child: Text(
                         book.title,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleSmall?.copyWith(
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
@@ -87,9 +176,8 @@ class BookCard extends StatelessWidget {
                         Flexible(
                           child: Text(
                             '${book.rating} (${book.reviewCount})',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodySmall?.copyWith(fontSize: 7, height: 1.1),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(fontSize: 7, height: 1.1),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -103,20 +191,7 @@ class BookCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Flexible(
-                          child: Text(
-                            'NT\$ ${book.price.toStringAsFixed(0)}',
-                            style: Theme.of(context).textTheme.titleMedium
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                  height: 1.1,
-                                ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                        Flexible(child: PriceDisplay(book: book)),
                         if (showAddToCartButton)
                           Container(
                             width: 16,
@@ -223,22 +298,18 @@ class BookListTile extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           '${book.rating} (${book.reviewCount})',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: Colors.grey[600], fontSize: 12),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     // 價格 - 更顯眼
-                    Text(
-                      'NT\$ ${book.price.toStringAsFixed(0)}',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
+                    PriceDisplay(
+                      book: book,
+                      saleFontSize: 16,
+                      listFontSize: 12,
+                      badgeFontSize: 10,
                     ),
                   ],
                 ),
@@ -287,7 +358,9 @@ class RankedBookCard extends StatelessWidget {
 
     return Card(
       elevation: 0, // 平坦化設計 - 移除陰影
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)), // 平坦化設計 - 減少圓角
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(4),
+      ), // 平坦化設計 - 減少圓角
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(4), // 平坦化設計 - 減少圓角
@@ -348,9 +421,7 @@ class RankedBookCard extends StatelessWidget {
                     Flexible(
                       child: Text(
                         book.title,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleSmall?.copyWith(
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
@@ -382,9 +453,8 @@ class RankedBookCard extends StatelessWidget {
                         Flexible(
                           child: Text(
                             '${book.rating} (${book.reviewCount})',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.bodySmall?.copyWith(fontSize: 6, height: 1.1),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(fontSize: 6, height: 1.1),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -394,16 +464,11 @@ class RankedBookCard extends StatelessWidget {
 
                     const SizedBox(height: 1),
                     // 價格
-                    Text(
-                      'NT\$ ${book.price.toStringAsFixed(0)}',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontSize: 10,
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                        height: 1.1,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    PriceDisplay(
+                      book: book,
+                      saleFontSize: 10,
+                      listFontSize: 7,
+                      badgeFontSize: 7,
                     ),
 
                     if (showAddToCartButton) ...[

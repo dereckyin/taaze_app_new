@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:io';
+import 'dart:math' as math;
 import '../providers/ai_chat_provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
@@ -15,6 +16,7 @@ class AiChatScreen extends StatefulWidget {
 
 class _AiChatScreenState extends State<AiChatScreen> {
   final ScrollController _scrollController = ScrollController();
+  bool _suggestionsCollapsed = true;
 
   @override
   void dispose() {
@@ -350,60 +352,146 @@ class _AiChatScreenState extends State<AiChatScreen> {
   Widget _buildSuggestionPanel(AiChatProvider aiProvider) {
     final prompts = aiProvider.suggestedPrompts;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 6,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: prompts.isEmpty
-          ? Text(
-              aiProvider.isLoading
-                  ? 'AI 正在準備下一步建議，請稍候…'
-                  : '尚未收到 AI 建議，請稍候或從書籍詳情發起問題。',
-              style: TextStyle(color: Colors.grey[600], fontSize: 14),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '下一步建議',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: prompts
-                      .map(
-                        (prompt) => FilledButton.tonal(
-                          onPressed: aiProvider.isLoading
-                              ? null
-                              : () => _sendPrompt(prompt),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            alignment: Alignment.centerLeft,
-                          ),
-                          child: Text(
-                            prompt,
-                            style: const TextStyle(fontSize: 14),
-                          ),
-                        ),
-                      )
-                      .toList(),
+    return SafeArea(
+      top: false,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final maxPanelHeight = math.min(220.0, constraints.maxHeight * 0.32);
+
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 6,
+                  offset: const Offset(0, -2),
                 ),
               ],
             ),
+            child: prompts.isEmpty
+                ? Text(
+                    aiProvider.isLoading
+                        ? 'AI 正在準備下一步建議，請稍候…'
+                        : '尚未收到 AI 建議，請稍候或從書籍詳情發起問題。',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  )
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '下一步建議',
+                              style: Theme.of(context).textTheme.titleMedium,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: _suggestionsCollapsed ? '展開' : '收合',
+                            onPressed: () {
+                              setState(() {
+                                _suggestionsCollapsed = !_suggestionsCollapsed;
+                              });
+                            },
+                            icon: Icon(
+                              _suggestionsCollapsed
+                                  ? Icons.expand_more
+                                  : Icons.expand_less,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        alignment: Alignment.topCenter,
+                        child: _suggestionsCollapsed
+                            // 收合狀態：一行高度，水平滑動，避免佔用太多畫面
+                            ? SizedBox(
+                                height: 44,
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  physics: const BouncingScrollPhysics(),
+                                  child: Row(
+                                    children: prompts
+                                        .take(6)
+                                        .map(
+                                          (prompt) => Padding(
+                                            padding: const EdgeInsets.only(
+                                              right: 8,
+                                            ),
+                                            child: FilledButton.tonal(
+                                              onPressed: aiProvider.isLoading
+                                                  ? null
+                                                  : () => _sendPrompt(prompt),
+                                              style: FilledButton.styleFrom(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: 14,
+                                                  vertical: 10,
+                                                ),
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                              ),
+                                              child: Text(
+                                                prompt,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                        .toList(growable: false),
+                                  ),
+                                ),
+                              )
+                            // 展開狀態：有最大高度、可垂直捲動
+                            : ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxHeight: maxPanelHeight,
+                                ),
+                                child: SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  child: Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: prompts
+                                        .map(
+                                          (prompt) => FilledButton.tonal(
+                                            onPressed: aiProvider.isLoading
+                                                ? null
+                                                : () => _sendPrompt(prompt),
+                                            style: FilledButton.styleFrom(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 12,
+                                              ),
+                                              alignment: Alignment.centerLeft,
+                                            ),
+                                            child: Text(
+                                              prompt,
+                                              style:
+                                                  const TextStyle(fontSize: 14),
+                                            ),
+                                          ),
+                                        )
+                                        .toList(growable: false),
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
+          );
+        },
+      ),
     );
   }
 
