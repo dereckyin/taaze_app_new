@@ -6,6 +6,7 @@ import '../models/captcha_response.dart';
 import '../models/oauth_user.dart';
 import '../services/auth_api_service.dart';
 import '../services/oauth_service.dart';
+import '../services/notification_service.dart';
 import '../config/test_config.dart';
 
 class AuthProvider with ChangeNotifier {
@@ -147,6 +148,9 @@ class AuthProvider with ChangeNotifier {
         _currentCaptcha = null;
         _authToken = loginResponse.token;
         _refreshToken = loginResponse.refreshToken;
+        if (_authToken != null) {
+          await NotificationService.instance.updateAuthToken(_authToken!);
+        }
 
         if (loginResponse.user != null) {
           _user = User(
@@ -353,6 +357,10 @@ class AuthProvider with ChangeNotifier {
     await _saveTokens();
     await _saveUserData();
     await _saveOAuthData();
+
+    if (_authToken != null) {
+      await NotificationService.instance.updateAuthToken(_authToken!);
+    }
 
     _isLoading = false;
     notifyListeners();
@@ -677,7 +685,9 @@ class AuthProvider with ChangeNotifier {
 
     // Try revoke FCM token on backend (best-effort)
     try {
-      // avoid tight coupling: NotificationService will be triggered from UI to revoke
+      if (_authToken != null) {
+        await NotificationService.instance.revokeCurrentToken();
+      }
     } catch (_) {}
 
     _user = null;

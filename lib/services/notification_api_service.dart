@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 
@@ -34,7 +36,13 @@ class NotificationApiService {
           body: jsonEncode(body),
         )
         .timeout(timeout);
-    if (res.statusCode != 204) {
+    if (res.statusCode == 204) {
+      if (kDebugMode) {
+        debugPrint(
+          '[NotificationApi] register-token ok platform=$platform token=${token.substring(0, token.length > 10 ? 10 : token.length)}...',
+        );
+      }
+    } else {
       throw Exception('Register token failed: ${res.statusCode} ${res.body}');
     }
   }

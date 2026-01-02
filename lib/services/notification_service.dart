@@ -7,7 +7,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import '../providers/notification_provider.dart';
-import '../providers/auth_provider.dart';
 import '../models/notification.dart' as model;
 import 'notification_api_service.dart';
 import 'navigation_service.dart';
@@ -16,7 +15,9 @@ import '../screens/notifications_screen.dart';
 /// Background message handler must be a top-level function
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp();
+  }
 }
 
 class NotificationService {
@@ -28,14 +29,31 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   bool _initialized = false;
   String? _currentToken;
+  String? _authToken;
+  String? _lastRegisteredToken;
+  String? _lastRegisteredAuthToken;
 
   Future<void> initialize({
     NotificationProvider? provider,
-    AuthProvider? authProvider,
+    String? authToken,
   }) async {
-    if (_initialized) return;
+    // allow later calls to refresh auth token and re-register without re-init
+    if (authToken != null && authToken.isNotEmpty) {
+      _authToken = authToken;
+    }
 
-    await Firebase.initializeApp();
+    if (_initialized) {
+      if (_currentToken != null && _authToken != null) {
+        await _registerTokenToBackend(_currentToken!);
+      }
+      return;
+    }
+
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp();
+    } else {
+      await Firebase.app();
+    }
     _messaging = FirebaseMessaging.instance;
 
     // Local notifications setup
@@ -66,18 +84,16 @@ class NotificationService {
     if (kDebugMode) debugPrint('FCM token: $token');
 
     // Register token to backend if logged in
-    if (token != null &&
-        authProvider?.authToken != null &&
-        authProvider?.user != null) {
-      await _registerTokenToBackend(token, authProvider!);
+    if (token != null && _authToken != null) {
+      await _registerTokenToBackend(token);
     }
 
     // Listen to token refresh
     _messaging.onTokenRefresh.listen((newToken) async {
       if (kDebugMode) debugPrint('FCM token refreshed: $newToken');
       _currentToken = newToken;
-      if (authProvider?.authToken != null && authProvider?.user != null) {
-        await _registerTokenToBackend(newToken, authProvider!);
+      if (_authToken != null) {
+        await _registerTokenToBackend(newToken);
       }
     });
 
@@ -114,10 +130,15 @@ class NotificationService {
     );
   }
 
-  Future<void> _registerTokenToBackend(
-    String token,
-    AuthProvider authProvider,
-  ) async {
+  Future<void> _registerTokenToBackend(String token) async {
+    // Avoid redundant registration
+    if (token == _lastRegisteredToken && _authToken == _lastRegisteredAuthToken) {
+      if (kDebugMode) {
+        debugPrint('[NotificationService] Registration skipped: token and auth already registered');
+      }
+      return;
+    }
+
     try {
       final meta = await _collectDeviceMeta();
       await NotificationApiService.registerToken(
@@ -126,23 +147,42 @@ class NotificationService {
         appVersion: meta.appVersion,
         deviceModel: meta.deviceModel,
         locale: meta.locale,
-        authToken: authProvider.authToken!,
+        authToken: _authToken!,
       );
+
+      // Store successfully registered state
+      _lastRegisteredToken = token;
+      _lastRegisteredAuthToken = _authToken;
+
+      if (kDebugMode) {
+        debugPrint('[NotificationService] token sent to backend');
+      }
     } catch (e) {
       if (kDebugMode) debugPrint('Register token failed: $e');
     }
   }
 
-  Future<void> revokeCurrentToken(AuthProvider authProvider) async {
+  Future<void> revokeCurrentToken() async {
     final token = _currentToken ?? await _messaging.getToken();
-    if (token == null) return;
+    if (token == null || _authToken == null) return;
     try {
       await NotificationApiService.revokeToken(
         token: token,
-        authToken: authProvider.authToken!,
+        authToken: _authToken!,
       );
+      // Clear registered state on revoke
+      _lastRegisteredToken = null;
+      _lastRegisteredAuthToken = null;
     } catch (e) {
       if (kDebugMode) debugPrint('Revoke token failed: $e');
+    }
+  }
+
+  /// Update auth token after user logs in and register existing device token.
+  Future<void> updateAuthToken(String authToken) async {
+    _authToken = authToken;
+    if (_currentToken != null) {
+      await _registerTokenToBackend(_currentToken!);
     }
   }
 

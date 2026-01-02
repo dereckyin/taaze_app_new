@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'theme/app_theme.dart';
 import 'services/local_notification_service.dart';
+import 'services/notification_service.dart';
 import 'services/navigation_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/book_provider.dart';
@@ -21,8 +23,10 @@ import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // 重新啟用 Firebase 初始化
-  // await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // Avoid duplicate initialization if some plugin auto-started Firebase.
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp();
+  }
   
   // 在 runApp() 之前初始化通知服務
   await LocalNotificationService.instance.initialize();
@@ -48,12 +52,16 @@ class _AppHomeState extends State<AppHome> {
     super.initState();
     _splashStartAt = DateTime.now();
     _initializeAuth();
-    _initializeNotifications();
   }
 
   Future<void> _initializeAuth() async {
     final authProvider = context.read<AuthProvider>();
+    final notifProvider = context.read<NotificationProvider>();
     await authProvider.initializeAuth();
+    await NotificationService.instance.initialize(
+      provider: notifProvider,
+      authToken: authProvider.authToken,
+    );
 
     // 確保啟動畫面至少顯示一小段時間，避免瞬間跳轉
     final elapsed = DateTime.now().difference(_splashStartAt);
@@ -66,15 +74,6 @@ class _AppHomeState extends State<AppHome> {
         _isInitialized = true;
       });
     }
-  }
-
-  Future<void> _initializeNotifications() async {
-    // 通知服務已在 main() 中初始化，這裡只需要設定 provider
-    // 暫時不初始化 Firebase 推播通知，專注於本地通知
-    // await NotificationService.instance.initialize(
-    //   provider: notifProvider,
-    //   authProvider: authProvider,
-    // );
   }
 
   @override
