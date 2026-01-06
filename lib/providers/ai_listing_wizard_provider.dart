@@ -60,6 +60,14 @@ class AiListingWizardProvider with ChangeNotifier {
   void updateBookNotes(int index, String notes) {
     if (index >= 0 && index < _identifiedBooks.length) {
       _identifiedBooks[index] = _identifiedBooks[index].copyWith(notes: notes);
+      // 不在此呼叫 notifyListeners() 以避免輸入時列表頻繁重繪導致鍵盤卡頓
+    }
+  }
+
+  // 更新書籍書況
+  void updateBookCondition(int index, String condition) {
+    if (index >= 0 && index < _identifiedBooks.length) {
+      _identifiedBooks[index] = _identifiedBooks[index].copyWith(condition: condition);
       notifyListeners();
     }
   }
@@ -70,7 +78,7 @@ class AiListingWizardProvider with ChangeNotifier {
       _identifiedBooks[index] = _identifiedBooks[index].copyWith(
         sellingPrice: price,
       );
-      notifyListeners();
+      // 不在此呼叫 notifyListeners()
     }
   }
 
@@ -103,6 +111,49 @@ class AiListingWizardProvider with ChangeNotifier {
       return success;
     } catch (e) {
       _error = '匯入失敗: ${e.toString()}';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // 提交二手書申請單
+  Future<bool> submitApplication({
+    required String name,
+    required String phone,
+    required String address,
+    required String email,
+  }) async {
+    if (!hasSelectedBooks) {
+      _error = '請至少選擇一本書籍';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final userData = {
+        'name': name,
+        'phone': phone,
+        'address': address,
+        'email': email,
+      };
+
+      final success = await BookIdentificationService.submitSecondHandApplication(
+        selectedBooks: selectedBooks,
+        userData: userData,
+      );
+
+      if (success) {
+        clearAll();
+      }
+      return success;
+    } catch (e) {
+      _error = '提交失敗: ${e.toString()}';
       return false;
     } finally {
       _isLoading = false;

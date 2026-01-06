@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import '../models/captcha_response.dart';
 import '../config/api_config.dart';
@@ -202,6 +203,9 @@ class AuthApiService {
         );
       }
     } catch (e) {
+      if (e is SocketException || e is TimeoutException || e is HttpException) {
+        rethrow; // 讓 Provider 處理網路異常
+      }
       return LoginResponse(success: false, error: '刷新令牌失敗：${e.toString()}');
     }
   }

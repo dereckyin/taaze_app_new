@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import '../models/identified_book.dart';
@@ -8,7 +9,7 @@ import '../config/api_config.dart';
 
 class BookIdentificationService {
   static String get baseUrl => ApiConfig.baseUrl;
-  static const Duration _timeout = Duration(seconds: 30);
+  static const Duration _timeout = Duration(seconds: 300);
 
   /// 識別書籍照片
   ///
@@ -176,6 +177,57 @@ class BookIdentificationService {
       // 模擬成功響應
       DebugHelper.log('模擬匯入上架草稿成功', tag: 'BookIdentificationService');
       return true;
+    }
+  }
+
+  /// 提交二手書申請單
+  ///
+  /// [selectedBooks] 選中的書籍列表
+  /// [userData] 會員基本資料
+  /// 返回是否成功
+  static Future<bool> submitSecondHandApplication({
+    required List<IdentifiedBook> selectedBooks,
+    required Map<String, dynamic> userData,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl${ApiConfig.secondHandApplicationEndpoint}');
+      DebugHelper.logApiRequest('POST', uri.toString());
+
+      // 準備請求數據
+      final requestData = {
+        'books': selectedBooks.map((book) => book.toJson()).toList(),
+        'user_info': userData,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      final response = await http
+          .post(
+            uri,
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode(requestData),
+          )
+          .timeout(_timeout);
+
+      DebugHelper.logApiResponse(response.statusCode, response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        DebugHelper.log('提交二手書申請單成功', tag: 'BookIdentificationService');
+        return true;
+      } else {
+        throw Exception('提交二手書申請單API返回錯誤狀態碼: ${response.statusCode}');
+      }
+    } catch (e) {
+      DebugHelper.log(
+        '提交二手書申請單API調用失敗: ${e.toString()}',
+        tag: 'BookIdentificationService',
+      );
+
+      // 模擬成功響應（開發環境中）
+      if (kDebugMode) {
+        DebugHelper.log('模擬提交二手書申請單成功', tag: 'BookIdentificationService');
+        return true;
+      }
+      rethrow;
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../providers/ai_listing_wizard_provider.dart';
+import '../providers/auth_provider.dart';
 import 'identified_books_list_screen.dart';
 
 class AiListingWizardScreen extends StatefulWidget {
@@ -23,10 +24,11 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
         elevation: 0,
-        leading: Consumer<AiListingWizardProvider>(
-          builder: (context, provider, child) {
+        leading: Selector<AiListingWizardProvider, bool>(
+          selector: (_, p) => p.identifiedBooks.isNotEmpty,
+          builder: (context, hasBooks, child) {
             // 如果有識別結果，顯示重新識別按鈕而不是返回按鈕
-            if (provider.identifiedBooks.isNotEmpty) {
+            if (hasBooks) {
               return IconButton(
                 icon: const Icon(Icons.refresh),
                 onPressed: _showReidentifyOptions,
@@ -42,15 +44,31 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
           },
         ),
         actions: [
-          Consumer<AiListingWizardProvider>(
-            builder: (context, provider, child) {
-              if (provider.hasSelectedBooks) {
-                return TextButton(
-                  onPressed: provider.isLoading ? null : _importToDraft,
-                  child: Text(
-                    '匯入草稿 (${provider.selectedBooks.length})',
-                    style: const TextStyle(color: Colors.white),
-                  ),
+          Selector<AiListingWizardProvider, ({bool hasSelected, int selectedCount, bool isLoading})>(
+            selector: (_, p) => (
+              hasSelected: p.hasSelectedBooks,
+              selectedCount: p.selectedBooks.length,
+              isLoading: p.isLoading,
+            ),
+            builder: (context, state, child) {
+              if (state.hasSelected) {
+                return Row(
+                  children: [
+                    TextButton(
+                      onPressed: state.isLoading ? null : _importToDraft,
+                      child: Text(
+                        '匯入草稿 (${state.selectedCount})',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: state.isLoading ? null : _showSubmitApplicationDialog,
+                      child: const Text(
+                        '提交申請單',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
                 );
               }
               return const SizedBox.shrink();
@@ -58,17 +76,22 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
           ),
         ],
       ),
-      body: Consumer<AiListingWizardProvider>(
-        builder: (context, provider, child) {
-          if (provider.isLoading) {
+      body: Selector<AiListingWizardProvider, ({bool isLoading, String? error, bool hasBooks})>(
+        selector: (_, provider) => (
+          isLoading: provider.isLoading,
+          error: provider.error,
+          hasBooks: provider.identifiedBooks.isNotEmpty,
+        ),
+        builder: (context, state, child) {
+          if (state.isLoading) {
             return _buildLoadingState();
           }
 
-          if (provider.error != null) {
-            return _buildErrorState(provider.error!);
+          if (state.error != null) {
+            return _buildErrorState(state.error!);
           }
 
-          if (provider.identifiedBooks.isNotEmpty) {
+          if (state.hasBooks) {
             return _buildResultsState();
           }
 
@@ -179,15 +202,19 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                '找到 ${context.watch<AiListingWizardProvider>().identifiedBooks.length} 本書籍',
-                style: TextStyle(color: Colors.blue[600]),
+              Selector<AiListingWizardProvider, int>(
+                selector: (_, p) => p.identifiedBooks.length,
+                builder: (context, count, _) => Text(
+                  '找到 $count 本書籍',
+                  style: TextStyle(color: Colors.blue[600]),
+                ),
               ),
-              Consumer<AiListingWizardProvider>(
-                builder: (context, provider, child) {
-                  if (provider.hasSelectedBooks) {
+              Selector<AiListingWizardProvider, int>(
+                selector: (_, p) => p.selectedBooks.length,
+                builder: (context, selectedCount, _) {
+                  if (selectedCount > 0) {
                     return Text(
-                      '已選擇 ${provider.selectedBooks.length} 本書籍',
+                      '已選擇 $selectedCount 本書籍',
                       style: TextStyle(color: Colors.blue[600]),
                     );
                   }
@@ -199,7 +226,7 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
         ),
 
         // 書籍列表
-        Expanded(child: IdentifiedBooksListScreen()),
+        const Expanded(child: IdentifiedBooksListScreen()),
       ],
     );
   }
@@ -394,6 +421,99 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
     } else if (mounted) {
       _showErrorSnackBar(provider.error ?? '匯入失敗');
     }
+  }
+
+  Future<void> _showSubmitApplicationDialog() async {
+    final authProvider = context.read<AuthProvider>();
+    final user = authProvider.user;
+
+    // 如果未登入，先要求登入
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('請先登入後再提交申請單')),
+      );
+      // TODO: 跳轉到登入頁面
+      return;
+    }
+
+    final nameController = TextEditingController(text: user.name);
+    final phoneController = TextEditingController(text: user.phone ?? '');
+    final addressController = TextEditingController(text: user.address ?? '');
+    final emailController = TextEditingController(text: user.email);
+
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('確認申請資料'),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: '姓名'),
+                  validator: (v) => (v == null || v.isEmpty) ? '必填' : null,
+                ),
+                TextFormField(
+                  controller: phoneController,
+                  decoration: const InputDecoration(labelText: '電話'),
+                  validator: (v) => (v == null || v.isEmpty) ? '必填' : null,
+                  keyboardType: TextInputType.phone,
+                ),
+                TextFormField(
+                  controller: addressController,
+                  decoration: const InputDecoration(labelText: '地址'),
+                  validator: (v) => (v == null || v.isEmpty) ? '必填' : null,
+                ),
+                TextFormField(
+                  controller: emailController,
+                  decoration: const InputDecoration(labelText: 'Email'),
+                  validator: (v) => (v == null || v.isEmpty) ? '必填' : null,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState?.validate() ?? false) {
+                final provider = context.read<AiListingWizardProvider>();
+                Navigator.pop(context); // 關閉對話框
+
+                final success = await provider.submitApplication(
+                  name: nameController.text,
+                  phone: phoneController.text,
+                  address: addressController.text,
+                  email: emailController.text,
+                );
+
+                if (success && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('二手書申請單提交成功！'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } else if (mounted) {
+                  _showErrorSnackBar(provider.error ?? '提交失敗');
+                }
+              }
+            },
+            child: const Text('確認提交'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showErrorSnackBar(String message) {

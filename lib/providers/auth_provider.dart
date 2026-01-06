@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 import '../models/user.dart';
 import '../models/captcha_response.dart';
 import '../models/oauth_user.dart';
@@ -43,8 +45,6 @@ class AuthProvider with ChangeNotifier {
   bool get isAuthenticated => _user != null;
   bool get isAccountLocked => _isAccountLocked;
   int get remainingAttempts {
-    // 每次訪問時檢查是否需要重置（非同步檢查會在後台進行）
-    _checkAndResetAttemptsIfExpired();
     return maxLoginAttempts - _loginAttempts;
   }
 
@@ -243,11 +243,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
-    _user = null;
-    _error = null;
-    _oauthUser = null;
-    _oauthProvider = null;
-    notifyListeners();
+    await logoutWithApi();
   }
 
   void clearError() {
@@ -721,11 +717,20 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        // 刷新失敗，需要重新登入
+        // 只有在確定的認證失敗時才登出
+        // 如果是 401 之外的伺服器錯誤，可能暫時保留狀態
         await logoutWithApi();
         return false;
       }
     } catch (e) {
+      // 網路連線問題不應導致自動登出
+      if (e is SocketException || e is TimeoutException) {
+        if (kDebugMode) {
+          print('🔧 [AuthProvider] 刷新 Token 時發生網路異常，保留現有狀態: $e');
+        }
+        return true; // 暫時回傳 true 讓啟動流程繼續，後續業務 API 會再檢查 token 是否真的失效
+      }
+      
       await logoutWithApi();
       return false;
     }
@@ -749,17 +754,23 @@ class AuthProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     if (_authToken != null) {
       await prefs.setString('auth_token', _authToken!);
+    } else {
+      await prefs.remove('auth_token');
     }
     if (_refreshToken != null) {
       await prefs.setString('refresh_token', _refreshToken!);
+    } else {
+      await prefs.remove('refresh_token');
     }
   }
 
   /// 保存用戶數據到本地存儲
   Future<void> _saveUserData() async {
+    final prefs = await SharedPreferences.getInstance();
     if (_user != null) {
-      final prefs = await SharedPreferences.getInstance();
       await prefs.setString('user_data', jsonEncode(_user!.toJson()));
+    } else {
+      await prefs.remove('user_data');
     }
   }
 
@@ -787,13 +798,16 @@ class AuthProvider with ChangeNotifier {
 
   /// 保存 OAuth 數據到本地存儲
   Future<void> _saveOAuthData() async {
+    final prefs = await SharedPreferences.getInstance();
     if (_oauthUser != null) {
-      final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
         'oauth_user_data',
         jsonEncode(_oauthUser!.toJson()),
       );
       await prefs.setString('oauth_provider', _oauthProvider ?? '');
+    } else {
+      await prefs.remove('oauth_user_data');
+      await prefs.remove('oauth_provider');
     }
   }
 
@@ -833,14 +847,8 @@ class AuthProvider with ChangeNotifier {
 
     // 如果有token，嘗試刷新以驗證有效性
     if (_authToken != null && _refreshToken != null) {
-      final isValid = await refreshAuthToken();
-      if (!isValid) {
-        // token無效，清除數據
-        await _clearStoredData();
-        _user = null;
-        _authToken = null;
-        _refreshToken = null;
-      }
+      // 這裡不需要額外處理 isValid = false，因為 refreshAuthToken 內部已呼叫 logoutWithApi
+      await refreshAuthToken();
     }
 
     notifyListeners();

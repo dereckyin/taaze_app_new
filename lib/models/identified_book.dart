@@ -18,20 +18,41 @@ class IdentifiedBook {
   });
 
   factory IdentifiedBook.fromJson(Map<String, dynamic> json) {
+    String rawCondition = json['書況'] ?? '';
+    // 將後端代碼 (A, B, C...) 或舊版字串映射為 UI 用的純中文
+    String mappedCondition;
+    if (rawCondition == 'A' || rawCondition == '全新') mappedCondition = '全新';
+    else if (rawCondition == 'B' || rawCondition == '近全新') mappedCondition = '近全新';
+    else if (rawCondition == 'C' || rawCondition == '良好') mappedCondition = '良好';
+    else if (rawCondition == 'D' || rawCondition == '普通') mappedCondition = '普通';
+    else if (rawCondition == 'E' || rawCondition == '差' || rawCondition == '差強人意') mappedCondition = '差強人意';
+    else mappedCondition = '良好'; // 預設值
+
     return IdentifiedBook(
       prodId: json['prod_id'],
       eancode: json['eancode'],
       titleMain: json['title_main'] ?? '',
-      condition: json['書況'] ?? '',
+      condition: mappedCondition,
     );
   }
 
   Map<String, dynamic> toJson() {
+    // 將純中文映射回後端要求的代碼
+    String conditionCode;
+    switch (condition) {
+      case '全新': conditionCode = 'A'; break;
+      case '近全新': conditionCode = 'B'; break;
+      case '良好': conditionCode = 'C'; break;
+      case '普通': conditionCode = 'D'; break;
+      case '差強人意': conditionCode = 'E'; break;
+      default: conditionCode = 'C';
+    }
+
     return {
       'prod_id': prodId,
       'eancode': eancode,
       'title_main': titleMain,
-      '書況': condition,
+      '書況': conditionCode,
       'isSelected': isSelected,
       'notes': notes,
       'sellingPrice': sellingPrice,
