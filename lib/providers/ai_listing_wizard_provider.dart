@@ -83,7 +83,7 @@ class AiListingWizardProvider with ChangeNotifier {
   }
 
   // 匯入上架草稿
-  Future<bool> importToDraft() async {
+  Future<bool> importToDraft({String? authToken}) async {
     if (!hasSelectedBooks) {
       _error = '請至少選擇一本書籍';
       notifyListeners();
@@ -97,6 +97,7 @@ class AiListingWizardProvider with ChangeNotifier {
     try {
       final success = await BookIdentificationService.importToDraft(
         selectedBooks,
+        authToken: authToken,
       );
       if (success) {
         // 清空選中的書籍
@@ -124,6 +125,7 @@ class AiListingWizardProvider with ChangeNotifier {
     required String phone,
     required String address,
     required String email,
+    String? authToken,
   }) async {
     if (!hasSelectedBooks) {
       _error = '請至少選擇一本書籍';
@@ -146,6 +148,7 @@ class AiListingWizardProvider with ChangeNotifier {
       final success = await BookIdentificationService.submitSecondHandApplication(
         selectedBooks: selectedBooks,
         userData: userData,
+        authToken: authToken,
       );
 
       if (success) {

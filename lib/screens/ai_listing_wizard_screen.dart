@@ -5,6 +5,7 @@ import 'dart:io';
 import '../providers/ai_listing_wizard_provider.dart';
 import '../providers/auth_provider.dart';
 import 'identified_books_list_screen.dart';
+import 'login_screen.dart';
 
 class AiListingWizardScreen extends StatefulWidget {
   const AiListingWizardScreen({super.key});
@@ -15,6 +16,38 @@ class AiListingWizardScreen extends StatefulWidget {
 
 class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
   final ImagePicker _imagePicker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    // 進入時檢查登入狀態
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuthAndRedirect();
+    });
+  }
+
+  Future<void> _checkAuthAndRedirect() async {
+    final authProvider = context.read<AuthProvider>();
+    if (authProvider.authToken == null || authProvider.authToken!.isEmpty) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('使用 AI 上架精靈前請先登入會員。')),
+      );
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+
+      // 如果登入後還是沒 token，或是使用者取消登入回來的，就退出此頁面
+      if (!mounted) return;
+      final finalToken = context.read<AuthProvider>().authToken;
+      if (finalToken == null || finalToken.isEmpty) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,10 +88,31 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
                 return Row(
                   children: [
                     TextButton(
-                      onPressed: state.isLoading ? null : _importToDraft,
-                      child: Text(
-                        '匯入草稿 (${state.selectedCount})',
-                        style: const TextStyle(color: Colors.white),
+                      onPressed: state.isLoading ? null : () async {
+                        final provider = context.read<AiListingWizardProvider>();
+                        final authProvider = context.read<AuthProvider>();
+                        final messenger = ScaffoldMessenger.of(context);
+                        
+                        final success = await provider.importToDraft(
+                          authToken: authProvider.authToken,
+                        );
+                        
+                        if (success) {
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('已成功匯入上架草稿')),
+                          );
+                        } else {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(provider.error ?? '匯入失敗'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      child: const Text(
+                        '加入草稿',
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
                     TextButton(
@@ -400,39 +454,19 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
     context.read<AiListingWizardProvider>().clearAll();
   }
 
-  Future<void> _importToDraft() async {
-    final provider = context.read<AiListingWizardProvider>();
-    final success = await provider.importToDraft();
-
-    if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('成功匯入 ${provider.selectedBooks.length} 本書籍到上架草稿'),
-          backgroundColor: Colors.green,
-          action: SnackBarAction(
-            label: '查看草稿',
-            textColor: Colors.white,
-            onPressed: () {
-              // TODO: 導航到草稿頁面
-            },
-          ),
-        ),
-      );
-    } else if (mounted) {
-      _showErrorSnackBar(provider.error ?? '匯入失敗');
-    }
-  }
-
   Future<void> _showSubmitApplicationDialog() async {
     final authProvider = context.read<AuthProvider>();
     final user = authProvider.user;
 
-    // 如果未登入，先要求登入
+    // 這裡通常不會 user == null，因為進入此頁面時已強制檢查過登入
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('請先登入後再提交申請單')),
       );
-      // TODO: 跳轉到登入頁面
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
       return;
     }
 
@@ -488,6 +522,9 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
             onPressed: () async {
               if (formKey.currentState?.validate() ?? false) {
                 final provider = context.read<AiListingWizardProvider>();
+                final messenger = ScaffoldMessenger.of(context); // 先捕獲 messenger
+                final authProvider = context.read<AuthProvider>();
+                
                 Navigator.pop(context); // 關閉對話框
 
                 final success = await provider.submitApplication(
@@ -495,17 +532,23 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
                   phone: phoneController.text,
                   address: addressController.text,
                   email: emailController.text,
+                  authToken: authProvider.authToken,
                 );
 
-                if (success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                if (success) {
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text('二手書申請單提交成功！'),
                       backgroundColor: Colors.green,
                     ),
                   );
-                } else if (mounted) {
-                  _showErrorSnackBar(provider.error ?? '提交失敗');
+                } else {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(provider.error ?? '提交失敗'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
                 }
               }
             },

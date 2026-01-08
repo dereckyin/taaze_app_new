@@ -16,6 +16,12 @@ class BookIdentificationService {
   /// [imageFile] 要識別的圖片文件
   /// 返回識別結果列表
   static Future<List<IdentifiedBook>> identifyBooks(File imageFile) async {
+    // 開發測試用：直接返回模擬數據，以便測試後續的上架申請流程
+    if (kDebugMode) {
+      DebugHelper.log('測試模式：直接返回模擬識別結果', tag: 'BookIdentificationService');
+      return getMockIdentificationResults();
+    }
+
     try {
       final uri = Uri.parse('$baseUrl/vision/identify-book');
       DebugHelper.logApiRequest('POST', uri.toString());
@@ -105,64 +111,63 @@ class BookIdentificationService {
   static List<IdentifiedBook> getMockIdentificationResults() {
     return [
       IdentifiedBook(
-        prodId: '111004034',
-        eancode: '9789861194561',
-        titleMain: '晉級的巨人',
+        prodId: '11100767446',
+        eancode: '9789863792512',
+        titleMain: 'RWD跨平台響應式網頁設計',
         condition: '良好',
       ),
       IdentifiedBook(
-        prodId: null,
-        eancode: null,
-        titleMain: '進擊的巨人',
+        prodId: '11100656655',
+        eancode: '9789865836351',
+        titleMain: '王者歸來：UNIX 王者殿堂',
         condition: '近全新',
       ),
       IdentifiedBook(
-        prodId: '111004035',
-        eancode: '9789861194562',
-        titleMain: '火影忍者',
-        condition: '良好',
-      ),
-      IdentifiedBook(
-        prodId: null,
-        eancode: null,
-        titleMain: '海賊王',
-        condition: '近全新',
-      ),
-      IdentifiedBook(
-        prodId: '111004036',
-        eancode: '9789861194563',
-        titleMain: '鬼滅之刃',
+        prodId: '11100958787',
+        eancode: '9789865028855',
+        titleMain: '內行人才知道的系統設計面試指南',
         condition: '良好',
       ),
     ];
   }
 
-  /// 匯入上架草稿
+  /// 匯入上架草稿 (自動填充模式)
   ///
   /// [selectedBooks] 選中的書籍列表
   /// 返回是否成功
-  static Future<bool> importToDraft(List<IdentifiedBook> selectedBooks) async {
+  static Future<bool> importToDraft(
+    List<IdentifiedBook> selectedBooks, {
+    String? authToken,
+  }) async {
     try {
-      final uri = Uri.parse('$baseUrl/listing/draft/import');
+      final uri = Uri.parse('$baseUrl${ApiConfig.secondHandDraftAutoFillEndpoint}');
       DebugHelper.logApiRequest('POST', uri.toString());
 
-      // 準備請求數據
+      // 準備請求數據：目前只需提供 org_prod_id
       final requestData = {
-        'books': selectedBooks.map((book) => book.toJson()).toList(),
-        'timestamp': DateTime.now().toIso8601String(),
+        'items': selectedBooks.map((book) => {
+          'org_prod_id': book.prodId ?? '',
+        }).toList(),
       };
+
+      final headers = {
+        'Content-Type': 'application/json',
+      };
+      if (authToken != null && authToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $authToken';
+      }
 
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             body: json.encode(requestData),
           )
           .timeout(_timeout);
 
       DebugHelper.logApiResponse(response.statusCode, response.body);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         DebugHelper.log('匯入上架草稿成功', tag: 'BookIdentificationService');
         return true;
       } else {
@@ -174,9 +179,12 @@ class BookIdentificationService {
         tag: 'BookIdentificationService',
       );
 
-      // 模擬成功響應
-      DebugHelper.log('模擬匯入上架草稿成功', tag: 'BookIdentificationService');
-      return true;
+      // 模擬成功響應 (測試用)
+      if (kDebugMode) {
+        DebugHelper.log('模擬匯入上架草稿成功', tag: 'BookIdentificationService');
+        return true;
+      }
+      rethrow;
     }
   }
 
@@ -188,22 +196,71 @@ class BookIdentificationService {
   static Future<bool> submitSecondHandApplication({
     required List<IdentifiedBook> selectedBooks,
     required Map<String, dynamic> userData,
+    String? authToken,
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl${ApiConfig.secondHandApplicationEndpoint}');
+      final uri =
+          Uri.parse('$baseUrl${ApiConfig.secondHandApplicationEndpoint}');
       DebugHelper.logApiRequest('POST', uri.toString());
 
-      // 準備請求數據
+      // 準備符合後端 schema 的數據結構
+      // 優先使用傳入的 userData，若無則由後端從會員資料補齊
       final requestData = {
-        'books': selectedBooks.map((book) => book.toJson()).toList(),
-        'user_info': userData,
-        'timestamp': DateTime.now().toIso8601String(),
+        'application': {
+          if (userData['name'] != null && userData['name'].isNotEmpty)
+            'cust_name': userData['name'],
+          if (userData['phone'] != null && userData['phone'].isNotEmpty)
+            'cust_mobile': userData['phone'],
+          if (userData['address'] != null && userData['address'].isNotEmpty)
+            'address': userData['address'],
+          'delivery_type': 'A', // 預設 A (POST_OFFICE)，此為必填
+          if (userData['phone'] != null && userData['phone'].isNotEmpty)
+            'tel_day': userData['phone'],
+        },
+        'item_list': selectedBooks.map((book) {
+          // 將純中文映射回後端要求的代碼 (A, B, C...)
+          String conditionCode;
+          switch (book.condition) {
+            case '全新':
+              conditionCode = 'A';
+              break;
+            case '近全新':
+              conditionCode = 'B';
+              break;
+            case '良好':
+              conditionCode = 'C';
+              break;
+            case '普通':
+              conditionCode = 'D';
+              break;
+            case '差強人意':
+              conditionCode = 'E';
+              break;
+            default:
+              conditionCode = 'C';
+          }
+
+          return {
+            'org_prod_id': book.prodId ?? '',
+            'prod_rank': conditionCode,
+            'prod_mark': conditionCode,
+            'sale_price': book.sellingPrice ?? 0.0,
+            'other_mark': book.notes ?? '',
+          };
+        }).toList(),
       };
+
+      final headers = {
+        'Content-Type': 'application/json',
+      };
+      if (authToken != null && authToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $authToken';
+      }
 
       final response = await http
           .post(
             uri,
-            headers: {'Content-Type': 'application/json'},
+            headers: headers,
             body: json.encode(requestData),
           )
           .timeout(_timeout);

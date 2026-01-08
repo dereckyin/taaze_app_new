@@ -74,13 +74,16 @@ class _AiChatScreenState extends State<AiChatScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.camera_alt),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const AiListingWizardScreen(),
-                ),
-              );
+            onPressed: () async {
+              final token = await _requireAuthToken();
+              if (token != null && mounted) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AiListingWizardScreen(),
+                  ),
+                );
+              }
             },
             tooltip: 'AI上架精靈',
           ),
@@ -197,13 +200,16 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   width: double.infinity,
                   margin: const EdgeInsets.symmetric(horizontal: 24),
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const AiListingWizardScreen(),
-                        ),
-                      );
+                    onPressed: () async {
+                      final token = await _requireAuthToken();
+                      if (token != null && mounted) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AiListingWizardScreen(),
+                          ),
+                        );
+                      }
                     },
                     icon: const Icon(Icons.camera_alt),
                     label: const Text('AI上架精靈'),

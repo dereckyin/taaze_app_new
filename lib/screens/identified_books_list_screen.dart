@@ -130,6 +130,8 @@ class _BookCardState extends State<_BookCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(book),
+                  // 目前匯入草稿只需提供 org_prod_id，暫時隱藏編輯欄位
+                  /*
                   if (book.isSelected) ...[
                     const SizedBox(height: 12),
                     const Divider(),
@@ -140,6 +142,7 @@ class _BookCardState extends State<_BookCard> {
                     const SizedBox(height: 12),
                     _buildPriceField(),
                   ],
+                  */
                 ],
               ),
             ),
@@ -178,7 +181,7 @@ class _BookCardState extends State<_BookCard> {
               ),
               const SizedBox(height: 4),
               _buildInfoRow(Icons.qr_code, 'ISBN', book.isbnDisplay),
-              _buildInfoRow(Icons.star, '書況', book.condition),
+              // _buildInfoRow(Icons.star, '書況', book.condition),
             ],
           ),
         ),
@@ -186,6 +189,7 @@ class _BookCardState extends State<_BookCard> {
     );
   }
 
+  /*
   Widget _buildConditionDropdown(IdentifiedBook book) {
     return DropdownButtonFormField<String>(
       value: ['全新', '近全新', '良好', '普通', '差強人意'].contains(book.condition)
@@ -255,6 +259,7 @@ class _BookCardState extends State<_BookCard> {
       },
     );
   }
+  */
 
   Widget _buildBookImage(IdentifiedBook book) {
     return Container(
