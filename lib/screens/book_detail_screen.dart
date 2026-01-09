@@ -10,6 +10,7 @@ import '../models/book.dart';
 import '../providers/cart_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/ai_chat_provider.dart';
+import '../providers/watchlist_provider.dart';
 import 'ai_chat_screen.dart';
 import 'login_screen.dart';
 import '../widgets/custom_app_bar.dart';
@@ -951,16 +952,40 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       ),
       child: Row(
         children: [
-          // 收藏按鈕
+          // 暫存按鈕
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('已加入收藏')));
+              onPressed: () async {
+                final authProvider = context.read<AuthProvider>();
+                final watchlistProvider = context.read<WatchlistProvider>();
+                final messenger = ScaffoldMessenger.of(context);
+                
+                final bookId = book.id;
+                if (bookId.isEmpty) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('無效的書籍 ID')),
+                  );
+                  return;
+                }
+
+                // 使用 WatchlistProvider 處理加入邏輯（內建登入與否的判斷）
+                final success = await watchlistProvider.addToWatchlist(
+                  bookId,
+                  authToken: authProvider.authToken,
+                );
+
+                if (success) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('已加入暫存')),
+                  );
+                } else {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('加入暫存失敗，請稍後再試')),
+                  );
+                }
               },
               icon: const Icon(FontAwesomeIcons.heart),
-              label: const Text('收藏'),
+              label: const Text('暫存'),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),

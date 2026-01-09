@@ -246,9 +246,7 @@ class OrderItemsFetchResult {
   final List<OrderItemSummary> items;
   final bool fromCache;
   final int? statusCode;
-  final String? message;
-
-  const OrderItemsFetchResult({
+  final String? message;  const OrderItemsFetchResult({
     required this.success,
     required this.items,
     this.fromCache = false,
@@ -279,4 +277,3 @@ class OrderItemsFetchResult {
         message: message,
       );
 }
-

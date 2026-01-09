@@ -143,11 +143,12 @@ class BookIdentificationService {
       final uri = Uri.parse('$baseUrl${ApiConfig.secondHandDraftAutoFillEndpoint}');
       DebugHelper.logApiRequest('POST', uri.toString());
 
-      // 準備請求數據：目前只需提供 org_prod_id
+      // 準備請求數據：根據後端報錯，目前只需提供 org_prod_ids 列表
       final requestData = {
-        'items': selectedBooks.map((book) => {
-          'org_prod_id': book.prodId ?? '',
-        }).toList(),
+        'org_prod_ids': selectedBooks
+            .map((book) => book.prodId ?? '')
+            .where((id) => id.isNotEmpty)
+            .toList(),
       };
 
       final headers = {
@@ -188,66 +189,25 @@ class BookIdentificationService {
     }
   }
 
-  /// 提交二手書申請單
+  /// 提交二手書申請 (自動填充模式)
   ///
   /// [selectedBooks] 選中的書籍列表
-  /// [userData] 會員基本資料
   /// 返回是否成功
   static Future<bool> submitSecondHandApplication({
     required List<IdentifiedBook> selectedBooks,
-    required Map<String, dynamic> userData,
     String? authToken,
   }) async {
     try {
       final uri =
-          Uri.parse('$baseUrl${ApiConfig.secondHandApplicationEndpoint}');
+          Uri.parse('$baseUrl${ApiConfig.secondHandDraftAutoFillEndpoint}');
       DebugHelper.logApiRequest('POST', uri.toString());
 
-      // 準備符合後端 schema 的數據結構
-      // 優先使用傳入的 userData，若無則由後端從會員資料補齊
+      // 準備請求數據：根據後端報錯，目前只需提供 org_prod_ids 列表
       final requestData = {
-        'application': {
-          if (userData['name'] != null && userData['name'].isNotEmpty)
-            'cust_name': userData['name'],
-          if (userData['phone'] != null && userData['phone'].isNotEmpty)
-            'cust_mobile': userData['phone'],
-          if (userData['address'] != null && userData['address'].isNotEmpty)
-            'address': userData['address'],
-          'delivery_type': 'A', // 預設 A (POST_OFFICE)，此為必填
-          if (userData['phone'] != null && userData['phone'].isNotEmpty)
-            'tel_day': userData['phone'],
-        },
-        'item_list': selectedBooks.map((book) {
-          // 將純中文映射回後端要求的代碼 (A, B, C...)
-          String conditionCode;
-          switch (book.condition) {
-            case '全新':
-              conditionCode = 'A';
-              break;
-            case '近全新':
-              conditionCode = 'B';
-              break;
-            case '良好':
-              conditionCode = 'C';
-              break;
-            case '普通':
-              conditionCode = 'D';
-              break;
-            case '差強人意':
-              conditionCode = 'E';
-              break;
-            default:
-              conditionCode = 'C';
-          }
-
-          return {
-            'org_prod_id': book.prodId ?? '',
-            'prod_rank': conditionCode,
-            'prod_mark': conditionCode,
-            'sale_price': book.sellingPrice ?? 0.0,
-            'other_mark': book.notes ?? '',
-          };
-        }).toList(),
+        'org_prod_ids': selectedBooks
+            .map((book) => book.prodId ?? '')
+            .where((id) => id.isNotEmpty)
+            .toList(),
       };
 
       final headers = {
@@ -268,22 +228,111 @@ class BookIdentificationService {
       DebugHelper.logApiResponse(response.statusCode, response.body);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        DebugHelper.log('提交二手書申請單成功', tag: 'BookIdentificationService');
+        DebugHelper.log('提交成功', tag: 'BookIdentificationService');
         return true;
       } else {
-        throw Exception('提交二手書申請單API返回錯誤狀態碼: ${response.statusCode}');
+        throw Exception('提交API返回錯誤狀態碼: ${response.statusCode}');
       }
     } catch (e) {
       DebugHelper.log(
-        '提交二手書申請單API調用失敗: ${e.toString()}',
+        '提交API調用失敗: ${e.toString()}',
         tag: 'BookIdentificationService',
       );
 
-      // 模擬成功響應（開發環境中）
       if (kDebugMode) {
-        DebugHelper.log('模擬提交二手書申請單成功', tag: 'BookIdentificationService');
+        DebugHelper.log('模擬提交成功', tag: 'BookIdentificationService');
         return true;
       }
+      rethrow;
+    }
+  }
+
+  /// 加入暫存 (Watchlist Auto-fill)
+  ///
+  /// [prodIds] 要加入暫存的書籍 ID (prod_id) 列表
+  /// 返回是否成功
+  static Future<bool> addToWatchlist(
+    List<String> prodIds, {
+    String? authToken,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl${ApiConfig.watchlistAutoFillEndpoint}');
+      DebugHelper.logApiRequest('POST', uri.toString());
+
+      final requestData = {
+        'prod_ids': prodIds.where((id) => id.isNotEmpty).toList(),
+      };
+
+      final headers = {
+        'Content-Type': 'application/json',
+      };
+      if (authToken != null && authToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $authToken';
+      }
+
+      final response = await http
+          .post(
+            uri,
+            headers: headers,
+            body: json.encode(requestData),
+          )
+          .timeout(_timeout);
+
+      DebugHelper.logApiResponse(response.statusCode, response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        DebugHelper.log('加入暫存成功', tag: 'BookIdentificationService');
+        return true;
+      } else {
+        throw Exception('加入暫存API返回錯誤狀態碼: ${response.statusCode}');
+      }
+    } catch (e) {
+      DebugHelper.log(
+        '加入暫存API調用失敗: ${e.toString()}',
+        tag: 'BookIdentificationService',
+      );
+
+      if (kDebugMode) {
+        DebugHelper.log('模擬加入暫存成功', tag: 'BookIdentificationService');
+        return true;
+      }
+      rethrow;
+    }
+  }
+
+  /// 獲取暫存清單
+  ///
+  /// 返回暫存清單數據列表（可能包含書籍 ID 或詳細資訊）
+  static Future<List<dynamic>> getWatchlist({
+    required String authToken,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl${ApiConfig.watchlistEndpoint}');
+      DebugHelper.logApiRequest('GET', uri.toString());
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $authToken',
+      };
+
+      final response = await http.get(uri, headers: headers).timeout(_timeout);
+
+      DebugHelper.logApiResponse(response.statusCode, response.body);
+
+      if (response.statusCode == 200) {
+        final dynamic responseData = json.decode(response.body);
+        if (responseData is List) {
+          return responseData;
+        }
+        return [];
+      } else {
+        throw Exception('獲取暫存清單API返回錯誤狀態碼: ${response.statusCode}');
+      }
+    } catch (e) {
+      DebugHelper.log(
+        '獲取暫存清單API調用失敗: ${e.toString()}',
+        tag: 'BookIdentificationService',
+      );
       rethrow;
     }
   }

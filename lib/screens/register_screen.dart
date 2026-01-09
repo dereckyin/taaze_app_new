@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/watchlist_provider.dart';
 import '../widgets/custom_app_bar.dart';
 import 'main_screen.dart';
 
@@ -296,6 +297,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
 
     if (success && mounted) {
+      // 同步本機暫存並獲取清單
+      final watchlistProvider = context.read<WatchlistProvider>();
+      if (authProvider.authToken != null) {
+        await watchlistProvider.syncLocalToBackend(authProvider.authToken!);
+        await watchlistProvider.fetchRemoteWatchlist(authProvider.authToken!);
+      }
+
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const MainScreen()),

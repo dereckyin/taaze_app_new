@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import '../providers/auth_provider.dart';
+import '../providers/watchlist_provider.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/security_widgets.dart';
 import '../widgets/api_captcha_widget.dart';
@@ -208,8 +209,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // OAuth 登入按鈕
               OAuthButtons(
-                onSuccess: () {
+                onSuccess: () async {
                   if (!context.mounted) return;
+                  
+                  // 同步本機暫存並獲取清單
+                  final authProvider = context.read<AuthProvider>();
+                  final watchlistProvider = context.read<WatchlistProvider>();
+                  if (authProvider.authToken != null) {
+                    await watchlistProvider.syncLocalToBackend(authProvider.authToken!);
+                    await watchlistProvider.fetchRemoteWatchlist(authProvider.authToken!);
+                  }
+
                   if (widget.popOnSuccess) {
                     widget.onLoginSuccess?.call();
                     Navigator.pop(context, true);
@@ -439,6 +449,13 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success && mounted) {
       // 登入成功，清除驗證碼輸入框
       _captchaController.clear();
+
+      // 同步本機暫存並獲取清單
+      final watchlistProvider = context.read<WatchlistProvider>();
+      if (authProvider.authToken != null) {
+        await watchlistProvider.syncLocalToBackend(authProvider.authToken!);
+        await watchlistProvider.fetchRemoteWatchlist(authProvider.authToken!);
+      }
 
       if (widget.popOnSuccess) {
         widget.onLoginSuccess?.call();

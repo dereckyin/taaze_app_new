@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../widgets/custom_app_bar.dart';
 import 'login_screen.dart';
 import 'order_list_screen.dart';
+import 'watchlist_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -166,11 +167,14 @@ class ProfileScreen extends StatelessWidget {
           _buildMenuItem(
             context,
             icon: Icons.favorite_outline,
-            title: '我的收藏',
-            subtitle: '查看收藏的書籍',
+            title: '我的暫存',
+            subtitle: '查看暫存的書籍',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('收藏功能開發中')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const WatchlistScreen(),
+                ),
               );
             },
           ),

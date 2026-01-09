@@ -19,6 +19,7 @@ import 'providers/ai_chat_provider.dart';
 import 'providers/ai_listing_wizard_provider.dart';
 import 'providers/coupon_provider.dart';
 import 'providers/orders_provider.dart';
+import 'providers/watchlist_provider.dart';
 import 'screens/main_screen.dart';
 
 void main() async {
@@ -57,7 +58,15 @@ class _AppHomeState extends State<AppHome> {
   Future<void> _initializeAuth() async {
     final authProvider = context.read<AuthProvider>();
     final notifProvider = context.read<NotificationProvider>();
+    final watchlistProvider = context.read<WatchlistProvider>();
     await authProvider.initializeAuth();
+    
+    // 如果已登入，同步本機暫存到後端並獲取最新清單
+    if (authProvider.authToken != null) {
+      await watchlistProvider.syncLocalToBackend(authProvider.authToken!);
+      await watchlistProvider.fetchRemoteWatchlist(authProvider.authToken!);
+    }
+
     await NotificationService.instance.initialize(
       provider: notifProvider,
       authToken: authProvider.authToken,
@@ -140,6 +149,7 @@ class BookStoreApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AiChatProvider()),
         ChangeNotifierProvider(create: (_) => AiListingWizardProvider()),
         ChangeNotifierProvider(create: (_) => CouponProvider()),
+        ChangeNotifierProvider(create: (_) => WatchlistProvider()),
       ],
       child: MaterialApp(
         title: '讀冊生活網路書店',

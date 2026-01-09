@@ -119,12 +119,8 @@ class AiListingWizardProvider with ChangeNotifier {
     }
   }
 
-  // 提交二手書申請單
+  // 提交二手書申請
   Future<bool> submitApplication({
-    required String name,
-    required String phone,
-    required String address,
-    required String email,
     String? authToken,
   }) async {
     if (!hasSelectedBooks) {
@@ -138,16 +134,8 @@ class AiListingWizardProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final userData = {
-        'name': name,
-        'phone': phone,
-        'address': address,
-        'email': email,
-      };
-
       final success = await BookIdentificationService.submitSecondHandApplication(
         selectedBooks: selectedBooks,
-        userData: userData,
         authToken: authToken,
       );
 

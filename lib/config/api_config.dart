@@ -60,6 +60,8 @@ class ApiConfig {
   static const String syncCartEndpoint = '/orders/add_cart';
   static const String secondHandApplicationEndpoint = '/applications/second-hand-book';
   static const String secondHandDraftAutoFillEndpoint = '/applications/second-hand-book/draft/auto-fill';
+  static const String watchlistAutoFillEndpoint = '/applications/watchlist/auto-fill';
+  static const String watchlistEndpoint = '/applications/watchlist';
 
   /// 獲取所有可用的 API 端點
   static List<ApiEndpoint> get availableEndpoints => [
