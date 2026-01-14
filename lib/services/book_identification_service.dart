@@ -16,12 +16,6 @@ class BookIdentificationService {
   /// [imageFile] 要識別的圖片文件
   /// 返回識別結果列表
   static Future<List<IdentifiedBook>> identifyBooks(File imageFile) async {
-    // 開發測試用：直接返回模擬數據，以便測試後續的上架申請流程
-    if (kDebugMode) {
-      DebugHelper.log('測試模式：直接返回模擬識別結果', tag: 'BookIdentificationService');
-      return getMockIdentificationResults();
-    }
-
     try {
       final uri = Uri.parse('$baseUrl/vision/identify-book');
       DebugHelper.logApiRequest('POST', uri.toString());
