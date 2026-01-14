@@ -252,9 +252,7 @@ class OrderItemsFetchResult {
     this.fromCache = false,
     this.statusCode,
     this.message,
-  });
-
-  factory OrderItemsFetchResult.success({
+  });  factory OrderItemsFetchResult.success({
     required List<OrderItemSummary> items,
     bool fromCache = false,
     int? statusCode,
@@ -264,9 +262,7 @@ class OrderItemsFetchResult {
         items: items,
         fromCache: fromCache,
         statusCode: statusCode,
-      );
-
-  factory OrderItemsFetchResult.failure({
+      );  factory OrderItemsFetchResult.failure({
     int? statusCode,
     String? message,
   }) =>
