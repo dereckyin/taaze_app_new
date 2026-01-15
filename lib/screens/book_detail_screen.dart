@@ -107,8 +107,22 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         throw Exception('狀態碼 ${response.statusCode}');
       }
       final decoded = json.decode(utf8.decode(response.bodyBytes));
-      final bookData =
-          decoded['book_data'] as Map<String, dynamic>? ?? <String, dynamic>{};
+
+      // API 可能回傳 Map 或 List，統一萃取 book_data
+      Map<String, dynamic>? bookData;
+      if (decoded is Map<String, dynamic>) {
+        bookData = decoded['book_data'] as Map<String, dynamic>? ?? decoded;
+      } else if (decoded is List && decoded.isNotEmpty) {
+        final firstMap = decoded.firstWhere(
+          (e) => e is Map<String, dynamic>,
+          orElse: () => null,
+        );
+        if (firstMap is Map<String, dynamic>) {
+          bookData =
+              firstMap['book_data'] as Map<String, dynamic>? ?? firstMap;
+        }
+      }
+      bookData ??= <String, dynamic>{};
       final merged = _mergeBookWithTaazeData(_displayBook, bookData);
 
       if (!mounted) return;
