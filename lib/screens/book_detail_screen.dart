@@ -44,6 +44,26 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   bool _isPlayerLoading = false;
   String? _playerError;
 
+  bool _isAiTalkAllowed() {
+    final raw = _taazeRaw;
+    if (raw == null) return false;
+
+    final saleDiscRaw = raw['saleDisc']?.toString() ?? '';
+    if (saleDiscRaw.isEmpty) return false;
+
+    final cleaned = saleDiscRaw.replaceAll(RegExp(r'[^0-9.]'), '');
+    if (cleaned.isEmpty) return false;
+
+    final parsed = double.tryParse(cleaned);
+    if (parsed == null) return false;
+
+    final saleDiscInt = parsed.round();
+    const blockedPubIds = {'1000585', '1000802', '1000144', '1000051'};
+    final pubId = raw['pubId']?.toString() ?? '';
+
+    return saleDiscInt <= 85 && !blockedPubIds.contains(pubId);
+  }
+
   Book get _displayBook => _taazeBook ?? widget.book;
 
   @override
@@ -232,7 +252,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     _buildBookHeader(context, book),
                     _buildBookDetails(context, book),
                     _buildTaazeExtras(context),
-                    _buildAiAssistant(context, book),
+                    if (_isAiTalkAllowed()) _buildAiAssistant(context, book),
                     _buildBookDescription(context, book),
                     _buildCatalogueSection(context),
             _buildReviewsSection(context),
