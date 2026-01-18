@@ -9,6 +9,7 @@ import 'book_detail_screen.dart';
 class BookListScreen extends StatefulWidget {
   final String title;
   final String? category;
+  final String? categoryId;
   final String? searchQuery;
   final String? endpoint;
   final int startNum;
@@ -18,6 +19,7 @@ class BookListScreen extends StatefulWidget {
     super.key,
     required this.title,
     this.category,
+    this.categoryId,
     this.searchQuery,
     this.endpoint,
     this.startNum = 0,
@@ -76,6 +78,7 @@ class _BookListScreenState extends State<BookListScreen> {
     } else {
       await bookProvider.loadBooksWithPagination(
         category: widget.category,
+        categoryId: widget.categoryId,
         searchQuery: widget.searchQuery,
         page: 1,
         pageSize: 20,
@@ -114,6 +117,7 @@ class _BookListScreenState extends State<BookListScreen> {
     } else {
       await context.read<BookProvider>().loadMoreBooks(
         category: widget.category,
+        categoryId: widget.categoryId,
         searchQuery: widget.searchQuery,
       );
     }

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../providers/book_provider.dart';
 import '../providers/bestsellers_provider.dart';
 import '../providers/cart_provider.dart';
+import '../models/product_category.dart';
 import '../widgets/book_card.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/custom_app_bar.dart';
@@ -101,7 +102,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   _buildQuickActionsSection(),
 
                   // 分類導航
-                  _buildCategorySection(bookProvider.categories),
+                  _buildCategorySection(
+                    bookProvider.productCategories
+                        .where((category) => category.level == 1)
+                        .toList(),
+                  ),
 
                   // 今日特惠
                   _buildTodayDealsSection(bookProvider.todayDeals),
@@ -309,7 +314,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCategorySection(List<String> categories) {
+  Widget _buildCategorySection(List<ProductCategory> categories) {
+    if (categories.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -356,14 +365,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                       child: Icon(
-                        _getCategoryIcon(category),
+                        ProductCategory.getIcon(category.name),
                         color: Theme.of(context).colorScheme.primary,
                         size: 30,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      category,
+                      category.name,
                       style: Theme.of(context).textTheme.bodySmall,
                       textAlign: TextAlign.center,
                       maxLines: 2,
@@ -561,24 +570,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case '程式設計':
-        return FontAwesomeIcons.code;
-      case '設計':
-        return FontAwesomeIcons.palette;
-      case '人工智慧':
-        return FontAwesomeIcons.robot;
-      case '資料庫':
-        return FontAwesomeIcons.database;
-      case '網路安全':
-        return FontAwesomeIcons.shield;
-      case '雲端運算':
-        return FontAwesomeIcons.cloud;
-      case '區塊鏈':
-        return FontAwesomeIcons.link;
-      default:
-        return FontAwesomeIcons.book;
-    }
-  }
 }

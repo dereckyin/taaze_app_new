@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/book.dart';
+import '../models/product_category.dart';
 import '../utils/debug_helper.dart';
 import '../config/api_config.dart';
 
@@ -9,6 +10,7 @@ class BookProvider with ChangeNotifier {
   List<Book> _books = [];
   List<Book> _featuredBooks = [];
   List<String> _categories = [];
+  List<ProductCategory> _productCategories = [];
   bool _isLoading = false;
   String? _error;
 
@@ -39,6 +41,16 @@ class BookProvider with ChangeNotifier {
   List<Book> get books => _books;
   List<Book> get featuredBooks => _featuredBooks;
   List<String> get categories => _categories;
+  List<ProductCategory> get productCategories => _productCategories;
+  
+  // Get only level 1 categories (top-level categories)
+  List<String> get levelOneCategories {
+    return _productCategories
+        .where((category) => category.level == 1)
+        .map((category) => category.name)
+        .toList();
+  }
+  
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -457,6 +469,7 @@ class BookProvider with ChangeNotifier {
       // 直接使用假資料，不調用API
       DebugHelper.log('使用假資料模式，跳過API調用', tag: 'BookProvider');
       _loadMockData();
+      _loadCategories();
       _error = null; // 清除錯誤狀態
 
       _isLoading = false;
@@ -513,6 +526,42 @@ class BookProvider with ChangeNotifier {
     }
   }
 
+  // Fetch used books from API without query parameters
+  Future<List<Book>> _fetchUsedBooksFromAPI() async {
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.usedBooksLatestEndpoint}');
+      DebugHelper.logApiRequest('GET', uri.toString());
+
+      final response = await http.get(uri).timeout(const Duration(seconds: 20));
+      DebugHelper.logApiResponse(response.statusCode, response.body);
+
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+
+      final dynamic decoded = json.decode(response.body);
+      List<dynamic> jsonList;
+
+      if (decoded is List) {
+        jsonList = decoded;
+        _totalCount = jsonList.length;
+      } else if (decoded is Map && decoded['data'] is List) {
+        jsonList = decoded['data'] as List<dynamic>;
+        _totalCount = decoded['total_count'] ??
+            decoded['totalCount'] ??
+            decoded['total'] ??
+            jsonList.length;
+      } else {
+        throw Exception('unexpected response format');
+      }
+
+      return jsonList.map((json) => _bookFromJson(json)).toList();
+    } catch (e) {
+      DebugHelper.log('Used books API調用異常: ${e.toString()}', tag: 'BookProvider');
+      rethrow;
+    }
+  }
+
   // 從 JSON 創建 Book 物件（暫時註解，使用假資料模式）
   Book _bookFromJson(Map<String, dynamic> json) {
     return Book(
@@ -535,6 +584,22 @@ class BookProvider with ChangeNotifier {
       pages: json['pages'] ?? 0,
       publisher: json['publisher']?.toString() ?? '',
     );
+  }
+
+  ProductCategory _categoryFromJson(Map<String, dynamic> json) {
+    return ProductCategory.fromJson(json);
+  }
+
+  // Helper method to flatten hierarchical categories to a list of names
+  List<String> _flattenCategories(List<ProductCategory> categories) {
+    final List<String> result = [];
+    for (final category in categories) {
+      result.add(category.name);
+      if (category.children != null && category.children!.isNotEmpty) {
+        result.addAll(_flattenCategories(category.children!));
+      }
+    }
+    return result;
   }
 
   // 載入模擬資料
@@ -566,6 +631,34 @@ class BookProvider with ChangeNotifier {
     _usedBooks = _mockBooks.where((book) => book.price < 300).toList()
       ..sort((a, b) => b.publishDate.compareTo(a.publishDate))
       ..take(6).toList();
+  }
+
+  Future<void> _loadCategories() async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}/book/category/list');
+    DebugHelper.log('載入分類資料: ${uri.toString()}', tag: 'BookProvider');
+    DebugHelper.logApiRequest('GET', uri.toString());
+    try {
+      final response = await http.get(uri);
+      DebugHelper.logApiResponse(response.statusCode, response.body);
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        // Handle both array and single object responses
+        if (decoded is List) {
+          _productCategories = decoded
+              .map((category) => _categoryFromJson(category as Map<String, dynamic>))
+              .toList();
+        } else if (decoded is Map<String, dynamic>) {
+          _productCategories = [_categoryFromJson(decoded)];
+        }
+        // Flatten the hierarchy to populate _categories for backward compatibility
+        _categories = levelOneCategories;
+        notifyListeners();
+      } else {
+        DebugHelper.log('載入分類失敗: HTTP ${response.statusCode}', tag: 'BookProvider');
+      }
+    } catch (e) {
+      DebugHelper.log('載入分類異常: ${e.toString()}', tag: 'BookProvider');
+    }
   }
 
   List<Book> getBooksByCategory(String category) {
@@ -628,10 +721,13 @@ class BookProvider with ChangeNotifier {
   // 檢查是否為離線模式
   bool get isOfflineMode => _error?.contains('離線模式') ?? false;
 
-  // 載入分頁資料（假資料模式）
+  // 載入分頁資料（使用 API）
   Future<void> loadBooksWithPagination({
     String? category,
+    String? categoryId,
     String? searchQuery,
+    String prodCatId = '11',
+    String type = 'new',
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -639,63 +735,142 @@ class BookProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      DebugHelper.log('載入分頁資料（假資料模式）- 第 $page 頁', tag: 'BookProvider');
+      DebugHelper.log('載入分頁資料 - 第 $page 頁', tag: 'BookProvider');
 
-      // 使用假資料進行分頁
-      List<Book> filteredBooks = List.from(_mockBooks);
+      // 構建查詢參數
+      final queryParams = <String, String>{
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+      };
 
-      // 根據分類篩選
-      if (category != null && category.isNotEmpty) {
-        filteredBooks = filteredBooks
-            .where((book) => book.category == category)
-            .toList();
+      if (categoryId != null && categoryId.isNotEmpty) {
+        queryParams['category'] = categoryId;
       }
+      queryParams['prod_cat_id'] = prodCatId;
 
-      // 根據搜尋關鍵字篩選
-      if (searchQuery != null && searchQuery.isNotEmpty) {
-        filteredBooks = filteredBooks.where((book) {
-          return book.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
-              book.author.toLowerCase().contains(searchQuery.toLowerCase()) ||
-              book.description.toLowerCase().contains(
-                searchQuery.toLowerCase(),
-              );
-        }).toList();
-      }
-
-      // 計算分頁
-      final startIndex = (page - 1) * pageSize;
-      final endIndex = startIndex + pageSize;
-      final newBooks = filteredBooks.skip(startIndex).take(pageSize).toList();
-
-      if (page == 1) {
-        _books = newBooks;
-      } else {
-        _books.addAll(newBooks);
-      }
-
-      _currentPage = page;
-      _totalCount = filteredBooks.length;
-      _hasMore = endIndex < filteredBooks.length;
-
-      DebugHelper.log(
-        '假資料分頁載入完成 - 第 $page 頁，共 ${newBooks.length} 本書籍，總計 $_totalCount 本',
-        tag: 'BookProvider',
+      // 構建 URI
+      final uri = Uri.parse('${ApiConfig.baseUrl}/book/').replace(
+        queryParameters: queryParams,
       );
+
+      DebugHelper.logApiRequest('GET', uri.toString());
+
+      // 發送請求
+      final response = await http.get(uri).timeout(const Duration(seconds: 20));
+      DebugHelper.logApiResponse(response.statusCode, response.body);
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        
+        // 解析分頁響應
+        final items = decoded['items'] as List<dynamic>;
+        final total = decoded['total'] as int;
+        final currentPage = decoded['page'] as int;
+        final totalPages = decoded['total_pages'] as int;
+
+        // 轉換為 Book 物件
+        final newBooks = items.map((json) => _bookFromJson(json as Map<String, dynamic>)).toList();
+
+        // 如果是第一頁，替換現有書籍；否則追加
+        if (page == 1) {
+          _books = newBooks;
+        } else {
+          _books.addAll(newBooks);
+        }
+
+        // 更新分頁狀態
+        _currentPage = currentPage;
+        _totalCount = total;
+        _hasMore = currentPage < totalPages;
+
+        DebugHelper.log(
+          '分頁載入完成 - 第 $page 頁，共 ${newBooks.length} 本書籍，總計 $_totalCount 本',
+          tag: 'BookProvider',
+        );
+
+        _error = null;
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
     } catch (e) {
-      DebugHelper.log('假資料分頁載入失敗: ${e.toString()}', tag: 'BookProvider');
+      DebugHelper.log('分頁載入失敗: ${e.toString()}', tag: 'BookProvider');
       _error = '載入失敗：${e.toString()}';
+      
+      // 如果 API 失敗，回退到假資料模式（僅用於開發測試）
+      if (category != null || searchQuery != null) {
+        DebugHelper.log('API 失敗，使用假資料模式', tag: 'BookProvider');
+        await _loadBooksWithPaginationFallback(
+          category: category,
+          searchQuery: searchQuery,
+          page: page,
+          pageSize: pageSize,
+        );
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // 載入更多資料（假資料模式）
-  Future<void> loadMoreBooks({String? category, String? searchQuery}) async {
+  // 假資料模式回退（僅用於開發測試）
+  Future<void> _loadBooksWithPaginationFallback({
+    String? category,
+    String? searchQuery,
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    // 使用假資料進行分頁
+    List<Book> filteredBooks = List.from(_mockBooks);
+
+    // 根據分類篩選
+    if (category != null && category.isNotEmpty) {
+      filteredBooks = filteredBooks
+          .where((book) => book.category == category)
+          .toList();
+    }
+
+    // 根據搜尋關鍵字篩選
+    if (searchQuery != null && searchQuery.isNotEmpty) {
+      filteredBooks = filteredBooks.where((book) {
+        return book.title.toLowerCase().contains(searchQuery.toLowerCase()) ||
+            book.author.toLowerCase().contains(searchQuery.toLowerCase()) ||
+            book.description.toLowerCase().contains(
+              searchQuery.toLowerCase(),
+            );
+      }).toList();
+    }
+
+    // 計算分頁
+    final startIndex = (page - 1) * pageSize;
+    final endIndex = startIndex + pageSize;
+    final newBooks = filteredBooks.skip(startIndex).take(pageSize).toList();
+
+    if (page == 1) {
+      _books = newBooks;
+    } else {
+      _books.addAll(newBooks);
+    }
+
+    _currentPage = page;
+    _totalCount = filteredBooks.length;
+    _hasMore = endIndex < filteredBooks.length;
+  }
+
+  // 載入更多資料
+  Future<void> loadMoreBooks({
+    String? category,
+    String? categoryId,
+    String? prodCatId,
+    String? type,
+    String? searchQuery,
+  }) async {
     if (!_hasMore || _isLoading) return;
 
     await loadBooksWithPagination(
       category: category,
+      categoryId: categoryId,
+      prodCatId: prodCatId ?? '11',
+      type: type ?? 'new',
       searchQuery: searchQuery,
       page: _currentPage + 1,
       pageSize: _pageSize,
@@ -777,6 +952,14 @@ class BookProvider with ChangeNotifier {
             endNum: endNum,
           );
           break;
+        case ApiConfig.usedBooksLatestEndpoint:
+          // Used books endpoint doesn't take query parameters
+          filteredBooks = await _fetchUsedBooksFromAPI();
+          // Skip pagination logic since endpoint returns all books
+          _updateBooksFromEndpointChunk(filteredBooks, append);
+          _isLoading = false;
+          notifyListeners();
+          return;
         case '/api/books/used-books':
           filteredBooks = _mockBooks.where((book) => book.price < 300).toList()
             ..sort((a, b) => b.publishDate.compareTo(a.publishDate));

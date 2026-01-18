@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../widgets/cached_image_widget.dart';
 import '../config/api_config.dart';
 import '../providers/book_provider.dart';
+import '../models/product_category.dart';
 import '../providers/banner_provider.dart';
 import '../providers/today_deals_provider.dart';
 import '../providers/bestsellers_provider.dart';
@@ -679,35 +680,47 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: categories.length,
             itemBuilder: (context, index) {
               final category = categories[index];
-              return Container(
-                width: 80,
-                margin: const EdgeInsets.only(right: 12),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Icon(
-                        _getCategoryIcon(category),
-                        color: Theme.of(context).colorScheme.primary,
-                        size: 30,
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CategoryScreen(
+                        initialCategoryName: category,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      category,
-                      style: Theme.of(context).textTheme.bodySmall,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                  );
+                },
+                child: Container(
+                  width: 80,
+                  margin: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Icon(
+                          ProductCategory.getIcon(category),
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 30,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        category,
+                        style: Theme.of(context).textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -1032,24 +1045,4 @@ class _HomeScreenState extends State<HomeScreen> {
     return const SizedBox.shrink();
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case '程式設計':
-        return FontAwesomeIcons.code;
-      case '設計':
-        return FontAwesomeIcons.palette;
-      case '人工智慧':
-        return FontAwesomeIcons.robot;
-      case '資料庫':
-        return FontAwesomeIcons.database;
-      case '網路安全':
-        return FontAwesomeIcons.shield;
-      case '雲端運算':
-        return FontAwesomeIcons.cloud;
-      case '區塊鏈':
-        return FontAwesomeIcons.link;
-      default:
-        return FontAwesomeIcons.book;
-    }
-  }
 }
