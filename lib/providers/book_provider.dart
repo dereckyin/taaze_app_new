@@ -19,6 +19,7 @@ class BookProvider with ChangeNotifier {
   List<Book> _bestsellers = [];
   List<Book> _newReleases = [];
   List<Book> _usedBooks = [];
+  List<Book> _podcastBooks = [];
 
   // 分頁相關
   int _currentPage = 1;
@@ -59,6 +60,7 @@ class BookProvider with ChangeNotifier {
   List<Book> get bestsellers => _bestsellers;
   List<Book> get newReleases => _newReleases;
   List<Book> get usedBooks => _usedBooks;
+  List<Book> get podcastBooks => _podcastBooks;
 
   // 分頁相關getter
   int get currentPage => _currentPage;
@@ -496,7 +498,7 @@ class BookProvider with ChangeNotifier {
       );
       DebugHelper.logApiRequest('GET', uri.toString());
 
-      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      final response = await http.get(uri).timeout(const Duration(seconds: 60));
       DebugHelper.logApiResponse(response.statusCode, response.body);
 
       if (response.statusCode != 200) {
@@ -728,6 +730,7 @@ class BookProvider with ChangeNotifier {
     String? searchQuery,
     String prodCatId = '11',
     String type = 'new',
+    List<String>? aiServices,
     int page = 1,
     int pageSize = 20,
   }) async {
@@ -738,9 +741,10 @@ class BookProvider with ChangeNotifier {
       DebugHelper.log('載入分頁資料 - 第 $page 頁', tag: 'BookProvider');
 
       // 構建查詢參數
-      final queryParams = <String, String>{
+      final queryParams = <String, dynamic>{
         'page': page.toString(),
         'page_size': pageSize.toString(),
+        'type': type,
       };
 
       if (categoryId != null && categoryId.isNotEmpty) {
@@ -749,14 +753,30 @@ class BookProvider with ChangeNotifier {
       queryParams['prod_cat_id'] = prodCatId;
 
       // 構建 URI
-      final uri = Uri.parse('${ApiConfig.baseUrl}/book/').replace(
-        queryParameters: queryParams,
-      );
+      final uriBuilder = Uri.parse('${ApiConfig.baseUrl}/book/');
+      final baseQueryParams = <String, String>{
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+        'type': type,
+        'prod_cat_id': prodCatId,
+      };
+
+      if (categoryId != null && categoryId.isNotEmpty) {
+        baseQueryParams['category'] = categoryId;
+      }
+
+      var uri = uriBuilder.replace(queryParameters: baseQueryParams);
+
+      if (aiServices != null && aiServices.isNotEmpty) {
+        final uriString = uri.toString();
+        final aiServiceParams = aiServices.map((service) => 'ai_service=$service').join('&');
+        uri = Uri.parse('$uriString${uriString.contains('?') ? '&' : '?'}$aiServiceParams');
+      }
 
       DebugHelper.logApiRequest('GET', uri.toString());
 
       // 發送請求
-      final response = await http.get(uri).timeout(const Duration(seconds: 20));
+      final response = await http.get(uri).timeout(const Duration(seconds: 60));
       DebugHelper.logApiResponse(response.statusCode, response.body);
 
       if (response.statusCode == 200) {
@@ -862,6 +882,7 @@ class BookProvider with ChangeNotifier {
     String? categoryId,
     String? prodCatId,
     String? type,
+    List<String>? aiServices,
     String? searchQuery,
   }) async {
     if (!_hasMore || _isLoading) return;
@@ -871,6 +892,7 @@ class BookProvider with ChangeNotifier {
       categoryId: categoryId,
       prodCatId: prodCatId ?? '11',
       type: type ?? 'new',
+      aiServices: aiServices,
       searchQuery: searchQuery,
       page: _currentPage + 1,
       pageSize: _pageSize,
@@ -885,12 +907,79 @@ class BookProvider with ChangeNotifier {
     _books.clear();
   }
 
+  // 載入Podcast書籍
+  Future<void> loadPodcastBooks({int page = 1, int pageSize = 20}) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      DebugHelper.log('載入Podcast書籍 - 第 $page 頁', tag: 'BookProvider');
+
+      // 構建 URI
+      final uriBuilder = Uri.parse('${ApiConfig.baseUrl}/book/');
+      final baseQueryParams = <String, String>{
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+      };
+
+      var uri = uriBuilder.replace(queryParameters: baseQueryParams);
+
+      // Add ai_service as multiple query parameters
+      final uriString = uri.toString();
+      final aiServiceParam = 'ai_service=podcast';
+      uri = Uri.parse('$uriString${uriString.contains('?') ? '&' : '?'}$aiServiceParam');
+
+      DebugHelper.logApiRequest('GET', uri.toString());
+
+      // 發送請求
+      final response = await http.get(uri).timeout(const Duration(seconds: 60));
+      DebugHelper.logApiResponse(response.statusCode, response.body);
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        
+        // 解析分頁響應
+        final items = decoded['items'] as List<dynamic>;
+        final total = decoded['total'] as int;
+
+        // 轉換為 Book 物件
+        final newBooks = items.map((json) => _bookFromJson(json as Map<String, dynamic>)).toList();
+
+        // 如果是第一頁，替換現有書籍；否則追加
+        if (page == 1) {
+          _podcastBooks = newBooks;
+        } else {
+          _podcastBooks.addAll(newBooks);
+        }
+
+        _totalCount = total;
+        _error = null;
+        DebugHelper.log(
+          'Podcast書籍載入完成，共 ${_podcastBooks.length} 本書籍',
+          tag: 'BookProvider',
+        );
+      } else {
+        throw Exception('HTTP ${response.statusCode}: ${response.body}');
+      }
+    } catch (e) {
+      DebugHelper.log('Podcast書籍載入失敗: ${e.toString()}', tag: 'BookProvider');
+      _error = '載入失敗：${e.toString()}';
+      if (_podcastBooks.isEmpty) {
+        _podcastBooks = [];
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   // 根據endpoint載入對應的假資料，可附帶起迄索引；append可累加資料
   Future<void> loadBooksByEndpoint(
     String endpoint, {
     int startNum = 0,
     int endNum = 19,
     bool append = false,
+    String type = 'new'
   }) async {
     try {
       _isLoading = true;
@@ -953,9 +1042,7 @@ class BookProvider with ChangeNotifier {
           );
           break;
         case ApiConfig.usedBooksLatestEndpoint:
-          // Used books endpoint doesn't take query parameters
           filteredBooks = await _fetchUsedBooksFromAPI();
-          // Skip pagination logic since endpoint returns all books
           _updateBooksFromEndpointChunk(filteredBooks, append);
           _isLoading = false;
           notifyListeners();

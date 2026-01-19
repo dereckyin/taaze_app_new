@@ -12,6 +12,8 @@ class BookListScreen extends StatefulWidget {
   final String? categoryId;
   final String? searchQuery;
   final String? endpoint;
+  final String? type;
+  final List<String>? aiServices;
   final int startNum;
   final int endNum;
 
@@ -22,6 +24,8 @@ class BookListScreen extends StatefulWidget {
     this.categoryId,
     this.searchQuery,
     this.endpoint,
+    this.aiServices,
+    this.type = 'new',
     this.startNum = 0,
     this.endNum = 19,
   });
@@ -80,6 +84,8 @@ class _BookListScreenState extends State<BookListScreen> {
         category: widget.category,
         categoryId: widget.categoryId,
         searchQuery: widget.searchQuery,
+        type: widget.type ?? 'new',
+        aiServices: widget.aiServices,
         page: 1,
         pageSize: 20,
       );
@@ -119,6 +125,8 @@ class _BookListScreenState extends State<BookListScreen> {
         category: widget.category,
         categoryId: widget.categoryId,
         searchQuery: widget.searchQuery,
+        type: widget.type,
+        aiServices: widget.aiServices,
       );
     }
 

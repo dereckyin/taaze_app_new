@@ -43,6 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<BookProvider>().clearError();
       context.read<BannerProvider>().clearError();
+      // Load podcast books
+      context.read<BookProvider>().loadPodcastBooks();
       _startBannerTimer();
     });
   }
@@ -173,6 +175,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // 最新上架二手書
                   _buildUsedBooksSection(),
+
+                  // Podcast
+                  _buildPodcastSection(),
 
                   const SizedBox(height: 20),
                 ],
@@ -587,8 +592,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => BookListScreen(
-                    title: '最新上架二手書',
-                    endpoint: ApiConfig.usedBooksLatestEndpoint,
+                    title: '二手書',
+                    type: 'used',
                     startNum: 0,
                     endNum: 19,
                   ),
@@ -926,6 +931,39 @@ class _HomeScreenState extends State<HomeScreen> {
               endNum: 19,
             ),
           ),
+    );
+  }
+
+  // Podcast板塊
+  Widget _buildPodcastSection() {
+    return Consumer<BookProvider>(
+      builder: (context, bookProvider, child) {
+        final podcastBooks = bookProvider.podcastBooks;
+        if (podcastBooks.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        return _buildBookSection(
+          title: 'Podcast',
+          books: podcastBooks,
+          onViewAll: _navigateToPodcast,
+        );
+      },
+    );
+  }
+
+  void _navigateToPodcast() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BookListScreen(
+          title: 'Podcast',
+          endpoint: null, 
+          startNum: 0,
+          endNum: 19,
+          aiServices: ['podcast'],
+        ),
+      ),
     );
   }
 
