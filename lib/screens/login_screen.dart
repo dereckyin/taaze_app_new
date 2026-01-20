@@ -266,21 +266,18 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _buildLoginForm() {
     return Column(
       children: [
-        // 電子郵件輸入框
+        // 電子郵件或用戶名輸入框
         TextFormField(
           controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
+          keyboardType: TextInputType.text,
           decoration: const InputDecoration(
-            labelText: '電子郵件',
-            prefixIcon: Icon(Icons.email_outlined),
-            hintText: '請輸入您的電子郵件',
+            labelText: 'TAAZE帳號',
+            prefixIcon: Icon(Icons.person_outlined),
+            hintText: '請輸入您的TAAZE帳號',
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return '請輸入電子郵件';
-            }
-            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-              return '請輸入有效的電子郵件格式';
+              return '請輸入您的TAAZE帳號';
             }
             return null;
           },

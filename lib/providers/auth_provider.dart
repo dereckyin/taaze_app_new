@@ -423,10 +423,10 @@ class AuthProvider with ChangeNotifier {
     }
 
     // 電子郵件格式驗證
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-    if (!emailRegex.hasMatch(email)) {
-      return false;
-    }
+    // final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    // if (!emailRegex.hasMatch(email)) {
+    //   return false;
+    // }
 
     // 密碼長度驗證
     if (password.length < 6) {
