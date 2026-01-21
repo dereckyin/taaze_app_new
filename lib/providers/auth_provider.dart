@@ -717,22 +717,15 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        // 只有在確定的認證失敗時才登出
-        // 如果是 401 之外的伺服器錯誤，可能暫時保留狀態
-        await logoutWithApi();
+        // 刷新失敗時先保留本地登入狀態，交由後續 API 決定是否失效
         return false;
       }
     } catch (e) {
-      // 網路連線問題不應導致自動登出
-      if (e is SocketException || e is TimeoutException) {
-        if (kDebugMode) {
-          print('🔧 [AuthProvider] 刷新 Token 時發生網路異常，保留現有狀態: $e');
-        }
-        return true; // 暫時回傳 true 讓啟動流程繼續，後續業務 API 會再檢查 token 是否真的失效
+      // 無論網路或其他錯誤，都先保留既有狀態，讓後續 API 決定是否需要重新登入
+      if (kDebugMode) {
+        print('🔧 [AuthProvider] 刷新 Token 失敗，暫保留狀態: $e');
       }
-      
-      await logoutWithApi();
-      return false;
+      return true;
     }
   }
 

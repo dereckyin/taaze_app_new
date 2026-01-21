@@ -5,6 +5,7 @@ import '../widgets/custom_app_bar.dart';
 import 'login_screen.dart';
 import 'order_list_screen.dart';
 import 'watchlist_screen.dart';
+import 'draft_list_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -174,6 +175,21 @@ class ProfileScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const WatchlistScreen(),
+                ),
+              );
+            },
+          ),
+
+          _buildMenuItem(
+            context,
+            icon: Icons.list_alt,
+            title: '上架草稿',
+            subtitle: '查看上架草稿列表',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DraftListScreen(),
                 ),
               );
             },
