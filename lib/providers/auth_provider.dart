@@ -838,12 +838,47 @@ class AuthProvider with ChangeNotifier {
     await _loadOAuthData();
     await _initializeSecurityState();
 
-    // 如果有token，嘗試刷新以驗證有效性
-    if (_authToken != null && _refreshToken != null) {
-      // 這裡不需要額外處理 isValid = false，因為 refreshAuthToken 內部已呼叫 logoutWithApi
+    // 如果 access token 即將過期才刷新，避免不必要的 refresh 旋轉
+    if (_refreshToken != null &&
+        (_authToken == null || _isTokenExpiringSoon(_authToken!))) {
       await refreshAuthToken();
     }
 
     notifyListeners();
+  }
+
+  bool _isTokenExpiringSoon(
+    String token, {
+    Duration threshold = const Duration(minutes: 2),
+  }) {
+    final expiry = _getJwtExpiry(token);
+    if (expiry == null) return false;
+    return DateTime.now().isAfter(expiry.subtract(threshold));
+  }
+
+  DateTime? _getJwtExpiry(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+      final payload = parts[1];
+      final normalized = base64Url.normalize(payload);
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final jsonMap = jsonDecode(decoded);
+      final exp = jsonMap is Map<String, dynamic> ? jsonMap['exp'] : null;
+      if (exp is int) {
+        return DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true)
+            .toLocal();
+      }
+      if (exp is String) {
+        final parsed = int.tryParse(exp);
+        if (parsed != null) {
+          return DateTime.fromMillisecondsSinceEpoch(parsed * 1000, isUtc: true)
+              .toLocal();
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 }
