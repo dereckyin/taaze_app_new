@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:provider/provider.dart';
 
-/// 臨時條碼掃描頁面 - 等待 mobile_scanner 依賴解決
+import '../models/identified_book.dart';
+import '../providers/auth_provider.dart';
+import '../providers/ai_listing_wizard_provider.dart';
+import '../services/search_service.dart';
+
 class BarcodeScannerScreen extends StatefulWidget {
   const BarcodeScannerScreen({super.key});
 
@@ -9,33 +15,62 @@ class BarcodeScannerScreen extends StatefulWidget {
 }
 
 class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
-  final TextEditingController _barcodeController = TextEditingController();
+  final MobileScannerController _cameraController = MobileScannerController(
+    facing: CameraFacing.back,
+    detectionSpeed: DetectionSpeed.normal,
+    autoStart: true,
+  );
+
+  IdentifiedBook? _scannedBook;
+  String? _scannedCode;
+  String? _error;
+  bool _isSubmitting = false;
   bool _isSearching = false;
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
+  String _condition = '良好';
+  String? _infoMessage;
 
   @override
   void dispose() {
-    _barcodeController.dispose();
+    _cameraController.dispose();
+    _priceController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
-  void _searchBookByBarcode(String barcode) async {
-    if (barcode.isEmpty) return;
+  Future<void> _onDetect(BarcodeCapture capture) async {
+    if (_isSearching || _isSubmitting) return;
+    final first = capture.barcodes.isNotEmpty ? capture.barcodes.first : null;
+    final code = first?.rawValue?.trim();
+    if (code == null || code.isEmpty) return;
+    final sanitized = _sanitizeIsbn(code);
+    if (sanitized == null) return; // 非 ISBN 直接忽略
+    if (_scannedCode == code && _scannedBook != null) return;
 
     setState(() {
+      _scannedCode = code;
+      _error = null;
+      _infoMessage = null;
       _isSearching = true;
     });
 
     try {
-      // 模擬搜尋延遲
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (mounted) {
-        _showNoBookFoundDialog();
-      }
+      final book = await _fetchBookByIsbn(sanitized);
+      if (!mounted) return;
+      setState(() {
+        _scannedBook = book;
+        _condition = book.condition;
+        _priceController.text =
+            book.sellingPrice?.toStringAsFixed(0) ?? '';
+      });
     } catch (e) {
-      if (mounted) {
-        _showErrorDialog('搜尋失敗：${e.toString()}');
-      }
+      if (!mounted) return;
+      // 搜尋失敗時不顯示錯誤，只是保留掃描狀態，讓使用者繼續掃描
+      setState(() {
+        _scannedBook = null;
+        _infoMessage = '未找到對應書籍，請再試一次或換本書。';
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -45,170 +80,324 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
     }
   }
 
-  void _showNoBookFoundDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('未找到書籍'),
-        content: const Text('找不到與此條碼對應的書籍，請檢查條碼是否正確。'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _barcodeController.clear();
-            },
-            child: const Text('確定'),
-          ),
-        ],
-      ),
+  Future<IdentifiedBook> _fetchBookByIsbn(String isbn) async {
+    final results =
+        await SearchService.searchBooks(keyword: isbn, page: 1, pageSize: 10);
+    if (results.books.isEmpty) {
+      throw Exception('未找到符合的書籍');
+    }
+
+    // 先嘗試 ISBN 完全符合的
+    final matched = results.books
+        .where((b) => b.isbn == isbn || b.id == isbn || b.orgProdId == isbn)
+        .toList();
+    final book = matched.isNotEmpty ? matched.first : results.books.first;
+
+    return IdentifiedBook(
+      prodId: book.id,
+      orgProdId: book.orgProdId ?? book.id,
+      eancode: book.isbn.isNotEmpty ? book.isbn : isbn,
+      titleMain: book.title,
+      condition: '良好',
+      isSelected: true,
+      sellingPrice: book.salePrice,
     );
   }
 
-  void _showErrorDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('錯誤'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('確定'),
-          ),
-        ],
-      ),
+  Future<void> _submitDraft() async {
+    final book = _scannedBook;
+    if (book == null) return;
+
+    final confirmed = await _confirmSubmit();
+    if (!confirmed) return;
+
+    final parsedPrice = double.tryParse(_priceController.text.trim());
+    final updated = book.copyWith(
+      condition: _condition,
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
+      sellingPrice: parsedPrice,
+      isSelected: true,
     );
+
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+
+    final auth = context.read<AuthProvider>();
+    if (!auth.isAuthenticated) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('請先登入後再匯入草稿')),
+      );
+      setState(() => _isSubmitting = false);
+      return;
+    }
+
+    final wizardProvider = context.read<AiListingWizardProvider>();
+    wizardProvider.addToLocalDrafts([updated], append: true);
+
+    if (mounted) {
+      setState(() {
+        _isSubmitting = false;
+        _infoMessage = '已加入本機草稿列表，可於「查看上架草稿」確認後再送出。';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('已加入本機草稿列表')),
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  void _resetScan() {
+    setState(() {
+      _scannedBook = null;
+      _scannedCode = null;
+      _error = null;
+      _infoMessage = null;
+      _priceController.clear();
+      _notesController.clear();
+      _condition = '良好';
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final hasResult = _scannedBook != null;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('條碼掃描'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('掃描條碼'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.flash_on),
+            onPressed: () => _cameraController.toggleTorch(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.cameraswitch),
+            onPressed: () => _cameraController.switchCamera(),
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 提示訊息
-            Container(
+      body: Column(
+        children: [
+          AspectRatio(
+            aspectRatio: 3 / 4,
+            child: Stack(
+              children: [
+                MobileScanner(
+                  controller: _cameraController,
+                  fit: BoxFit.contain,
+                  onDetect: _onDetect,
+                ),
+                if (_isSearching)
+                  const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Padding(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange[50],
-                border: Border.all(color: Colors.orange[200]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
+              child: hasResult ? _buildResultCard() : _buildHint(),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: hasResult
+          ? Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Row(
                 children: [
-                  Icon(Icons.info_outline, color: Colors.orange[700], size: 32),
-                  const SizedBox(height: 8),
-                  Text(
-                    '條碼掃描功能暫時不可用',
-                    style: TextStyle(
-                      color: Colors.orange[700],
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: _isSubmitting ? null : _resetScan,
+                      child: const Text('重新掃描'),
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '由於依賴套件衝突，條碼掃描功能暫時停用。\n您可以使用手動輸入條碼的方式搜尋書籍。',
-                    style: TextStyle(color: Colors.orange[600], fontSize: 14),
-                    textAlign: TextAlign.center,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isSubmitting ? null : _submitDraft,
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('匯入上架草稿'),
+                    ),
                   ),
                 ],
               ),
-            ),
+            )
+          : null,
+    );
+  }
 
-            const SizedBox(height: 24),
+  Widget _buildHint() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '對準書籍背面的 ISBN 條碼進行掃描。',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '• 直向橫向皆可，避免手指遮擋\n'
+          '• 光線不足時可開啟手電筒\n'
+          '• 讀取到條碼後會自動帶入單本上架資料',
+          style: TextStyle(color: Colors.grey[700]),
+        ),
+        if (_infoMessage != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            _infoMessage!,
+            style: TextStyle(color: Colors.grey[700]),
+          ),
+        ],
+      ],
+    );
+  }
 
-            // 手動輸入條碼
-            Text('手動輸入條碼', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _barcodeController,
-              decoration: const InputDecoration(
-                labelText: '條碼',
-                hintText: '請輸入書籍條碼',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.qr_code),
-              ),
-              keyboardType: TextInputType.number,
-              onSubmitted: (value) {
-                if (value.isNotEmpty) {
-                  _searchBookByBarcode(value);
-                }
-              },
-            ),
-
-            const SizedBox(height: 16),
-
-            // 搜尋按鈕
-            ElevatedButton(
-              onPressed: _isSearching
-                  ? null
-                  : () {
-                      if (_barcodeController.text.isNotEmpty) {
-                        _searchBookByBarcode(_barcodeController.text);
-                      }
-                    },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: _isSearching
-                  ? const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                        SizedBox(width: 8),
-                        Text('搜尋中...'),
-                      ],
-                    )
-                  : const Text('搜尋書籍'),
-            ),
-
-            const SizedBox(height: 24),
-
-            // 功能說明
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+  Widget _buildResultCard() {
+    final book = _scannedBook!;
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (book.imageUrl != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    book.imageUrl!,
+                    width: 64,
+                    height: 90,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: 64,
+                      height: 90,
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.book),
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '功能說明',
+                      book.titleMain,
                       style: Theme.of(context).textTheme.titleMedium,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '• 輸入書籍的 ISBN 條碼進行搜尋\n'
-                      '• 支援 13 位 ISBN-13 格式\n'
-                      '• 支援 10 位 ISBN-10 格式\n'
-                      '• 找到書籍後會自動跳轉到書籍詳情頁面',
+                    const SizedBox(height: 4),
+                    Text(
+                      'ISBN：${book.isbnDisplay}',
+                      style: TextStyle(color: Colors.grey[700]),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'ProdId：${book.prodIdDisplay}',
+                      style: TextStyle(color: Colors.grey[700]),
                     ),
                   ],
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            value: _condition,
+            decoration: const InputDecoration(
+              labelText: '書況',
+              border: OutlineInputBorder(),
             ),
-
-            const Spacer(),
-
-            // 底部提示
+            items: const [
+              DropdownMenuItem(value: '全新', child: Text('全新')),
+              DropdownMenuItem(value: '近全新', child: Text('近全新')),
+              DropdownMenuItem(value: '良好', child: Text('良好')),
+              DropdownMenuItem(value: '普通', child: Text('普通')),
+              DropdownMenuItem(value: '差強人意', child: Text('差強人意')),
+            ],
+            onChanged: (v) {
+              if (v != null) {
+                setState(() {
+                  _condition = v;
+                });
+              }
+            },
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _priceController,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(
+              labelText: '預設賣價（可留空）',
+              prefixText: 'NT\$ ',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _notesController,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: '備註（可留空）',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
             Text(
-              '提示：條碼掃描功能將在依賴套件問題解決後恢復',
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
-              textAlign: TextAlign.center,
+              _error!,
+              style: TextStyle(color: Colors.red[700]),
             ),
           ],
-        ),
+        ],
       ),
     );
+  }
+
+  /// 僅接受 10 或 13 碼數字（允許含連字號、空白）
+  String? _sanitizeIsbn(String raw) {
+    final digits = raw.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length == 10 || digits.length == 13) {
+      return digits;
+    }
+    return null;
+  }
+
+  Future<bool> _confirmSubmit() async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('確認匯入上架草稿'),
+            content: const Text('確認將此書匯入上架草稿嗎？'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('取消'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('確認'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 }

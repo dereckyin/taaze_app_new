@@ -23,6 +23,8 @@ import 'search_screen.dart';
 import 'category_screen.dart';
 import 'book_list_screen.dart';
 import 'barcode_scanner_screen.dart';
+import '../providers/auth_provider.dart';
+import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -604,7 +606,19 @@ class _HomeScreenState extends State<HomeScreen> {
           _buildQuickActionButton(
             icon: FontAwesomeIcons.qrcode,
             label: '掃描條碼',
-            onTap: () {
+            onTap: () async {
+              final auth = context.read<AuthProvider>();
+              if (!auth.isAuthenticated) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('請先登入後再掃描條碼')),
+                );
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                );
+                return;
+              }
+              if (!mounted) return;
               Navigator.push(
                 context,
                 MaterialPageRoute(

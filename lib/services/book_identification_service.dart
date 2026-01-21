@@ -140,7 +140,7 @@ class BookIdentificationService {
       // 準備請求數據：根據後端報錯，目前只需提供 org_prod_ids 列表
       final requestData = {
         'org_prod_ids': selectedBooks
-            .map((book) => book.prodId ?? '')
+            .map((book) => book.orgProdId ?? book.prodId ?? '')
             .where((id) => id.isNotEmpty)
             .toList(),
       };
@@ -199,7 +199,7 @@ class BookIdentificationService {
       // 準備請求數據：根據後端報錯，目前只需提供 org_prod_ids 列表
       final requestData = {
         'org_prod_ids': selectedBooks
-            .map((book) => book.prodId ?? '')
+            .map((book) => book.orgProdId ?? book.prodId ?? '')
             .where((id) => id.isNotEmpty)
             .toList(),
       };

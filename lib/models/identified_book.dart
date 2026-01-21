@@ -1,5 +1,6 @@
 class IdentifiedBook {
   final String? prodId;
+  final String? orgProdId;
   final String? eancode;
   final String titleMain;
   final String condition;
@@ -9,6 +10,7 @@ class IdentifiedBook {
 
   IdentifiedBook({
     this.prodId,
+    this.orgProdId,
     this.eancode,
     required this.titleMain,
     required this.condition,
@@ -30,6 +32,7 @@ class IdentifiedBook {
 
     return IdentifiedBook(
       prodId: json['prod_id'],
+      orgProdId: json['org_prod_id'] ?? json['prod_id'],
       eancode: json['eancode'],
       titleMain: json['title_main'] ?? '',
       condition: mappedCondition,
@@ -50,6 +53,7 @@ class IdentifiedBook {
 
     return {
       'prod_id': prodId,
+      'org_prod_id': orgProdId,
       'eancode': eancode,
       'title_main': titleMain,
       '書況': conditionCode,
@@ -61,6 +65,7 @@ class IdentifiedBook {
 
   IdentifiedBook copyWith({
     String? prodId,
+    String? orgProdId,
     String? eancode,
     String? titleMain,
     String? condition,
@@ -70,6 +75,7 @@ class IdentifiedBook {
   }) {
     return IdentifiedBook(
       prodId: prodId ?? this.prodId,
+      orgProdId: orgProdId ?? this.orgProdId,
       eancode: eancode ?? this.eancode,
       titleMain: titleMain ?? this.titleMain,
       condition: condition ?? this.condition,
@@ -92,11 +98,12 @@ class IdentifiedBook {
 
   // 獲取商品ID顯示文本
   String get prodIdDisplay {
-    return prodId ?? '未識別';
+    return orgProdId ?? prodId ?? '未識別';
   }
 
   // 檢查是否為有效商品（有prodId）
   bool get isValidProduct {
-    return prodId != null && prodId!.isNotEmpty;
+    return (orgProdId != null && orgProdId!.isNotEmpty) ||
+        (prodId != null && prodId!.isNotEmpty);
   }
 }

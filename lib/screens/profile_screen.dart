@@ -181,42 +181,6 @@ class ProfileScreen extends StatelessWidget {
           
           _buildMenuItem(
             context,
-            icon: Icons.location_on_outlined,
-            title: '收貨地址',
-            subtitle: '管理收貨地址',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('地址管理功能開發中')),
-              );
-            },
-          ),
-          
-          _buildMenuItem(
-            context,
-            icon: Icons.notifications_outlined,
-            title: '通知設定',
-            subtitle: '管理通知偏好',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('通知設定功能開發中')),
-              );
-            },
-          ),
-          
-          _buildMenuItem(
-            context,
-            icon: Icons.help_outline,
-            title: '幫助與支援',
-            subtitle: '常見問題和聯絡我們',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('幫助功能開發中')),
-              );
-            },
-          ),
-          
-          _buildMenuItem(
-            context,
             icon: Icons.info_outline,
             title: '關於我們',
             subtitle: '應用程式資訊',
@@ -298,7 +262,7 @@ class ProfileScreen extends StatelessWidget {
   void _showAboutDialog(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: '書店應用程式',
+      applicationName: '讀冊新生活',
       applicationVersion: '1.0.0',
       applicationIcon: Icon(
         Icons.book,
@@ -306,7 +270,7 @@ class ProfileScreen extends StatelessWidget {
         color: Theme.of(context).colorScheme.primary,
       ),
       children: [
-        const Text('這是一個專業的網路書店應用程式，提供豐富的書籍選擇和優質的購物體驗。'),
+        const Text('TAAZE讀冊生活網路書店'),
       ],
     );
   }

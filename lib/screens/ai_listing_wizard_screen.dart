@@ -6,6 +6,8 @@ import '../providers/ai_listing_wizard_provider.dart';
 import '../providers/auth_provider.dart';
 import 'identified_books_list_screen.dart';
 import 'login_screen.dart';
+import 'barcode_scanner_screen.dart';
+import 'draft_list_screen.dart';
 
 class AiListingWizardScreen extends StatefulWidget {
   const AiListingWizardScreen({super.key});
@@ -329,6 +331,60 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
                   ),
                 ),
 
+                const SizedBox(height: 12),
+
+                // 條碼掃描按鈕
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      final auth = context.read<AuthProvider>();
+                      if (auth.authToken == null || auth.authToken!.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('請先登入後再掃描條碼')),
+                        );
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        );
+                        return;
+                      }
+
+                      if (!mounted) return;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const BarcodeScannerScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.qr_code_scanner),
+                    label: const Text('掃描條碼單本上架'),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // 查看上架草稿
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: TextButton.icon(
+                    onPressed: _openDraftList,
+                    icon: const Icon(Icons.list_alt),
+                    label: const Text('查看上架草稿'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 24),
 
                 // 使用說明
@@ -420,6 +476,28 @@ class _AiListingWizardScreenState extends State<AiListingWizardScreen> {
 
   void _clearAll() {
     context.read<AiListingWizardProvider>().clearAll();
+  }
+
+  Future<void> _openDraftList() async {
+    final auth = context.read<AuthProvider>();
+    if (auth.authToken == null || auth.authToken!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('請先登入後查看上架草稿')),
+      );
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const DraftListScreen(),
+      ),
+    );
   }
 
   Future<void> _showSubmitApplicationDialog() async {

@@ -8,11 +8,13 @@ class AiListingWizardProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   File? _selectedImage;
+  final List<IdentifiedBook> _localDrafts = [];
 
   List<IdentifiedBook> get identifiedBooks => _identifiedBooks;
   bool get isLoading => _isLoading;
   String? get error => _error;
   File? get selectedImage => _selectedImage;
+  List<IdentifiedBook> get localDrafts => List.unmodifiable(_localDrafts);
 
   // 獲取選中的書籍
   List<IdentifiedBook> get selectedBooks {
@@ -100,6 +102,7 @@ class AiListingWizardProvider with ChangeNotifier {
         authToken: authToken,
       );
       if (success) {
+        addToLocalDrafts(selectedBooks, append: true);
         // 清空選中的書籍
         for (int i = 0; i < _identifiedBooks.length; i++) {
           if (_identifiedBooks[i].isSelected) {
@@ -158,6 +161,32 @@ class AiListingWizardProvider with ChangeNotifier {
     _selectedImage = null;
     _error = null;
     _isLoading = false;
+    notifyListeners();
+  }
+
+  // 將書籍加入本地草稿列表（僅前端顯示用）
+  void addToLocalDrafts(List<IdentifiedBook> drafts, {bool append = true}) {
+    if (!append) {
+      _localDrafts
+        ..clear()
+        ..addAll(drafts);
+    } else {
+      for (final d in drafts) {
+        final key = d.orgProdId ?? d.prodId ?? d.titleMain;
+        final exists = _localDrafts.any((b) {
+          final bKey = b.orgProdId ?? b.prodId ?? b.titleMain;
+          return bKey == key;
+        });
+        if (!exists) {
+          _localDrafts.add(d);
+        }
+      }
+    }
+    notifyListeners();
+  }
+
+  void clearLocalDrafts() {
+    _localDrafts.clear();
     notifyListeners();
   }
 

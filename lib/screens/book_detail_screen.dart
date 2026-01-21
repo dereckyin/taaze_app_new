@@ -658,14 +658,14 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               const Icon(Icons.smart_toy, color: Colors.pink),
               const SizedBox(width: 8),
               Text(
-                'AI 專區',
+                '與書對話',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            '快速提問或開啟對話，AI 可根據本書提供摘要、讀者族群與重點收穫。',
+            'AI 閱讀精靈開啟全新的閱讀體驗，讓閱讀更智慧！',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.grey[700],
                 ),
