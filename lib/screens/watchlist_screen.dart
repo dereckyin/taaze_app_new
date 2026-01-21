@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../providers/watchlist_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
 import '../models/book.dart';
 import '../widgets/cached_image_widget.dart';
 import 'book_detail_screen.dart';
-import '../services/search_service.dart';
 
 class WatchlistScreen extends StatefulWidget {
   const WatchlistScreen({super.key});
@@ -61,7 +62,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
               itemBuilder: (context, index) {
                 final id = allIds[index];
                 final remoteItem = watchlistProvider.remoteItems.firstWhere(
-                  (item) => (item is Map && item['prod_id']?.toString() == id),
+                  (item) => item is Map && _matchesWatchlistId(item, id),
                   orElse: () => null,
                 );
                 return _buildWatchlistTile(id, remoteItem);
@@ -98,46 +99,71 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
     double priceValue = 0;
     Book? detailBook;
 
+    // 1. 從 remoteItem 拿基礎資料
     if (remoteItem is Map) {
-      title = remoteItem['title_main'] ?? remoteItem['title'] ?? title;
-      author = remoteItem['author'];
-      priceValue = (remoteItem['sale_price'] ?? remoteItem['salePrice'] ?? remoteItem['price'] ?? 0).toDouble();
-      final prodId = remoteItem['prod_id']?.toString();
-      if (prodId != null) {
-        imageUrl = 'https://media.taaze.tw/showThumbnail.html?sc=$prodId&height=200&width=150';
+      final rTitle = (remoteItem['titleMain'] ??
+              remoteItem['title_main'] ??
+              remoteItem['title'])
+          ?.toString();
+      if (rTitle != null && rTitle.isNotEmpty) title = rTitle;
+      author = remoteItem['author']?.toString();
+      priceValue = (remoteItem['sale_price'] ??
+              remoteItem['salePrice'] ??
+              remoteItem['price'] ??
+              0)
+          .toDouble();
+      final rProdId =
+          (remoteItem['prod_id'] ?? remoteItem['prodId'])?.toString();
+      if (rProdId != null) {
+        imageUrl =
+            'https://media.taaze.tw/showThumbnail.html?sc=$rProdId&height=200&width=150';
       }
-    } else if (_detailCache.containsKey(id)) {
+    }
+
+    // 2. 如果快取有資料（API 抓回來的），優先使用快取覆蓋
+    if (_detailCache.containsKey(id)) {
       detailBook = _detailCache[id];
       if (detailBook != null) {
-        title = detailBook.title.isNotEmpty ? detailBook.title : title;
-        author = detailBook.author;
-        priceValue = detailBook.salePrice ?? detailBook.price;
-        imageUrl = detailBook.imageUrl;
+        if (detailBook.title.isNotEmpty) title = detailBook.title;
+        if (detailBook.author.isNotEmpty) author = detailBook.author;
+        if ((detailBook.salePrice ?? detailBook.price) > 0) {
+          priceValue = detailBook.salePrice ?? detailBook.price;
+        }
+        if (detailBook.imageUrl.isNotEmpty) imageUrl = detailBook.imageUrl;
       }
-    } else if (!_loadingIds.contains(id)) {
+    }
+
+    // 3. 如果標題還是店內碼，觸發爬蟲
+    if ((title == '店內碼: $id' || title.isEmpty) && !_loadingIds.contains(id)) {
       _loadingIds.add(id);
-      _fetchDetail(id);
+      String lookupId = id;
+      if (remoteItem is Map) {
+        final orgProdId =
+            (remoteItem['org_prod_id'] ?? remoteItem['orgProdId'])?.toString();
+        if (orgProdId != null && orgProdId.isNotEmpty) lookupId = orgProdId;
+      }
+      _fetchDetail(id, lookupId: lookupId);
     }
 
     // 建立一個骨架 Book 物件，點選時傳入詳情頁
     final book = detailBook ??
         Book(
-      id: id,
-      title: title,
-      author: author ?? '',
-      imageUrl: imageUrl ?? '',
-      price: priceValue,
-      salePrice: priceValue,
-      description: '',
-      category: '',
-      rating: 0,
-      reviewCount: 0,
-      isAvailable: true,
-      publishDate: DateTime.now(),
-      isbn: '',
-      pages: 0,
-      publisher: '',
-    );
+          id: id,
+          title: title,
+          author: author ?? '',
+          imageUrl: imageUrl ?? '',
+          price: priceValue,
+          salePrice: priceValue,
+          description: '',
+          category: '',
+          rating: 0,
+          reviewCount: 0,
+          isAvailable: true,
+          publishDate: DateTime.now(),
+          isbn: '',
+          pages: 0,
+          publisher: '',
+        );
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -178,7 +204,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      title,
+                      title.startsWith('店內碼:') ? title : '書名: $title',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -187,9 +213,9 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    if (author != null)
+                    if (author != null && author.isNotEmpty)
                       Text(
-                        author,
+                        '作者: $author',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -198,12 +224,15 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
                       children: [
                         priceValue > 0
                             ? Text(
-                                'NT\$ ${priceValue.toInt()}',
+                                '優惠價: NT\$ ${priceValue.toInt()}',
                                 style: TextStyle(
                                   color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.bold,
@@ -230,7 +259,8 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                           icon: const Icon(Icons.add_shopping_cart, size: 16),
                           label: const Text('加入購物車'),
                           style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             minimumSize: Size.zero,
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
@@ -247,29 +277,82 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
     );
   }
 
-  Future<void> _fetchDetail(String id) async {
+  Future<void> _fetchDetail(String id, {required String lookupId}) async {
     try {
-      final results = await SearchService.searchBooks(
-        keyword: id,
-        page: 1,
-        pageSize: 5,
-      );
-      if (!mounted) return;
-      final matched = results.books.where((b) {
-        return b.id == id || b.orgProdId == id;
-      }).toList();
-      final book = matched.isNotEmpty
-          ? matched.first
-          : (results.books.isNotEmpty ? results.books.first : null);
-      if (book != null) {
-        setState(() {
-          _detailCache[id] = book;
-        });
+      final uri = Uri.parse('https://service.taaze.tw/product/$lookupId');
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) {
+        return;
       }
+      final decoded = json.decode(utf8.decode(response.bodyBytes));
+
+      // 萃取 book_data，支援 Map 或 List 格式
+      Map<String, dynamic>? bookData;
+      if (decoded is Map<String, dynamic>) {
+        bookData = decoded['book_data'] as Map<String, dynamic>? ?? decoded;
+      } else if (decoded is List && decoded.isNotEmpty) {
+        final first = decoded.first;
+        if (first is Map<String, dynamic>) {
+          bookData = first['book_data'] as Map<String, dynamic>? ?? first;
+        }
+      }
+
+      final data = bookData;
+      if (data == null || data.isEmpty) return;
+
+      final title = (data['titleMain'] ?? data['title_main'] ?? data['title'])
+          ?.toString() ??
+          '';
+      final salePrice =
+          _tryParseOptionalDouble(data['salePrice'] ?? data['sale_price']);
+      final author = data['author']?.toString() ?? '';
+
+      if (title.isEmpty) return;
+
+      if (!mounted) return;
+      setState(() {
+        _detailCache[id] = Book(
+          id: id,
+          orgProdId: lookupId,
+          title: title,
+          author: author,
+          description: '',
+          price: salePrice ?? 0,
+          listPrice: _tryParseOptionalDouble(data['listPrice'] ?? data['list_price']),
+          salePrice: salePrice,
+          imageUrl:
+              'https://media.taaze.tw/showLargeImage.html?sc=$lookupId&height=200&width=150&fill=f',
+          category: '',
+          rating: 0,
+          reviewCount: 0,
+          isAvailable: true,
+          publishDate: DateTime.now(),
+          isbn: (data['eancode'] ?? data['isbn'])?.toString() ?? '',
+          pages: 0,
+          publisher: data['publisher']?.toString() ?? '',
+        );
+      });
     } catch (_) {
-      // ignore fetch errors, keep fallback display
+      // ignore
     } finally {
       _loadingIds.remove(id);
     }
+  }
+
+  double? _tryParseOptionalDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) {
+      final cleaned = value.replaceAll(RegExp(r'[^0-9.]'), '');
+      if (cleaned.isEmpty) return null;
+      return double.tryParse(cleaned);
+    }
+    return null;
+  }
+
+  bool _matchesWatchlistId(Map item, String id) {
+    final prodId = (item['prod_id'] ?? item['prodId'])?.toString();
+    final orgProdId = (item['org_prod_id'] ?? item['orgProdId'])?.toString();
+    return prodId == id || orgProdId == id;
   }
 }

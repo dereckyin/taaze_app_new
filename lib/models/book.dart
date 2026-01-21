@@ -71,19 +71,19 @@ class Book {
 
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
-      id: json['id'] ?? '',
-      orgProdId: json['orgProdId']?.toString(),
-      title: json['title'] ?? '',
-      author: json['author'] ?? '',
-      description: json['description'] ?? '',
-      price: (json['price'] ?? 0.0).toDouble(),
+      id: (json['id'] ?? json['prodId'] ?? json['prod_id'] ?? '').toString(),
+      orgProdId: (json['orgProdId'] ?? json['org_prod_id'])?.toString(),
+      title: json['title'] ?? json['title_main'] ?? '',
+      author: json['author'] ?? json['author_name'] ?? '',
+      description: json['description'] ?? json['content_text'] ?? '',
+      price: (json['price'] ?? json['sale_price'] ?? 0.0).toDouble(),
       // 兼容不同來源欄位命名
       listPrice: _tryParseDouble(json['listPrice'] ?? json['list_price']),
       salePrice: _tryParseDouble(json['salePrice'] ?? json['sale_price']),
-      imageUrl: json['imageUrl'] ?? '',
-      category: json['category'] ?? '',
+      imageUrl: json['imageUrl'] ?? json['image_url'] ?? '',
+      category: json['category'] ?? json['category_id'] ?? '',
       rating: (json['rating'] ?? 0.0).toDouble(),
-      reviewCount: json['reviewCount'] ?? 0,
+      reviewCount: json['reviewCount'] ?? json['review_count'] ?? 0,
       isAvailable: json['isAvailable'] ?? true,
       publishDate: DateTime.parse(
         json['publishDate'] ?? DateTime.now().toIso8601String(),

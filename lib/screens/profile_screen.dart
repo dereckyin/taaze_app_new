@@ -133,13 +133,13 @@ class ProfileScreen extends StatelessWidget {
           
           const SizedBox(height: 8),
           
-          // 註冊日期
-          Text(
-            '註冊於 ${_formatDate(user.createdAt)}',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Colors.grey[500],
-            ),
-          ),
+          // // 註冊日期
+          // Text(
+          //   '註冊於 ${_formatDate(user.createdAt)}',
+          //   style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          //     color: Colors.grey[500],
+          //   ),
+          // ),
         ],
       ),
     );

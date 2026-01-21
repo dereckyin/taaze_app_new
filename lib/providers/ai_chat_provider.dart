@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import '../screens/ai_chat_screen.dart';
+import '../services/search_service.dart';
+import '../models/book.dart';
 
 class AiChatProvider with ChangeNotifier {
   final List<ChatMessage> _messages = [];
@@ -69,7 +71,54 @@ class AiChatProvider with ChangeNotifier {
     _activeProductId = productId ?? _activeProductId;
     notifyListeners();
 
-    await _startStreaming(prompt: trimmed, token: token);
+    // 判斷是否為針對特定書籍的對話
+    if (_activeProductId != null && _activeProductId!.isNotEmpty) {
+      // 針對書籍：使用原有的串流對話 API
+      await _startStreaming(prompt: trimmed, token: token);
+    } else {
+      // 一般搜尋/主題：使用向量搜尋 API
+      await _performVectorSearch(query: trimmed);
+    }
+  }
+
+  Future<void> _performVectorSearch({required String query}) async {
+    try {
+      final result = await SearchService.searchVector(keyword: query);
+      final List<Book> foundBooks = result.books;
+
+      String responseText;
+      if (foundBooks.isEmpty) {
+        responseText = '抱歉，我沒有找到相關的書籍。建議您嘗試不同的關鍵字，或是換個說法。';
+      } else {
+        responseText = '根據您的需求，我為您精選了以下書籍：';
+      }
+
+      if (_assistantMessageIndex != null) {
+        _messages[_assistantMessageIndex!] =
+            _messages[_assistantMessageIndex!].copyWith(
+          content: responseText,
+          books: foundBooks,
+          timestamp: DateTime.now(),
+        );
+      }
+
+      // 產生建議提問
+      if (result.books.isNotEmpty) {
+        _suggestedPrompts.clear();
+        _suggestedPrompts.addAll([
+          '還有其他的嗎？',
+          '這幾本有什麼特色？',
+          '幫我挑最便宜的',
+        ]);
+      }
+
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _setAssistantMessageContent('搜尋失敗：$e\n這可能是由於網路連線問題或搜尋服務暫時不可用。');
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _startStreaming({

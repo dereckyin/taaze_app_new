@@ -49,7 +49,7 @@ class _MainScreenState extends State<MainScreen> {
               );
             },
             backgroundColor: Theme.of(context).colorScheme.primary,
-            tooltip: 'AI 智能助手',
+            tooltip: '與書對話',
             heroTag: 'ai_chat',
             child: const Icon(Icons.smart_toy, color: Colors.white),
           ),

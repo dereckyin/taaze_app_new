@@ -6,9 +6,61 @@ import 'package:html/parser.dart' as html_parser;
 
 import '../models/book.dart';
 import '../utils/debug_helper.dart';
+import '../config/api_config.dart';
 
 class SearchService {
-  static const Duration _timeout = Duration(seconds: 10);
+  static const Duration _timeout = Duration(seconds: 15);
+
+  /// 向量搜尋 (Vector Search)
+  static Future<SearchResultData> searchVector({
+    required String keyword,
+    int page = 1,
+    int pageSize = 20,
+    String? sort,
+    String? order,
+  }) async {
+    if (keyword.trim().isEmpty) {
+      return SearchResultData.empty();
+    }
+
+    final queryParams = {
+      'q': keyword,
+      'page': page.toString(),
+      'pageSize': pageSize.toString(),
+      if (sort != null) 'sort': sort,
+      if (order != null) 'order': order,
+    };
+
+    final uri =
+        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.searchVectorEndpoint}')
+            .replace(queryParameters: queryParams);
+
+    DebugHelper.logApiRequest('GET', uri.toString());
+
+    try {
+      final response = await http.get(uri).timeout(_timeout);
+
+      DebugHelper.logApiResponse(response.statusCode, 'Vector Search Result');
+
+      if (response.statusCode != 200) {
+        throw Exception('搜尋服務異常 (${response.statusCode})');
+      }
+
+      final Map<String, dynamic> decoded =
+          jsonDecode(utf8.decoder.convert(response.bodyBytes));
+      final List<dynamic> data = decoded['data'] ?? [];
+      final books = data.map((item) => Book.fromJson(item)).toList();
+
+      final pagination = decoded['pagination'] ?? {};
+      final total = pagination['total'] ?? books.length;
+      final hasMore = (page * pageSize) < total;
+
+      return SearchResultData(books: books, hasMore: hasMore);
+    } catch (e) {
+      DebugHelper.log('向量搜尋失敗: ${e.toString()}', tag: 'SearchService');
+      rethrow;
+    }
+  }
 
   /// 搜尋書籍（改為使用 Taaze 的 HTML 搜尋頁面）
   static Future<SearchResultData> searchBooks({
