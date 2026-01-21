@@ -65,7 +65,7 @@ dependencies:
   
   # Camera and barcode scanning
   camera: ^0.11.0+2
-  mobile_scanner: ^4.0.0
+  mobile_scanner: ^7.1.4
   image_picker: ^1.1.2
   
   # OAuth authentication

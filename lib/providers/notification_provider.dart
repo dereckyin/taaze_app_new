@@ -7,7 +7,7 @@ class NotificationProvider with ChangeNotifier {
   String? _error;
 
   List<AppNotification> get notifications => _notifications;
-  List<AppNotification> get unreadNotifications => 
+  List<AppNotification> get unreadNotifications =>
       _notifications.where((notification) => !notification.isRead).toList();
   int get unreadCount => unreadNotifications.length;
   bool get isLoading => _isLoading;
@@ -17,31 +17,10 @@ class NotificationProvider with ChangeNotifier {
   final List<AppNotification> _mockNotifications = [
     AppNotification(
       id: '1',
-      title: '歡迎來到書店！',
-      body: '感謝您註冊我們的書店應用程式，享受購物樂趣！',
+      title: '歡迎來到讀冊生活網路書店！',
+      body: '感謝您使用我們的AI服務，享受購物樂趣！',
       type: NotificationType.general,
       createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-    ),
-    AppNotification(
-      id: '2',
-      title: '限時優惠',
-      body: '程式設計類書籍全系列8折優惠，僅限今日！',
-      type: NotificationType.promotion,
-      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-    ),
-    AppNotification(
-      id: '3',
-      title: '訂單確認',
-      body: '您的訂單 #12345 已確認，正在準備出貨。',
-      type: NotificationType.order,
-      createdAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-    AppNotification(
-      id: '4',
-      title: '推薦書籍',
-      body: '基於您的興趣，我們為您推薦《Flutter開發實戰》',
-      type: NotificationType.bookRecommendation,
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
     ),
   ];
 
@@ -56,7 +35,7 @@ class NotificationProvider with ChangeNotifier {
     try {
       // 模擬API調用延遲
       await Future.delayed(const Duration(milliseconds: 500));
-      
+
       _notifications = List.from(_mockNotifications);
       _isLoading = false;
       notifyListeners();

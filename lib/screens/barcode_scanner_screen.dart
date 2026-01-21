@@ -181,60 +181,77 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          AspectRatio(
-            aspectRatio: 3 / 4,
-            child: Stack(
-              children: [
-                MobileScanner(
-                  controller: _cameraController,
-                  fit: BoxFit.contain,
-                  onDetect: _onDetect,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          // 小螢幕時避免相機預覽固定比例撐爆高度，改為依可用高度動態調整
+          final maxW = constraints.maxWidth;
+          final maxH = constraints.maxHeight;
+          final desiredCameraH = maxW * (4 / 3); // 原本 AspectRatio(3/4) 的高度
+          final reservedForContent = hasResult ? 320.0 : 180.0;
+          final cameraMaxH = (maxH - reservedForContent).clamp(140.0, maxH);
+          final cameraH = desiredCameraH.clamp(140.0, cameraMaxH);
+
+          return Column(
+            children: [
+              SizedBox(
+                height: cameraH,
+                child: Stack(
+                  children: [
+                    MobileScanner(
+                      controller: _cameraController,
+                      fit: BoxFit.contain,
+                      onDetect: _onDetect,
+                    ),
+                    if (_isSearching)
+                      const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                  ],
                 ),
-                if (_isSearching)
-                  const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: hasResult ? _buildResultCard() : _buildHint(),
-            ),
-          ),
-        ],
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: hasResult
+                      ? _buildResultCard()
+                      : SingleChildScrollView(child: _buildHint()),
+                ),
+              ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: hasResult
-          ? Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _isSubmitting ? null : _resetScan,
-                      child: const Text('重新掃描'),
+          ? SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: _isSubmitting ? null : _resetScan,
+                        child: const Text('重新掃描'),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _isSubmitting ? null : _submitDraft,
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('匯入上架草稿'),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitDraft,
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text('匯入上架草稿'),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             )
           : null,
