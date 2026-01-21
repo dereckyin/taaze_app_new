@@ -188,7 +188,10 @@ class AuthApiService {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
             },
-            body: jsonEncode({'refreshToken': refreshToken}),
+            body: jsonEncode({
+              'refresh_token': refreshToken,
+              'refreshToken': refreshToken,
+            }),
           )
           .timeout(timeout);
 

@@ -6,6 +6,7 @@ import '../providers/cart_provider.dart';
 import '../models/book.dart';
 import '../widgets/cached_image_widget.dart';
 import 'book_detail_screen.dart';
+import '../services/search_service.dart';
 
 class WatchlistScreen extends StatefulWidget {
   const WatchlistScreen({super.key});
@@ -15,6 +16,9 @@ class WatchlistScreen extends StatefulWidget {
 }
 
 class _WatchlistScreenState extends State<WatchlistScreen> {
+  final Map<String, Book> _detailCache = {};
+  final Set<String> _loadingIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -88,10 +92,11 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
   }
 
   Widget _buildWatchlistTile(String id, dynamic remoteItem) {
-    String title = '書籍 ID: $id';
+    String title = '店內碼: $id';
     String? imageUrl;
     String? author;
     double priceValue = 0;
+    Book? detailBook;
 
     if (remoteItem is Map) {
       title = remoteItem['title_main'] ?? remoteItem['title'] ?? title;
@@ -101,10 +106,22 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
       if (prodId != null) {
         imageUrl = 'https://media.taaze.tw/showThumbnail.html?sc=$prodId&height=200&width=150';
       }
+    } else if (_detailCache.containsKey(id)) {
+      detailBook = _detailCache[id];
+      if (detailBook != null) {
+        title = detailBook.title.isNotEmpty ? detailBook.title : title;
+        author = detailBook.author;
+        priceValue = detailBook.salePrice ?? detailBook.price;
+        imageUrl = detailBook.imageUrl;
+      }
+    } else if (!_loadingIds.contains(id)) {
+      _loadingIds.add(id);
+      _fetchDetail(id);
     }
 
     // 建立一個骨架 Book 物件，點選時傳入詳情頁
-    final book = Book(
+    final book = detailBook ??
+        Book(
       id: id,
       title: title,
       author: author ?? '',
@@ -184,14 +201,22 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'NT\$ ${priceValue.toInt()}',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
+                        priceValue > 0
+                            ? Text(
+                                'NT\$ ${priceValue.toInt()}',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              )
+                            : Text(
+                                '價格未知',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
+                                ),
+                              ),
                         ElevatedButton.icon(
                           onPressed: () {
                             context.read<CartProvider>().addToCart(book);
@@ -220,5 +245,31 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _fetchDetail(String id) async {
+    try {
+      final results = await SearchService.searchBooks(
+        keyword: id,
+        page: 1,
+        pageSize: 5,
+      );
+      if (!mounted) return;
+      final matched = results.books.where((b) {
+        return b.id == id || b.orgProdId == id;
+      }).toList();
+      final book = matched.isNotEmpty
+          ? matched.first
+          : (results.books.isNotEmpty ? results.books.first : null);
+      if (book != null) {
+        setState(() {
+          _detailCache[id] = book;
+        });
+      }
+    } catch (_) {
+      // ignore fetch errors, keep fallback display
+    } finally {
+      _loadingIds.remove(id);
+    }
   }
 }
