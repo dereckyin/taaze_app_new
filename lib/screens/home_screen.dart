@@ -23,6 +23,8 @@ import 'search_screen.dart';
 import 'category_screen.dart';
 import 'book_list_screen.dart';
 import 'barcode_scanner_screen.dart';
+import 'ai_chat_screen.dart';
+import 'ai_listing_wizard_screen.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
 
@@ -530,139 +532,144 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActionsSection() {
+    final actions = [
+      _QuickActionItem(
+        icon: Icons.smart_toy_outlined,
+        label: 'AI 智能助手',
+        color: const Color(0xFF4F6BED),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AiChatScreen()),
+          );
+        },
+      ),
+      _QuickActionItem(
+        icon: Icons.camera_alt_outlined,
+        label: 'AI上架精靈',
+        color: const Color(0xFFEE6E99),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AiListingWizardScreen(),
+            ),
+          );
+        },
+      ),
+      _QuickActionItem(
+        icon: Icons.podcasts_outlined,
+        label: 'podcast',
+        color: const Color(0xFF00A7A0),
+        onTap: _navigateToPodcast,
+      ),
+      // _QuickActionItem(
+      //   icon: FontAwesomeIcons.bookOpen,
+      //   label: '二手書',
+      //   color: const Color(0xFF5C6B7A),
+      //   onTap: () {
+      //     Navigator.push(
+      //       context,
+      //       MaterialPageRoute(
+      //         builder: (context) => BookListScreen(
+      //           title: '二手書',
+      //           type: 'used',
+      //           startNum: 0,
+      //           endNum: 19,
+      //         ),
+      //       ),
+      //     );
+      //   },
+      // ),
+      _QuickActionItem(
+        icon: FontAwesomeIcons.qrcode,
+        label: '掃描條碼',
+        color: const Color(0xFF9B6EF3),
+        onTap: () async {
+          final auth = context.read<AuthProvider>();
+          if (!auth.isAuthenticated) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('請先登入後再掃描條碼')),
+            );
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            );
+            return;
+          }
+          if (!mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const BarcodeScannerScreen(),
+            ),
+          );
+        },
+      ),
+    ];
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildQuickActionButton(
-            icon: FontAwesomeIcons.fire,
-            label: '今日特惠',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const BookListScreen(
-                    title: '今日特惠',
-                    endpoint: '/api/books/today-deals',
-                    startNum: 0,
-                    endNum: 19,
-                  ),
-                ),
-              );
-            },
-          ),
-          _buildQuickActionButton(
-            icon: FontAwesomeIcons.trophy,
-            label: '暢銷榜',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const BookListScreen(
-                    title: '暢銷排行榜',
-                    endpoint: '/content/bestsellers',
-                    startNum: 0,
-                    endNum: 9,
-                  ),
-                ),
-              );
-            },
-          ),
-          _buildQuickActionButton(
-            icon: FontAwesomeIcons.star,
-            label: '注目新品',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BookListScreen(
-                    title: '注目新品',
-                    endpoint: BookProvider.taazeNewArrivalsEndpoint,
-                    startNum: 0,
-                    endNum: 19,
-                  ),
-                ),
-              );
-            },
-          ),
-          _buildQuickActionButton(
-            icon: FontAwesomeIcons.bookOpen,
-            label: '二手書',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BookListScreen(
-                    title: '二手書',
-                    type: 'used',
-                    startNum: 0,
-                    endNum: 19,
-                  ),
-                ),
-              );
-            },
-          ),
-          _buildQuickActionButton(
-            icon: FontAwesomeIcons.qrcode,
-            label: '掃描條碼',
-            onTap: () async {
-              final auth = context.read<AuthProvider>();
-              if (!auth.isAuthenticated) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('請先登入後再掃描條碼')),
-                );
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
-                return;
-              }
-              if (!mounted) return;
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const BarcodeScannerScreen(),
-                ),
-              );
-            },
-          ),
+          for (int index = 0; index < actions.length; index++) ...[
+            Expanded(child: _buildQuickActionTile(actions[index], compact: true)),
+            if (index != actions.length - 1) const SizedBox(width: 10),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildQuickActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Theme.of(
-                context,
-              ).colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Icon(
-              icon,
-              color: Theme.of(context).colorScheme.primary,
-              size: 24,
-            ),
+  Widget _buildQuickActionTile(_QuickActionItem item, {bool compact = false}) {
+    final iconSize = compact ? 20.0 : 22.0;
+    final containerSize = compact ? 40.0 : 44.0;
+    final padding = compact
+        ? const EdgeInsets.symmetric(horizontal: 8, vertical: 10)
+        : const EdgeInsets.symmetric(horizontal: 12, vertical: 14);
+    final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+          fontSize: compact ? 11 : null,
+        );
+
+    return Material(
+      color: Colors.white,
+      elevation: 1.2,
+      borderRadius: BorderRadius.circular(16),
+      shadowColor: Colors.black.withValues(alpha: 0.12),
+      child: InkWell(
+        onTap: item.onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: padding,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: containerSize,
+                height: containerSize,
+                decoration: BoxDecoration(
+                  color: item.color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  item.icon,
+                  color: item.color,
+                  size: iconSize,
+                ),
+              ),
+              SizedBox(height: compact ? 8 : 10),
+              Text(
+                item.label,
+                textAlign: TextAlign.center,
+                style: labelStyle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -1097,4 +1104,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return const SizedBox.shrink();
   }
 
+}
+
+class _QuickActionItem {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _QuickActionItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 }

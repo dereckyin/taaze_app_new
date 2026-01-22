@@ -122,14 +122,14 @@ class OAuthService {
       bool timedOut = false;
       final GoogleSignInAccount? googleUser = await _googleSignIn
           .signIn()
-          .timeout(const Duration(seconds: 20), onTimeout: () async {
+          .timeout(const Duration(seconds: 40), onTimeout: () async {
         timedOut = true;
         // #region agent log
         _agentDebugLogSync(
           hypothesisId: 'G2',
           location: 'OAuthService.signInWithGoogle:SIGNIN_TIMEOUT',
           message: 'GoogleSignIn.signIn timed out',
-          data: {'timeoutSeconds': 20},
+          data: {'timeoutSeconds': 40},
           runId: 'g-pre-1',
         );
         // #endregion
