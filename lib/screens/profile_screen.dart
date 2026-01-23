@@ -181,20 +181,20 @@ class ProfileScreen extends StatelessWidget {
             },
           ),
 
-          _buildMenuItem(
-            context,
-            icon: Icons.list_alt,
-            title: '上架草稿',
-            subtitle: '查看上架草稿列表',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const DraftListScreen(),
-                ),
-              );
-            },
-          ),
+          // _buildMenuItem(
+          //   context,
+          //   icon: Icons.list_alt,
+          //   title: '上架草稿',
+          //   subtitle: '查看上架草稿列表',
+          //   onTap: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(
+          //         builder: (context) => const DraftListScreen(),
+          //       ),
+          //     );
+          //   },
+          // ),
 
           _buildMenuItem(
             context,
