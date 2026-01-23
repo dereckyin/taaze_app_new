@@ -6,6 +6,7 @@ import 'login_screen.dart';
 import 'order_list_screen.dart';
 import 'watchlist_screen.dart';
 import 'draft_list_screen.dart';
+import 'second_hand_application_list_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -190,6 +191,21 @@ class ProfileScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const DraftListScreen(),
+                ),
+              );
+            },
+          ),
+
+          _buildMenuItem(
+            context,
+            icon: Icons.list_alt,
+            title: '二手書申請紀錄',
+            subtitle: '查看二手書申請紀錄列表',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SecondHandApplicationListScreen(),
                 ),
               );
             },

@@ -15,6 +15,7 @@ import 'providers/bestsellers_provider.dart';
 import 'providers/new_arrivals_provider.dart';
 import 'providers/ebook_new_arrivals_provider.dart';
 import 'providers/used_books_latest_provider.dart';
+import 'providers/second_hand_application_provider.dart';
 import 'providers/ai_chat_provider.dart';
 import 'providers/ai_listing_wizard_provider.dart';
 import 'providers/coupon_provider.dart';
@@ -145,6 +146,7 @@ class BookStoreApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NewArrivalsProvider()),
         ChangeNotifierProvider(create: (_) => EbookNewArrivalsProvider()),
         ChangeNotifierProvider(create: (_) => UsedBooksLatestProvider()),
+        ChangeNotifierProvider(create: (_) => SecondHandApplicationProvider()),
         ChangeNotifierProvider(create: (_) => OrdersProvider()),
         ChangeNotifierProvider(create: (_) => AiChatProvider()),
         ChangeNotifierProvider(create: (_) => AiListingWizardProvider()),
