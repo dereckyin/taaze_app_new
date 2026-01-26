@@ -3,8 +3,33 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
-    
+}
+
+// Firebase / Google Services configuration is intentionally gitignored in this repo.
+// If `google-services.json` is not present locally, we skip applying the plugin so
+// release builds can still succeed (Firebase/FCM will be disabled at runtime).
+val requestedTasks = gradle.startParameter.taskNames.joinToString(" ")
+val isReleaseBuild = requestedTasks.contains("Release", ignoreCase = true)
+val hasReleaseGoogleServicesJson =
+    listOf("src/release/google-services.json", "google-services.json").any { file(it).exists() }
+
+if (isReleaseBuild) {
+    if (hasReleaseGoogleServicesJson) {
+        apply(plugin = "com.google.gms.google-services")
+    } else {
+        logger.warn(
+            "⚠️  google-services.json is missing for Release. Skipping 'com.google.gms.google-services' plugin; " +
+                "Firebase will be disabled. Add android/app/google-services.json (or android/app/src/release/google-services.json) to enable it.",
+        )
+    }
+} else {
+    // For non-release tasks (debug/profile), apply if any config exists.
+    val hasAnyGoogleServicesJson =
+        listOf("src/debug/google-services.json", "src/profile/google-services.json", "google-services.json")
+            .any { file(it).exists() }
+    if (hasAnyGoogleServicesJson) {
+        apply(plugin = "com.google.gms.google-services")
+    }
 }
 
 android {

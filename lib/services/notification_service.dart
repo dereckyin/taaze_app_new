@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -52,7 +53,7 @@ class NotificationService {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp();
     } else {
-      await Firebase.app();
+      Firebase.app();
     }
     _messaging = FirebaseMessaging.instance;
 
@@ -78,16 +79,6 @@ class NotificationService {
     // Background handler
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
-    // Token
-    final token = await _messaging.getToken();
-    _currentToken = token;
-    if (kDebugMode) debugPrint('FCM token: $token');
-
-    // Register token to backend if logged in
-    if (token != null && _authToken != null) {
-      await _registerTokenToBackend(token);
-    }
-
     // Listen to token refresh
     _messaging.onTokenRefresh.listen((newToken) async {
       if (kDebugMode) debugPrint('FCM token refreshed: $newToken');
@@ -96,6 +87,16 @@ class NotificationService {
         await _registerTokenToBackend(newToken);
       }
     });
+
+    // Token (iOS requires APNS token first; don't crash app if not ready yet)
+    final token = await _safeGetFcmToken();
+    _currentToken = token;
+    if (kDebugMode) debugPrint('FCM token: $token');
+
+    // Register token to backend if logged in
+    if (token != null && _authToken != null) {
+      await _registerTokenToBackend(token);
+    }
 
     // Foreground messages -> show local notification and push to provider
     FirebaseMessaging.onMessage.listen((message) async {
@@ -117,6 +118,48 @@ class NotificationService {
     }
 
     _initialized = true;
+  }
+
+  Future<String?> _safeGetFcmToken({
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    // On iOS, firebase_messaging may throw if APNS token not ready yet.
+    if (Platform.isIOS) {
+      final deadline = DateTime.now().add(timeout);
+      while (DateTime.now().isBefore(deadline)) {
+        try {
+          final apns = await _messaging.getAPNSToken();
+          if (apns != null && apns.isNotEmpty) break;
+        } catch (e) {
+          // ignore and retry briefly
+        }
+        await Future.delayed(const Duration(milliseconds: 250));
+      }
+
+      try {
+        final apns = await _messaging.getAPNSToken();
+        if (apns == null || apns.isEmpty) {
+          if (kDebugMode) {
+            debugPrint(
+              '[NotificationService] APNS token not set yet; skip FCM getToken for now',
+            );
+          }
+          return null;
+        }
+      } catch (_) {
+        // If APNS token retrieval itself fails, don't block app startup.
+        return null;
+      }
+    }
+
+    try {
+      return await _messaging.getToken();
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('[NotificationService] getToken failed: $e');
+      }
+      return null;
+    }
   }
 
   void _handleNavigationFromData(Map<String, dynamic> data) {
@@ -163,7 +206,7 @@ class NotificationService {
   }
 
   Future<void> revokeCurrentToken() async {
-    final token = _currentToken ?? await _messaging.getToken();
+    final token = _currentToken ?? await _safeGetFcmToken();
     if (token == null || _authToken == null) return;
     try {
       await NotificationApiService.revokeToken(
