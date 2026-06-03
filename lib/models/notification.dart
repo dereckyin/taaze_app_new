@@ -20,18 +20,34 @@ class AppNotification {
   });
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
+    final typeRaw = (json['type'] ?? 'general').toString();
+    NotificationType type = NotificationType.general;
+    for (final t in NotificationType.values) {
+      if (t.name == typeRaw) {
+        type = t;
+        break;
+      }
+    }
+
+    final createdRaw = json['created_at'] ?? json['createdAt'];
+    DateTime createdAt = DateTime.now();
+    if (createdRaw is num) {
+      createdAt = DateTime.fromMillisecondsSinceEpoch((createdRaw * 1000).toInt());
+    } else if (createdRaw is String) {
+      createdAt = DateTime.tryParse(createdRaw) ?? DateTime.now();
+    }
+
     return AppNotification(
-      id: json['id'] ?? '',
+      id: json['id']?.toString() ?? '',
       title: json['title'] ?? '',
       body: json['body'] ?? '',
-      imageUrl: json['imageUrl'],
-      type: NotificationType.values.firstWhere(
-        (e) => e.toString() == 'NotificationType.${json['type']}',
-        orElse: () => NotificationType.general,
-      ),
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
-      isRead: json['isRead'] ?? false,
-      data: json['data'],
+      imageUrl: json['image_url'] ?? json['imageUrl'],
+      type: type,
+      createdAt: createdAt,
+      isRead: json['is_read'] ?? json['isRead'] ?? false,
+      data: json['data'] is Map<String, dynamic>
+          ? json['data'] as Map<String, dynamic>
+          : null,
     );
   }
 

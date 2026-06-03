@@ -27,13 +27,27 @@ class Banner {
     this.expiresAt,
   });
 
+  /// 首頁橫幅用較寬圖，避免 300px 圖在全幅區塊看起來被壓縮。
+  static String displayImageUrl(String raw) {
+    if (raw.isEmpty || !raw.contains('showBanaerImage')) return raw;
+    final uri = Uri.tryParse(raw);
+    if (uri == null) return raw;
+    return uri.replace(queryParameters: {
+      ...uri.queryParameters,
+      'width': '800',
+      'height': '400',
+      'fill': 'f',
+    }).toString();
+  }
+
   factory Banner.fromJson(Map<String, dynamic> json) {
+    final rawImage = json['imageUrl']?.toString() ?? '';
     return Banner(
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
       subtitle: json['subtitle']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
-      imageUrl: json['imageUrl']?.toString() ?? '',
+      imageUrl: displayImageUrl(rawImage),
       actionUrl: json['actionUrl']?.toString(),
       actionText: json['actionText']?.toString(),
       type: BannerType.fromString(json['type']?.toString() ?? 'promotion'),

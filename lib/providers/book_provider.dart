@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/book.dart';
 import '../models/product_category.dart';
+import '../utils/api_response_parser.dart';
 import '../utils/debug_helper.dart';
 import '../config/api_config.dart';
 
@@ -506,20 +507,11 @@ class BookProvider with ChangeNotifier {
       }
 
       final dynamic decoded = json.decode(response.body);
-      List<dynamic> jsonList;
-
-      if (decoded is Map && decoded['data'] is List) {
-        jsonList = decoded['data'] as List<dynamic>;
-        _totalCount = decoded['total_count'] ??
-            decoded['totalCount'] ??
-            decoded['total'] ??
-            jsonList.length;
-      } else if (decoded is List) {
-        jsonList = decoded;
-        _totalCount = jsonList.length;
-      } else {
-        throw Exception('unexpected response format');
-      }
+      final jsonList = ApiResponseParser.extractList(decoded);
+      _totalCount = ApiResponseParser.extractTotal(
+        decoded,
+        fallback: jsonList.length,
+      );
 
       return jsonList.map((json) => _bookFromJson(json)).toList();
     } catch (e) {
@@ -528,10 +520,19 @@ class BookProvider with ChangeNotifier {
     }
   }
 
-  // Fetch used books from API without query parameters
-  Future<List<Book>> _fetchUsedBooksFromAPI() async {
+  Future<List<Book>> _fetchUsedBooksFromAPI({
+    int startNum = 0,
+    int endNum = 19,
+  }) async {
     try {
-      final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.usedBooksLatestEndpoint}');
+      final uri = Uri.parse(
+        '${ApiConfig.baseUrl}${ApiConfig.usedBooksLatestEndpoint}',
+      ).replace(
+        queryParameters: {
+          'startNum': startNum.toString(),
+          'endNum': endNum.toString(),
+        },
+      );
       DebugHelper.logApiRequest('GET', uri.toString());
 
       final response = await http.get(uri).timeout(const Duration(seconds: 20));
@@ -544,18 +545,11 @@ class BookProvider with ChangeNotifier {
       final dynamic decoded = json.decode(response.body);
       List<dynamic> jsonList;
 
-      if (decoded is List) {
-        jsonList = decoded;
-        _totalCount = jsonList.length;
-      } else if (decoded is Map && decoded['data'] is List) {
-        jsonList = decoded['data'] as List<dynamic>;
-        _totalCount = decoded['total_count'] ??
-            decoded['totalCount'] ??
-            decoded['total'] ??
-            jsonList.length;
-      } else {
-        throw Exception('unexpected response format');
-      }
+      jsonList = ApiResponseParser.extractList(decoded);
+      _totalCount = ApiResponseParser.extractTotal(
+        decoded,
+        fallback: jsonList.length,
+      );
 
       return jsonList.map((json) => _bookFromJson(json)).toList();
     } catch (e) {
@@ -1006,7 +1000,6 @@ class BookProvider with ChangeNotifier {
           break;
         case '/content/bestsellers':
         case '/api/books/bestsellers':
-          // 先嘗試 API，失敗再回落 mock，並記錄 log
           try {
             filteredBooks = await _fetchBooksFromAPI(
               endpoint: endpoint,
@@ -1021,8 +1014,15 @@ class BookProvider with ChangeNotifier {
             );
             filteredBooks =
                 _mockBooks.where((book) => book.rating > 4.5).toList();
+            _totalCount = filteredBooks.length;
           }
-          break;
+          _updateBooksFromEndpointChunk(filteredBooks, append);
+          final bestsellerPageSize = endNum - startNum + 1;
+          _hasMore = filteredBooks.length >= bestsellerPageSize &&
+              _books.length < _totalCount;
+          _isLoading = false;
+          notifyListeners();
+          return;
         case '/api/books/new-releases':
           filteredBooks = _mockBooks
               .where(
@@ -1040,10 +1040,22 @@ class BookProvider with ChangeNotifier {
             startNum: startNum,
             endNum: endNum,
           );
-          break;
-        case ApiConfig.usedBooksLatestEndpoint:
-          filteredBooks = await _fetchUsedBooksFromAPI();
           _updateBooksFromEndpointChunk(filteredBooks, append);
+          final arrivalsPageSize = endNum - startNum + 1;
+          _hasMore = filteredBooks.length >= arrivalsPageSize &&
+              _books.length < _totalCount;
+          _isLoading = false;
+          notifyListeners();
+          return;
+        case ApiConfig.usedBooksLatestEndpoint:
+          filteredBooks = await _fetchUsedBooksFromAPI(
+            startNum: startNum,
+            endNum: endNum,
+          );
+          _updateBooksFromEndpointChunk(filteredBooks, append);
+          final pageSize = endNum - startNum + 1;
+          _hasMore =
+              filteredBooks.length >= pageSize && _books.length < _totalCount;
           _isLoading = false;
           notifyListeners();
           return;

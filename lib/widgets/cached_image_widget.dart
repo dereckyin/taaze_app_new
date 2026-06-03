@@ -164,17 +164,26 @@ class BannerImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CachedImageWidget(
+    final image = CachedNetworkImage(
       imageUrl: imageUrl,
       fit: fit,
-      borderRadius: borderRadius,
-      placeholder: _buildBannerPlaceholder(context),
-      errorWidget: _buildBannerErrorWidget(context),
+      width: double.infinity,
+      height: double.infinity,
+      fadeInDuration: const Duration(milliseconds: 300),
+      placeholder: (context, url) => _buildBannerPlaceholder(context),
+      errorWidget: (context, url, error) => _buildBannerErrorWidget(context),
     );
+
+    if (borderRadius != null) {
+      return ClipRRect(borderRadius: borderRadius!, child: image);
+    }
+    return image;
   }
 
   Widget _buildBannerPlaceholder(BuildContext context) {
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
       child: const Center(
         child: CircularProgressIndicator(
@@ -187,6 +196,8 @@ class BannerImage extends StatelessWidget {
 
   Widget _buildBannerErrorWidget(BuildContext context) {
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
       child: const Center(
         child: Icon(Icons.image, color: Colors.white54, size: 40),

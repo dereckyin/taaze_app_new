@@ -15,6 +15,7 @@ import 'ai_chat_screen.dart';
 import 'login_screen.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/cached_image_widget.dart';
+import '../services/podcast_progress_service.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final Book book;
@@ -43,6 +44,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   bool _isPlaying = false;
   bool _isPlayerLoading = false;
   String? _playerError;
+  DateTime? _lastProgressSave;
+
+  String get _progressBookId =>
+      widget.book.orgProdId ?? widget.book.id;
 
   bool _isAiTalkAllowed() {
     final raw = _taazeRaw;
@@ -736,7 +741,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   Future<String?> _requireAuthToken(BuildContext context) async {
     final authProvider = context.read<AuthProvider>();
-    final existingToken = authProvider.authToken;
+    final existingToken = await authProvider.tokenForApi();
     if (existingToken != null && existingToken.isNotEmpty) {
       return existingToken;
     }
@@ -1235,6 +1240,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       setState(() {
         _audioPosition = position;
       });
+      final now = DateTime.now();
+      if (_lastProgressSave == null ||
+          now.difference(_lastProgressSave!) > const Duration(seconds: 3)) {
+        _lastProgressSave = now;
+        PodcastProgressService.savePosition(_progressBookId, position);
+      }
     });
 
     player.durationStream.listen((duration) {
@@ -1262,11 +1273,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
       if (_loadedPodcastUrl != url) {
         final duration = await _audioPlayer!.setUrl(url);
+        final saved = await PodcastProgressService.loadPosition(_progressBookId);
         if (mounted) {
           setState(() {
             _audioDuration = duration;
-            _audioPosition = Duration.zero;
+            _audioPosition = saved ?? Duration.zero;
           });
+        }
+        if (saved != null && saved > Duration.zero) {
+          await _audioPlayer!.seek(saved);
         }
         _loadedPodcastUrl = url;
       }

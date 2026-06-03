@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/book.dart';
+import '../utils/api_response_parser.dart';
 import '../utils/debug_helper.dart';
 
 class EbookNewArrivalsProvider with ChangeNotifier {
@@ -115,16 +116,7 @@ class EbookNewArrivalsProvider with ChangeNotifier {
     }
 
     final dynamic decoded = json.decode(response.body);
-    List<dynamic> listData;
-
-    if (decoded is List) {
-      listData = decoded;
-    } else if (decoded is Map<String, dynamic>) {
-      listData = (decoded['data'] ?? []) as List<dynamic>;
-    } else {
-      throw Exception('unexpected response format');
-    }
-
+    final listData = ApiResponseParser.extractList(decoded);
     return listData.map((e) => Book.fromJson(e)).toList();
   }
 

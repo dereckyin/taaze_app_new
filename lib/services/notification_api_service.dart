@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
+import '../models/notification.dart';
 
 class NotificationApiService {
   static String get baseUrl => ApiConfig.baseUrl;
@@ -109,6 +109,78 @@ class NotificationApiService {
       throw Exception(
         'Unsubscribe topic failed: ${res.statusCode} ${res.body}',
       );
+    }
+  }
+
+  static Future<List<AppNotification>> fetchInbox({
+    required String authToken,
+    int limit = 50,
+  }) async {
+    final uri = Uri.parse('$baseUrl/notifications/inbox').replace(
+      queryParameters: {'limit': limit.toString()},
+    );
+    final res = await http
+        .get(
+          uri,
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $authToken',
+          },
+        )
+        .timeout(timeout);
+    if (res.statusCode != 200) {
+      throw Exception('Fetch inbox failed: ${res.statusCode} ${res.body}');
+    }
+    final decoded = jsonDecode(utf8.decoder.convert(res.bodyBytes));
+    final items = decoded['items'] as List<dynamic>? ?? [];
+    return items
+        .map((e) => AppNotification.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  static Future<void> markInboxRead({
+    required String authToken,
+    List<String>? notificationIds,
+    bool markAll = false,
+  }) async {
+    final uri = Uri.parse('$baseUrl/notifications/inbox/read');
+    final body = <String, dynamic>{
+      if (markAll) 'mark_all': true,
+      if (notificationIds != null && notificationIds.isNotEmpty)
+        'notification_ids': notificationIds,
+    };
+    final res = await http
+        .patch(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $authToken',
+          },
+          body: jsonEncode(body),
+        )
+        .timeout(timeout);
+    if (res.statusCode != 204) {
+      throw Exception('Mark read failed: ${res.statusCode} ${res.body}');
+    }
+  }
+
+  static Future<void> deleteInboxItem({
+    required String authToken,
+    required String notificationId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/notifications/inbox/$notificationId');
+    final res = await http
+        .delete(
+          uri,
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': 'Bearer $authToken',
+          },
+        )
+        .timeout(timeout);
+    if (res.statusCode != 204) {
+      throw Exception('Delete inbox failed: ${res.statusCode} ${res.body}');
     }
   }
 }

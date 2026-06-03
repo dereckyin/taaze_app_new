@@ -1,5 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../providers/watchlist_provider.dart';
 import '../widgets/custom_app_bar.dart';
@@ -208,34 +210,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
               },
             ),
             Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _agreeToTerms = !_agreeToTerms;
-                  });
-                },
-                child: Text.rich(
-                  TextSpan(
-                    text: '我同意 ',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    children: [
-                      TextSpan(
-                        text: '服務條款',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          decoration: TextDecoration.underline,
-                        ),
+              child: Text.rich(
+                TextSpan(
+                  text: '我同意 ',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                  children: [
+                    TextSpan(
+                      text: '服務條款',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        decoration: TextDecoration.underline,
                       ),
-                      const TextSpan(text: ' 和 '),
-                      TextSpan(
-                        text: '隱私政策',
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.primary,
-                          decoration: TextDecoration.underline,
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () => _openUrl(
+                          'https://www.taaze.tw/static_act/member/terms.htm',
                         ),
+                    ),
+                    const TextSpan(text: ' 和 '),
+                    TextSpan(
+                      text: '隱私政策',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.primary,
+                        decoration: TextDecoration.underline,
                       ),
-                    ],
-                  ),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () => _openUrl(
+                          'https://www.taaze.tw/static_act/member/privacy.htm',
+                        ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -243,6 +246,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Widget _buildRegisterButton() {

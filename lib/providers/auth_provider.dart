@@ -9,7 +9,10 @@ import '../models/oauth_user.dart';
 import '../services/auth_api_service.dart';
 import '../services/oauth_service.dart';
 import '../services/notification_service.dart';
+import '../config/api_config.dart';
 import '../config/test_config.dart';
+
+const _authApiBaseUrlKey = 'auth_api_base_url';
 
 class AuthProvider with ChangeNotifier {
   User? _user;
@@ -834,6 +837,7 @@ class AuthProvider with ChangeNotifier {
   /// 初始化認證狀態（應用啟動時調用）
   Future<void> initializeAuth() async {
     await _loadTokens();
+    await _syncAuthWithApiEnvironment();
     await _loadUserData();
     await _loadOAuthData();
     await _initializeSecurityState();
@@ -845,6 +849,52 @@ class AuthProvider with ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  /// 切換 API 環境後，舊環境簽發的 JWT 在新環境會變成 401。
+  Future<void> _syncAuthWithApiEnvironment() async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentBase = ApiConfig.baseUrl;
+    final previousBase = prefs.getString(_authApiBaseUrlKey);
+
+    if (previousBase != null &&
+        previousBase != currentBase &&
+        (_authToken != null || _refreshToken != null)) {
+      await _clearAuthSession(
+        debugReason: 'API 環境已切換 ($previousBase → $currentBase)',
+      );
+    } else if (previousBase == null &&
+        _refreshToken != null &&
+        _authToken != null) {
+      final refreshed = await refreshAuthToken();
+      if (!refreshed) {
+        await _clearAuthSession(debugReason: '目前 API 無法刷新登入狀態');
+      }
+    }
+
+    await prefs.setString(_authApiBaseUrlKey, currentBase);
+  }
+
+  Future<void> _clearAuthSession({String? debugReason}) async {
+    _authToken = null;
+    _refreshToken = null;
+    _user = null;
+    await _clearStoredData();
+    if (kDebugMode && debugReason != null) {
+      print('🔧 [AuthProvider] $debugReason，已清除舊登入狀態');
+    }
+  }
+
+  /// 取得可用於 API 的 token；必要時先嘗試 refresh。
+  Future<String?> tokenForApi({bool forceRefresh = false}) async {
+    if (_authToken == null || _authToken!.isEmpty) {
+      return null;
+    }
+    if (forceRefresh ||
+        (_refreshToken != null && _isTokenExpiringSoon(_authToken!))) {
+      await refreshAuthToken();
+    }
+    return _authToken;
   }
 
   bool _isTokenExpiringSoon(

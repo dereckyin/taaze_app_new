@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show ChangeNotifier, kReleaseMode;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/banner.dart';
@@ -119,19 +119,21 @@ class BannerProvider with ChangeNotifier {
           tag: 'BannerProvider',
         );
       } else {
-        // API 返回空資料，使用 mock data
-        DebugHelper.log('API 返回空資料，使用 mock data', tag: 'BannerProvider');
-        _loadMockData();
-        _error = 'API 返回空資料，已載入模擬資料';
+        _banners = [];
+        _error = 'API 返回空資料';
       }
     } catch (e) {
-      // API 調用失敗，使用 mock data 作為 fallback
       DebugHelper.log(
-        'API 調用失敗: ${e.toString()}，使用 mock data',
+        'API 調用失敗: ${e.toString()}',
         tag: 'BannerProvider',
       );
-      _loadMockData();
-      _error = 'API 連接失敗，已載入模擬資料：${e.toString()}';
+      if (!kReleaseMode) {
+        _loadMockData();
+        _error = 'API 連接失敗，已載入模擬資料';
+      } else {
+        _banners = [];
+        _error = '橫幅載入失敗，請稍後重試';
+      }
     }
 
     _isLoading = false;
@@ -200,14 +202,17 @@ class BannerProvider with ChangeNotifier {
           tag: 'BannerProvider',
         );
       } else {
-        _loadMockData();
-        _error = 'API 返回空資料，已載入模擬資料';
-        DebugHelper.log('API 返回空資料，使用模擬資料', tag: 'BannerProvider');
+        _banners = [];
+        _error = 'API 返回空資料';
       }
     } catch (e) {
-      _loadMockData();
-      _error = 'API 重新載入失敗，已載入模擬資料：${e.toString()}';
-      DebugHelper.log('API 重新載入失敗，使用模擬資料', tag: 'BannerProvider');
+      if (!kReleaseMode) {
+        _loadMockData();
+        _error = 'API 重新載入失敗，已載入模擬資料';
+      } else {
+        _banners = [];
+        _error = '橫幅載入失敗，請稍後重試';
+      }
     }
 
     _isLoading = false;

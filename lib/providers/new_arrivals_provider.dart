@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show ChangeNotifier, kReleaseMode;
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/book.dart';
+import '../utils/api_response_parser.dart';
 import '../utils/debug_helper.dart';
 
 class NewArrivalsProvider with ChangeNotifier {
@@ -115,22 +116,18 @@ class NewArrivalsProvider with ChangeNotifier {
     }
 
     final dynamic decoded = json.decode(response.body);
-    List<dynamic> listData;
-
-    if (decoded is List) {
-      listData = decoded;
-    } else if (decoded is Map<String, dynamic>) {
-      listData = (decoded['data'] ?? []) as List<dynamic>;
-    } else {
-      throw Exception('unexpected response format');
-    }
-
+    final listData = ApiResponseParser.extractList(decoded);
     return listData.map((e) => Book.fromJson(e)).toList();
   }
 
   void _useMockData(String reason) {
-    _newArrivals = List.from(_mockNewArrivals);
-    _error = reason;
+    if (kReleaseMode) {
+      _newArrivals = [];
+      _error = '注目新品載入失敗，請稍後重試';
+    } else {
+      _newArrivals = List.from(_mockNewArrivals);
+      _error = reason;
+    }
   }
 
   Future<void> refreshNewArrivals({int? startNum, int? endNum}) async {

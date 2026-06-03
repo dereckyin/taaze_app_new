@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'config/api_config.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'theme/app_theme.dart';
@@ -21,10 +22,18 @@ import 'providers/ai_listing_wizard_provider.dart';
 import 'providers/coupon_provider.dart';
 import 'providers/orders_provider.dart';
 import 'providers/watchlist_provider.dart';
+import 'providers/theme_content_provider.dart';
+import 'providers/social_feed_provider.dart';
+import 'services/onboarding_prefs.dart';
 import 'screens/main_screen.dart';
+import 'screens/onboarding_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 上線前測試：使用正式 API。本機開發時可改為 ApiConfig.useAndroidEmulatorLocal()
+  ApiConfig.useProduction();
+
   // Avoid duplicate initialization if some plugin auto-started Firebase.
   if (Firebase.apps.isEmpty) {
     await Firebase.initializeApp();
@@ -46,6 +55,7 @@ class AppHome extends StatefulWidget {
 
 class _AppHomeState extends State<AppHome> {
   bool _isInitialized = false;
+  bool _showOnboarding = false;
   late final DateTime _splashStartAt;
   static const Duration _minSplash = Duration(milliseconds: 900);
 
@@ -68,10 +78,12 @@ class _AppHomeState extends State<AppHome> {
       await watchlistProvider.fetchRemoteWatchlist(authProvider.authToken!);
     }
 
+    notifProvider.setAuthToken(authProvider.authToken);
     await NotificationService.instance.initialize(
       provider: notifProvider,
       authToken: authProvider.authToken,
     );
+    await notifProvider.refresh(authToken: authProvider.authToken);
 
     // 確保啟動畫面至少顯示一小段時間，避免瞬間跳轉
     final elapsed = DateTime.now().difference(_splashStartAt);
@@ -79,9 +91,12 @@ class _AppHomeState extends State<AppHome> {
       await Future.delayed(_minSplash - elapsed);
     }
 
+    final onboardingDone = await OnboardingPrefs.isCompleted();
+
     if (mounted) {
       setState(() {
         _isInitialized = true;
+        _showOnboarding = !onboardingDone;
       });
     }
   }
@@ -93,7 +108,16 @@ class _AppHomeState extends State<AppHome> {
       return const SplashScreen();
     }
 
-    // 不論是否登入，皆可先進入主畫面（受限功能再另行要求登入）
+    if (_showOnboarding) {
+      return OnboardingScreen(
+        onComplete: () {
+          if (mounted) {
+            setState(() => _showOnboarding = false);
+          }
+        },
+      );
+    }
+
     return const MainScreen();
   }
 }
@@ -152,6 +176,8 @@ class BookStoreApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AiListingWizardProvider()),
         ChangeNotifierProvider(create: (_) => CouponProvider()),
         ChangeNotifierProvider(create: (_) => WatchlistProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeContentProvider()),
+        ChangeNotifierProvider(create: (_) => SocialFeedProvider()),
       ],
       child: MaterialApp(
         title: '讀冊生活網路書店',

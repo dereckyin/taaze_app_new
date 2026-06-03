@@ -25,7 +25,10 @@ import 'book_list_screen.dart';
 import 'barcode_scanner_screen.dart';
 import 'ai_chat_screen.dart';
 import 'ai_listing_wizard_screen.dart';
+import 'podcast_hub_screen.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/theme_activity_section.dart';
+import '../widgets/social_feed_section.dart';
 import 'login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -180,8 +183,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   // 最新上架二手書
                   _buildUsedBooksSection(),
 
+                  // 書友動態
+                  const SocialFeedSection(),
+
                   // Podcast
                   _buildPodcastSection(),
+
+                  // 主題活動 / 百貨熱門（置於首頁最下方）
+                  const ThemeActivitySection(),
 
                   const SizedBox(height: 20),
                 ],
@@ -204,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         }
 
-        if (bannerProvider.error != null) {
+        if (bannerProvider.error != null && bannerProvider.banners.isEmpty) {
           return Container(
             height: 160,
             margin: const EdgeInsets.all(16),
@@ -219,6 +228,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   Icon(Icons.error_outline, size: 48, color: Colors.grey[400]),
                   const SizedBox(height: 8),
                   Text('橫幅載入失敗', style: TextStyle(color: Colors.grey[600])),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () => bannerProvider.refreshBanners(),
+                    child: const Text('重試'),
+                  ),
                 ],
               ),
             ),
@@ -231,28 +245,30 @@ class _HomeScreenState extends State<HomeScreen> {
         }
 
         return Container(
-          height: 180,
+          height: 200,
+          width: double.infinity,
           margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Stack(
-            children: [
-              // 輪播頁面
-              GestureDetector(
-                onPanStart: (_) => _stopBannerTimer(),
-                onPanEnd: (_) => _startBannerTimer(),
-                child: PageView.builder(
-                  controller: _bannerPageController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentBannerIndex = index;
-                    });
-                  },
-                  itemCount: banners.length,
-                  itemBuilder: (context, index) {
-                    final banner = banners[index];
-                    return _buildBannerCard(banner);
-                  },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                GestureDetector(
+                  onPanStart: (_) => _stopBannerTimer(),
+                  onPanEnd: (_) => _startBannerTimer(),
+                  child: PageView.builder(
+                    controller: _bannerPageController,
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentBannerIndex = index;
+                      });
+                    },
+                    itemCount: banners.length,
+                    itemBuilder: (context, index) {
+                      return _buildBannerCard(banners[index]);
+                    },
+                  ),
                 ),
-              ),
 
               // 指示器
               if (banners.length > 1)
@@ -278,7 +294,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -288,64 +305,45 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBannerCard(banner_model.Banner banner) {
     return GestureDetector(
       onTap: () => _handleBannerAction(banner),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          gradient: LinearGradient(
-            colors: _getBannerGradientColors(banner.type),
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-              spreadRadius: 2,
-            ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-              spreadRadius: 4,
-            ),
-          ],
-        ),
+      child: SizedBox.expand(
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            // 背景圖片
             if (banner.imageUrl.isNotEmpty)
-              Positioned.fill(
-                child: BannerImage(
-                  imageUrl: banner.imageUrl,
-                  fit: BoxFit.cover,
-                  borderRadius: BorderRadius.circular(12),
+              BannerImage(
+                imageUrl: banner.imageUrl,
+                fit: BoxFit.cover,
+              )
+            else
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: _getBannerGradientColors(banner.type),
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
               ),
 
             // 遮罩層
-            Container(
+            DecoratedBox(
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
                 gradient: LinearGradient(
                   colors: [
-                    Colors.black.withValues(alpha: 0.3),
-                    Colors.black.withValues(alpha: 0.1),
+                    Colors.black.withValues(alpha: 0.35),
+                    Colors.black.withValues(alpha: 0.08),
                   ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
                 ),
               ),
             ),
 
-            // 內容
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   // 類型標籤
                   Container(
@@ -794,7 +792,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     title: '暢銷排行榜',
                     endpoint: '/content/bestsellers',
                     startNum: 0,
-                    endNum: 9,
+                    endNum: 19,
                   ),
                 ),
               );
@@ -816,7 +814,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   title: '暢銷排行榜',
                   endpoint: '/content/bestsellers',
                   startNum: 0,
-                  endNum: 9,
+                  endNum: 19,
                 ),
               ),
             );
@@ -840,7 +838,7 @@ class _HomeScreenState extends State<HomeScreen> {
           MaterialPageRoute(
                   builder: (context) => BookListScreen(
               title: '注目新品',
-                    endpoint: BookProvider.taazeNewArrivalsEndpoint,
+                    endpoint: ApiConfig.newArrivalsEndpoint,
               startNum: 0,
               endNum: 19,
             ),
@@ -864,7 +862,7 @@ class _HomeScreenState extends State<HomeScreen> {
               MaterialPageRoute(
                 builder: (context) => BookListScreen(
                   title: '注目新品',
-                  endpoint: BookProvider.taazeNewArrivalsEndpoint,
+                  endpoint: ApiConfig.newArrivalsEndpoint,
                   startNum: 0,
                   endNum: 19,
                 ),
@@ -976,15 +974,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _navigateToPodcast() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const BookListScreen(
-          title: 'Podcast',
-          endpoint: null, 
-          startNum: 0,
-          endNum: 19,
-          aiServices: ['podcast'],
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => const PodcastHubScreen()),
     );
   }
 

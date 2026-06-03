@@ -6,7 +6,6 @@ import 'package:http/http.dart' as http;
 
 import '../config/api_config.dart';
 import '../screens/ai_chat_screen.dart';
-import '../services/search_service.dart';
 import '../models/book.dart';
 
 class AiChatProvider with ChangeNotifier {
@@ -71,54 +70,7 @@ class AiChatProvider with ChangeNotifier {
     _activeProductId = productId ?? _activeProductId;
     notifyListeners();
 
-    // 判斷是否為針對特定書籍的對話
-    if (_activeProductId != null && _activeProductId!.isNotEmpty) {
-      // 針對書籍：使用原有的串流對話 API
-      await _startStreaming(prompt: trimmed, token: token);
-    } else {
-      // 一般搜尋/主題：使用向量搜尋 API
-      await _performVectorSearch(query: trimmed);
-    }
-  }
-
-  Future<void> _performVectorSearch({required String query}) async {
-    try {
-      final result = await SearchService.searchVector(keyword: query);
-      final List<Book> foundBooks = result.books;
-
-      String responseText;
-      if (foundBooks.isEmpty) {
-        responseText = '抱歉，我沒有找到相關的書籍。建議您嘗試不同的關鍵字，或是換個說法。';
-      } else {
-        responseText = '根據您的需求，我為您精選了以下書籍：';
-      }
-
-      if (_assistantMessageIndex != null) {
-        _messages[_assistantMessageIndex!] =
-            _messages[_assistantMessageIndex!].copyWith(
-          content: responseText,
-          books: foundBooks,
-          timestamp: DateTime.now(),
-        );
-      }
-
-      // 產生建議提問
-      if (result.books.isNotEmpty) {
-        _suggestedPrompts.clear();
-        _suggestedPrompts.addAll([
-          '還有其他的嗎？',
-          '這幾本有什麼特色？',
-          '幫我挑最便宜的',
-        ]);
-      }
-
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _setAssistantMessageContent('搜尋失敗：$e\n這可能是由於網路連線問題或搜尋服務暫時不可用。');
-      _isLoading = false;
-      notifyListeners();
-    }
+    await _startStreaming(prompt: trimmed, token: token);
   }
 
   Future<void> _startStreaming({
@@ -130,8 +82,10 @@ class AiChatProvider with ChangeNotifier {
 
     final uri =
         Uri.parse('${ApiConfig.baseUrl}${ApiConfig.aiTalkToBooksEndpoint}');
-    final payload = <String, String>{
+    final payload = <String, dynamic>{
       'prompt': prompt,
+      'history': _buildHistoryPayload(),
+      'exclude_prod_ids': _buildExcludeProdIds(),
     };
 
     final product = _activeProductId;
@@ -152,6 +106,13 @@ class AiChatProvider with ChangeNotifier {
 
       if (response.statusCode != 200) {
         final errorBody = await response.stream.bytesToString();
+        if (response.statusCode == 401) {
+          _setAssistantMessageContent(
+            '登入已失效（無效的令牌）。請至「我的」登出後重新登入，再使用 AI 對話。',
+          );
+          _stopStreaming();
+          return;
+        }
         throw Exception(
           'AI 服務錯誤 (${response.statusCode})：'
           '${errorBody.isEmpty ? '請稍後再試' : errorBody}',
@@ -171,6 +132,42 @@ class AiChatProvider with ChangeNotifier {
     }
   }
 
+  List<Map<String, String>> _buildHistoryPayload() {
+    if (_messages.length <= 2) return const [];
+
+    final history = <Map<String, String>>[];
+    final end = _messages.length - 2;
+    final start = end > 20 ? end - 20 : 0;
+
+    for (var i = start; i < end; i++) {
+      final message = _messages[i];
+      final content = message.content.trim();
+      if (content.isEmpty) continue;
+      history.add({
+        'role': message.isUser ? 'user' : 'assistant',
+        'content': content,
+      });
+    }
+    return history;
+  }
+
+  List<String> _buildExcludeProdIds() {
+    if (_messages.length <= 2) return const [];
+
+    final ids = <String>{};
+    final end = _messages.length - 2;
+    for (var i = 0; i < end; i++) {
+      final books = _messages[i].books;
+      if (books == null || books.isEmpty) continue;
+      for (final book in books) {
+        if (book.id.isNotEmpty) ids.add(book.id);
+        final orgId = book.orgProdId;
+        if (orgId != null && orgId.isNotEmpty) ids.add(orgId);
+      }
+    }
+    return ids.toList();
+  }
+
   void _handleStreamChunk(String chunk) {
     if (chunk.isEmpty) return;
 
@@ -180,67 +177,205 @@ class AiChatProvider with ChangeNotifier {
       return;
     }
 
-    if (sanitized.contains('data:')) {
-      _sseBuffer.write(sanitized);
-      _drainSseBuffer();
-      return;
-    }
-
-    final text = _extractTextPayload(sanitized) ?? sanitized;
-    _appendAssistantContent(text);
+    _sseBuffer.write(sanitized);
+    _drainSseBuffer();
   }
 
-  void _drainSseBuffer() {
+  void _drainSseBuffer({bool forceFlush = false}) {
     final raw = _sseBuffer.toString();
     if (raw.isEmpty) return;
 
     final frames = raw.split('\n\n');
     final hasTrailing = raw.endsWith('\n\n');
-    final pending = hasTrailing ? '' : frames.removeLast();
+    final pending = (hasTrailing || forceFlush) ? '' : frames.removeLast();
     _sseBuffer
       ..clear()
       ..write(pending);
 
     for (final frame in frames) {
-      final dataLines = frame
-          .split('\n')
-          .where((line) => line.trim().isNotEmpty)
-          .map((line) => line.trim());
-      final buffer = StringBuffer();
-      for (final line in dataLines) {
-        if (line.startsWith('data:')) {
-          buffer.writeln(line.substring(5).trimLeft());
-        }
-      }
-
-      final payload = buffer.toString().trim();
-      if (payload.isEmpty) continue;
-
-      if (payload == '[DONE]') {
-        _stopStreaming();
-        continue;
-      }
-
-      final text = _extractTextPayload(payload) ?? payload;
-      _appendAssistantContent(text);
+      _processSseFrame(frame);
     }
   }
 
-  String? _extractTextPayload(String payload) {
-    final trimmed = payload.trim();
-    if (!(trimmed.startsWith('{') && trimmed.endsWith('}'))) {
-      return null;
+  void _processSseFrame(String frame) {
+    final trimmedFrame = frame.trim();
+    if (trimmedFrame.isEmpty) return;
+
+    var eventName = 'message';
+    final dataLines = <String>[];
+
+    for (final line in trimmedFrame.split('\n')) {
+      final trimmedLine = line.trim();
+      if (trimmedLine.isEmpty) continue;
+      if (trimmedLine.startsWith('event:')) {
+        eventName = trimmedLine.substring(6).trim();
+        continue;
+      }
+      if (trimmedLine.startsWith('data:')) {
+        dataLines.add(trimmedLine.substring(5).trimLeft());
+      }
     }
 
+    if (dataLines.isEmpty) {
+      _processPayload(trimmedFrame, eventName: eventName);
+      return;
+    }
+
+    for (final data in dataLines) {
+      if (data.isEmpty) continue;
+      _processPayload(data, eventName: eventName);
+    }
+  }
+
+  void _processPayload(String payload, {String eventName = 'message'}) {
+    if (payload == '[DONE]') {
+      _stopStreaming();
+      return;
+    }
+
+    if (eventName == 'books') {
+      _ingestBooksPayload(payload);
+      return;
+    }
+
+    if (eventName == 'prompt') {
+      _ingestPromptPayload(payload);
+      return;
+    }
+
+    if (payload.contains('\n')) {
+      for (final line in payload.split('\n')) {
+        final trimmed = line.trim();
+        if (trimmed.isNotEmpty) {
+          _processPayload(trimmed, eventName: eventName);
+        }
+      }
+      return;
+    }
+
+    if (payload.startsWith('{') && payload.endsWith('}')) {
+      try {
+        final decoded = json.decode(payload);
+        if (decoded is Map<String, dynamic>) {
+          _ingestStreamMetadata(decoded);
+          final text = _unwrapContent(decoded);
+          if (text != null && text.isNotEmpty) {
+            _appendAssistantContent(text);
+          }
+          return;
+        }
+      } catch (_) {
+        // Fall through for non-JSON text chunks.
+      }
+    }
+
+    if (payload.startsWith('[') && payload.endsWith(']')) {
+      if (_ingestBooksPayload(payload)) return;
+    }
+
+    if (!_looksLikeStructuredPayload(payload)) {
+      _appendAssistantContent(payload);
+    }
+  }
+
+  bool _ingestBooksPayload(String payload) {
     try {
-      final decoded = json.decode(trimmed);
+      final decoded = json.decode(payload);
+      if (decoded is List) {
+        _ingestBookSuggestions(decoded);
+        return true;
+      }
+      if (decoded is Map<String, dynamic>) {
+        final booksRaw = decoded['books'] ?? decoded['items'] ?? decoded['data'];
+        if (booksRaw is List) {
+          _ingestBookSuggestions(booksRaw);
+          return true;
+        }
+        if (_looksLikeBookMap(decoded)) {
+          _ingestBookSuggestions([decoded]);
+          return true;
+        }
+      }
+    } catch (_) {
+      return false;
+    }
+    return false;
+  }
+
+  void _ingestPromptPayload(String payload) {
+    try {
+      final decoded = json.decode(payload);
+      if (decoded is List) {
+        final lines = decoded.map((e) => e.toString()).where((e) => e.trim().isNotEmpty);
+        _ingestPromptSuggestions(lines.join('\n'));
+        return;
+      }
       if (decoded is Map<String, dynamic>) {
         _ingestPromptSuggestions(decoded['prompt'] as String?);
       }
-      return _unwrapContent(decoded);
     } catch (_) {
-      return null;
+      _ingestPromptSuggestions(payload);
     }
+  }
+
+  bool _looksLikeStructuredPayload(String payload) {
+    final trimmed = payload.trim();
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        final decoded = json.decode(trimmed);
+        if (decoded is List && decoded.isNotEmpty) {
+          final first = decoded.first;
+          if (first is Map && _looksLikeBookMap(Map<String, dynamic>.from(first))) {
+            return true;
+          }
+        }
+      } catch (_) {
+        return false;
+      }
+    }
+    if (!(trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+      return false;
+    }
+    try {
+      final decoded = json.decode(trimmed);
+      if (decoded is! Map<String, dynamic>) return false;
+      return decoded.containsKey('books') ||
+          decoded.containsKey('items') ||
+          decoded.containsKey('prompt') ||
+          decoded.containsKey('prodId') ||
+          decoded.containsKey('prod_id') ||
+          decoded.containsKey('titleMain') ||
+          decoded.containsKey('imageUrl');
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _ingestStreamMetadata(Map<String, dynamic> decoded) {
+    _ingestPromptSuggestions(decoded['prompt'] as String?);
+
+    final booksRaw = decoded['books'];
+    if (booksRaw is List) {
+      _ingestBookSuggestions(booksRaw);
+      return;
+    }
+
+    if (_looksLikeBookMap(decoded)) {
+      _ingestBookSuggestions([decoded]);
+    }
+  }
+
+  bool _looksLikeBookMap(Map<String, dynamic> map) {
+    final hasTitle = map.containsKey('titleMain') ||
+        map.containsKey('title') ||
+        map.containsKey('title_main');
+    final hasBookSignal = map.containsKey('prodId') ||
+        map.containsKey('prod_id') ||
+        map.containsKey('id') ||
+        map.containsKey('imageUrl') ||
+        map.containsKey('salePrice') ||
+        map.containsKey('listPrice');
+    return hasTitle && hasBookSignal;
   }
 
   String? _unwrapContent(dynamic data) {
@@ -330,6 +465,8 @@ class AiChatProvider with ChangeNotifier {
   }
 
   void _stopStreaming() {
+    _drainSseBuffer(forceFlush: true);
+    _finalizeAssistantMessage();
     _sseBuffer.clear();
     final sub = _streamSubscription;
     _streamSubscription = null;
@@ -391,6 +528,176 @@ class AiChatProvider with ChangeNotifier {
     _cancelActiveStream();
     _httpClient.close();
     super.dispose();
+  }
+
+  void _finalizeAssistantMessage() {
+    if (_assistantMessageIndex == null) return;
+
+    final current = _messages[_assistantMessageIndex!];
+    final extractedBooks = <Book>[];
+    final cleanedContent = _peelEmbeddedMetadata(current.content, extractedBooks);
+
+    if (cleanedContent == current.content && extractedBooks.isEmpty) {
+      return;
+    }
+
+    final mergedBooks = _mergeBooks(current.books ?? const [], extractedBooks);
+    _messages[_assistantMessageIndex!] = current.copyWith(
+      content: cleanedContent.trim(),
+      books: mergedBooks.isNotEmpty ? mergedBooks : current.books,
+      timestamp: DateTime.now(),
+    );
+    notifyListeners();
+  }
+
+  String _peelEmbeddedMetadata(String content, List<Book> booksOut) {
+    final buffer = StringBuffer();
+    var index = 0;
+
+    while (index < content.length) {
+      final char = content[index];
+      if (char != '{' && char != '[') {
+        buffer.write(char);
+        index++;
+        continue;
+      }
+
+      final end = char == '{'
+          ? _findMatchingBrace(content, index, '{', '}')
+          : _findMatchingBrace(content, index, '[', ']');
+      if (end == null) {
+        buffer.write(char);
+        index++;
+        continue;
+      }
+
+      final candidate = content.substring(index, end + 1);
+      if (_tryExtractMetadataCandidate(candidate, booksOut)) {
+        index = end + 1;
+        continue;
+      }
+
+      buffer.write(candidate);
+      index = end + 1;
+    }
+
+    return buffer.toString();
+  }
+
+  int? _findMatchingBrace(
+    String input,
+    int start,
+    String open,
+    String close,
+  ) {
+    var depth = 0;
+    var inString = false;
+    var escaped = false;
+
+    for (var i = start; i < input.length; i++) {
+      final char = input[i];
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (char == '\\') {
+          escaped = true;
+        } else if (char == '"') {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (char == '"') {
+        inString = true;
+        continue;
+      }
+      if (char == open) {
+        depth++;
+      } else if (char == close) {
+        depth--;
+        if (depth == 0) return i;
+      }
+    }
+    return null;
+  }
+
+  bool _tryExtractMetadataCandidate(String candidate, List<Book> booksOut) {
+    try {
+      final decoded = json.decode(candidate);
+      if (decoded is List) {
+        final books = _booksFromDynamicList(decoded);
+        if (books.isNotEmpty) {
+          booksOut.addAll(books);
+          return true;
+        }
+      } else if (decoded is Map<String, dynamic>) {
+        if (decoded.containsKey('prompt') && decoded.length <= 2) {
+          _ingestPromptSuggestions(decoded['prompt'] as String?);
+          return true;
+        }
+        final booksRaw = decoded['books'] ?? decoded['items'];
+        if (booksRaw is List) {
+          final books = _booksFromDynamicList(booksRaw);
+          if (books.isNotEmpty) {
+            booksOut.addAll(books);
+            return true;
+          }
+        }
+        if (_looksLikeBookMap(decoded)) {
+          booksOut.add(Book.fromJson(decoded));
+          return true;
+        }
+        if (_looksLikeStructuredPayload(candidate) &&
+            _unwrapContent(decoded) == null) {
+          return true;
+        }
+      }
+    } catch (_) {
+      return false;
+    }
+    return false;
+  }
+
+  List<Book> _booksFromDynamicList(List<dynamic> rawBooks) {
+    final books = <Book>[];
+    for (final item in rawBooks) {
+      if (item is Map<String, dynamic>) {
+        books.add(Book.fromJson(item));
+      } else if (item is Map) {
+        books.add(Book.fromJson(Map<String, dynamic>.from(item)));
+      }
+    }
+    return books;
+  }
+
+  List<Book> _mergeBooks(List<Book> existing, List<Book> incoming) {
+    if (incoming.isEmpty) return existing;
+    final merged = List<Book>.from(existing);
+    for (final book in incoming) {
+      final duplicate = merged.any(
+        (item) =>
+            item.id.isNotEmpty &&
+            book.id.isNotEmpty &&
+            item.id == book.id,
+      );
+      if (!duplicate) merged.add(book);
+    }
+    return merged;
+  }
+
+  void _ingestBookSuggestions(dynamic rawBooks) {
+    if (rawBooks is! List || _assistantMessageIndex == null) return;
+
+    final books = _booksFromDynamicList(rawBooks);
+    if (books.isEmpty) return;
+
+    final current = _messages[_assistantMessageIndex!];
+    final merged = _mergeBooks(current.books ?? const [], books);
+    _messages[_assistantMessageIndex!] = current.copyWith(
+      books: merged,
+      timestamp: DateTime.now(),
+    );
+    notifyListeners();
   }
 
   void _ingestPromptSuggestions(String? promptBlock) {

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/book.dart';
+import '../utils/api_response_parser.dart';
 import '../utils/debug_helper.dart';
 
 class UsedBooksLatestProvider with ChangeNotifier {
@@ -15,6 +16,8 @@ class UsedBooksLatestProvider with ChangeNotifier {
   String? get error => _error;
 
   static const Duration _timeout = Duration(seconds: 20);
+  static const int _defaultStart = 0;
+  static const int _defaultEnd = 19;
 
   UsedBooksLatestProvider() {
     _loadUsedBooks();
@@ -30,7 +33,10 @@ class UsedBooksLatestProvider with ChangeNotifier {
     );
 
     try {
-      final apiBooks = await _fetchUsedBooksFromAPI();
+      final apiBooks = await _fetchUsedBooksFromAPI(
+        startNum: _defaultStart,
+        endNum: _defaultEnd,
+      );
 
       _usedBooks = apiBooks;
       _error = null;
@@ -51,9 +57,17 @@ class UsedBooksLatestProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<List<Book>> _fetchUsedBooksFromAPI() async {
+  Future<List<Book>> _fetchUsedBooksFromAPI({
+    required int startNum,
+    required int endNum,
+  }) async {
     final uri = Uri.parse(
       '${ApiConfig.baseUrl}${ApiConfig.usedBooksLatestEndpoint}',
+    ).replace(
+      queryParameters: {
+        'startNum': startNum.toString(),
+        'endNum': endNum.toString(),
+      },
     );
     DebugHelper.logApiRequest('GET', uri.toString());
 
@@ -65,16 +79,7 @@ class UsedBooksLatestProvider with ChangeNotifier {
     }
 
     final dynamic decoded = json.decode(response.body);
-    List<dynamic> listData;
-
-    if (decoded is List) {
-      listData = decoded;
-    } else if (decoded is Map<String, dynamic>) {
-      listData = (decoded['data'] ?? []) as List<dynamic>;
-    } else {
-      throw Exception('unexpected response format');
-    }
-
+    final listData = ApiResponseParser.extractList(decoded);
     return listData.map((e) => Book.fromJson(e)).toList();
   }
 

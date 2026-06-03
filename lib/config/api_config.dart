@@ -2,11 +2,15 @@
 class ApiConfig {
   // API 端點配置
   static const String productionUrl = 'https://api.taaze.tw/api/v1';
+  /// 實機／同網段測試用（本機 LAN IP）
   static const String testUrl = 'http://192.168.0.229:8000/api/v1';
-  //static const String testUrl = 'https://api.taaze.tw/api/v1';
+  /// Android 模擬器連本機 API（10.0.2.2 = host localhost）
+  static const String androidEmulatorLocalUrl =
+      'http://10.0.2.2:8000/api/v1';
+  static const String localhostUrl = 'http://127.0.0.1:8000/api/v1';
 
   // 當前使用的 API 端點
-  static String _currentBaseUrl = productionUrl; // 預設使用測試環境
+  static String _currentBaseUrl = productionUrl;
 
   /// 獲取當前 API 端點
   static String get baseUrl => _currentBaseUrl;
@@ -21,9 +25,19 @@ class ApiConfig {
     _currentBaseUrl = productionUrl;
   }
 
-  /// 切換到測試環境
+  /// 切換到測試環境（LAN IP，適合實機）
   static void useTest() {
     _currentBaseUrl = testUrl;
+  }
+
+  /// 本機 API（Android 模擬器）
+  static void useAndroidEmulatorLocal() {
+    _currentBaseUrl = androidEmulatorLocalUrl;
+  }
+
+  /// 本機 API（桌面 / iOS 模擬器）
+  static void useLocalhost() {
+    _currentBaseUrl = localhostUrl;
   }
 
   /// 獲取當前環境名稱
@@ -42,18 +56,26 @@ class ApiConfig {
       '當前 API: $environmentName ($_currentBaseUrl)';
 
   /// 檢查是否為測試環境
-  static bool get isTestEnvironment => _currentBaseUrl == testUrl;
+  static bool get isTestEnvironment =>
+      _currentBaseUrl == testUrl ||
+      _currentBaseUrl == androidEmulatorLocalUrl ||
+      _currentBaseUrl == localhostUrl;
 
   /// 檢查是否為生產環境
   static bool get isProductionEnvironment => _currentBaseUrl == productionUrl;
 
   /// API 端點路徑
   static const String bannersEndpoint = '/content/banner';
+  static const String themeActivitiesEndpoint = '/content/theme-activities';
+  static const String hotProductsEndpoint = '/content/hot-products';
+  static const String socialFeedEndpoint = '/content/social';
+  static const String notificationsInboxEndpoint = '/notifications/inbox';
   static const String bestsellersEndpoint = '/content/bestsellers';
   static const String newArrivalsEndpoint = '/book/latest';
   static const String ebookNewArrivalsEndpoint = '/book/e-book/latest';
   static const String usedBooksLatestEndpoint = '/book/second-hand/latest';
   static const String aiTalkToBooksEndpoint = '/ai/talk-to-the-books/chat';
+  static const String searchEndpoint = '/search/';
   static const String searchVectorEndpoint = '/search/vector';
   static const String ordersEndpoint = '/orders';
   static const String orderItemsEndpoint = '/orders/items';
@@ -67,7 +89,13 @@ class ApiConfig {
   /// 獲取所有可用的 API 端點
   static List<ApiEndpoint> get availableEndpoints => [
     ApiEndpoint(name: '生產環境', url: productionUrl, description: '正式環境 API'),
-    ApiEndpoint(name: '測試環境', url: testUrl, description: '本地測試 API'),
+    ApiEndpoint(
+      name: '本機（模擬器）',
+      url: androidEmulatorLocalUrl,
+      description: 'Android 模擬器 → 本機 8000',
+    ),
+    ApiEndpoint(name: '本機（LAN）', url: testUrl, description: '同網段實機測試'),
+    ApiEndpoint(name: '本機 localhost', url: localhostUrl, description: '127.0.0.1'),
   ];
 }
 

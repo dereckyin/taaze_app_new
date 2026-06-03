@@ -3,11 +3,30 @@ import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/notification_provider.dart';
 import '../models/notification.dart';
+import '../providers/auth_provider.dart';
+import '../services/notification_deep_link.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/loading_widget.dart';
+import 'login_screen.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = context.read<AuthProvider>();
+      context.read<NotificationProvider>().refresh(
+        authToken: auth.authToken,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,20 +56,26 @@ class NotificationsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Consumer<NotificationProvider>(
-        builder: (context, notificationProvider, child) {
-          if (notificationProvider.isLoading) {
+      body: Consumer2<NotificationProvider, AuthProvider>(
+        builder: (context, notificationProvider, authProvider, child) {
+          if (notificationProvider.isLoading &&
+              notificationProvider.notifications.isEmpty) {
             return const Center(child: LoadingWidget());
           }
 
+          if (notificationProvider.error != null &&
+              notificationProvider.notifications.isEmpty) {
+            return _buildErrorState(context, notificationProvider, authProvider);
+          }
+
           if (notificationProvider.notifications.isEmpty) {
-            return _buildEmptyState(context);
+            return _buildEmptyState(context, authProvider);
           }
 
           return RefreshIndicator(
-            onRefresh: () async {
-              // 重新載入通知
-            },
+            onRefresh: () => notificationProvider.refresh(
+              authToken: authProvider.authToken,
+            ),
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: notificationProvider.notifications.length,
@@ -65,7 +90,7 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context) {
+  Widget _buildEmptyState(BuildContext context, AuthProvider authProvider) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -86,11 +111,56 @@ class NotificationsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '當有新的通知時，會在這裡顯示',
+              authProvider.isAuthenticated
+                  ? '當有新的推播或訂單更新時，會在這裡顯示'
+                  : '登入後可同步推播通知紀錄',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Colors.grey[500],
               ),
               textAlign: TextAlign.center,
+            ),
+            if (!authProvider.isAuthenticated) ...[
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                },
+                child: const Text('立即登入'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(
+    BuildContext context,
+    NotificationProvider notificationProvider,
+    AuthProvider authProvider,
+  ) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              notificationProvider.error ?? '載入失敗',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => notificationProvider.refresh(
+                authToken: authProvider.authToken,
+              ),
+              child: const Text('重試'),
             ),
           ],
         ),
@@ -109,6 +179,12 @@ class NotificationsScreen extends StatelessWidget {
         onTap: () {
           if (!notification.isRead) {
             notificationProvider.markAsRead(notification.id);
+          }
+          if (notification.data != null && notification.data!.isNotEmpty) {
+            NotificationDeepLink.handle(
+              notification.data,
+              notification: notification,
+            );
           }
         },
         borderRadius: BorderRadius.circular(12),

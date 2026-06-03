@@ -10,8 +10,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import '../providers/notification_provider.dart';
 import '../models/notification.dart' as model;
 import 'notification_api_service.dart';
-import 'navigation_service.dart';
-import '../screens/notifications_screen.dart';
+import 'notification_deep_link.dart';
 
 /// Background message handler must be a top-level function
 @pragma('vm:entry-point')
@@ -163,14 +162,7 @@ class NotificationService {
   }
 
   void _handleNavigationFromData(Map<String, dynamic> data) {
-    final target = data['target'] as String?;
-    if (target == null || target.isEmpty) return;
-    // Minimal handling: go to Notifications tab/screen
-    final navigator = NavigationService.navigatorKey.currentState;
-    if (navigator == null) return;
-    navigator.push(
-      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-    );
+    NotificationDeepLink.handle(data);
   }
 
   Future<void> _registerTokenToBackend(String token) async {
@@ -290,12 +282,22 @@ class NotificationService {
 
   void _pushToProvider(NotificationProvider? provider, RemoteMessage message) {
     if (provider == null) return;
+    final data = Map<String, dynamic>.from(message.data);
+    final typeRaw = data['type']?.toString() ?? 'general';
+    model.NotificationType type = model.NotificationType.general;
+    for (final t in model.NotificationType.values) {
+      if (t.name == typeRaw) {
+        type = t;
+        break;
+      }
+    }
     final n = model.AppNotification(
       id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      title: message.notification?.title ?? '通知',
-      body: message.notification?.body ?? '',
-      type: model.NotificationType.general,
+      title: message.notification?.title ?? data['title']?.toString() ?? '通知',
+      body: message.notification?.body ?? data['body']?.toString() ?? '',
+      type: type,
       createdAt: DateTime.now(),
+      data: data.isNotEmpty ? data : null,
     );
     provider.addNotification(n);
   }

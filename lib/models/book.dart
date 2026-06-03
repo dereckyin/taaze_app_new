@@ -19,6 +19,31 @@ class Book {
   final int pages;
   final String publisher;
 
+  /// Placeholder for deep links / social feed before detail loads full data.
+  factory Book.minimal({
+    required String id,
+    required String title,
+    String? orgProdId,
+  }) {
+    return Book(
+      id: id,
+      orgProdId: orgProdId,
+      title: title,
+      author: '',
+      description: '',
+      price: 0,
+      imageUrl: '',
+      category: '',
+      rating: 0,
+      reviewCount: 0,
+      isAvailable: true,
+      publishDate: DateTime.now(),
+      isbn: '',
+      pages: 0,
+      publisher: '',
+    );
+  }
+
   Book({
     required this.id,
     this.orgProdId,
@@ -70,28 +95,47 @@ class Book {
   }
 
   factory Book.fromJson(Map<String, dynamic> json) {
+    final id = (json['id'] ?? json['prodId'] ?? json['prod_id'] ?? '')
+        .toString();
+    final orgProdId =
+        (json['orgProdId'] ?? json['org_prod_id'])?.toString();
+    final imageFromJson =
+        json['imageUrl'] ?? json['image_url'] ?? json['coverImage'];
+    final imageUrl = (imageFromJson != null &&
+            imageFromJson.toString().trim().isNotEmpty)
+        ? imageFromJson.toString()
+        : _taazeThumbnailUrl(id, orgProdId);
+
     return Book(
-      id: (json['id'] ?? json['prodId'] ?? json['prod_id'] ?? '').toString(),
-      orgProdId: (json['orgProdId'] ?? json['org_prod_id'])?.toString(),
-      title: json['title'] ?? json['title_main'] ?? '',
+      id: id,
+      orgProdId: orgProdId,
+      title: json['title'] ?? json['titleMain'] ?? json['title_main'] ?? '',
       author: json['author'] ?? json['author_name'] ?? '',
       description: json['description'] ?? json['content_text'] ?? '',
-      price: (json['price'] ?? json['sale_price'] ?? 0.0).toDouble(),
-      // 兼容不同來源欄位命名
+      price: _tryParseDouble(json['price'] ?? json['sale_price']) ?? 0.0,
       listPrice: _tryParseDouble(json['listPrice'] ?? json['list_price']),
       salePrice: _tryParseDouble(json['salePrice'] ?? json['sale_price']),
-      imageUrl: json['imageUrl'] ?? json['image_url'] ?? '',
-      category: json['category'] ?? json['category_id'] ?? '',
-      rating: (json['rating'] ?? 0.0).toDouble(),
-      reviewCount: json['reviewCount'] ?? json['review_count'] ?? 0,
+      imageUrl: imageUrl,
+      category: json['category'] ?? json['category_id'] ?? json['prodCatNm'] ?? '',
+      rating: (json['rating'] ?? json['starLevel'] ?? 0.0).toDouble(),
+      reviewCount: json['reviewCount'] ?? json['review_count'] ?? json['seekNum'] ?? 0,
       isAvailable: json['isAvailable'] ?? true,
-      publishDate: DateTime.parse(
-        json['publishDate'] ?? DateTime.now().toIso8601String(),
-      ),
-      isbn: json['isbn'] ?? '',
+      publishDate: DateTime.tryParse(
+            json['publishDate']?.toString() ?? '',
+          ) ??
+          DateTime.now(),
+      isbn: json['isbn']?.toString() ?? '',
       pages: json['pages'] ?? 0,
-      publisher: json['publisher'] ?? '',
+      publisher: json['publisher'] ?? json['pubNmMain'] ?? '',
     );
+  }
+
+  static String _taazeThumbnailUrl(String id, String? orgProdId) {
+    final imageId = (orgProdId != null && orgProdId.isNotEmpty)
+        ? orgProdId
+        : id;
+    if (imageId.isEmpty) return '';
+    return 'https://media.taaze.tw/showThumbnail.html?sc=$imageId&height=400&width=310';
   }
 
   static double? _tryParseDouble(dynamic value) {

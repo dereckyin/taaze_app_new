@@ -26,6 +26,15 @@ class _SearchScreenState extends State<SearchScreen> {
   int _currentPage = 1;
   String _currentQuery = '';
   String? _error;
+  String? _searchIntentHint;
+
+  static const List<String> _exploreQueries = [
+    '適合國中生的科幻小說',
+    '村上春樹類似風格',
+    '心理學入門書推薦',
+    '親子共讀繪本',
+    '程式設計 Python 入門',
+  ];
 
   @override
   void initState() {
@@ -114,6 +123,7 @@ class _SearchScreenState extends State<SearchScreen> {
         _isSearching = true;
         _currentQuery = trimmedQuery;
         _error = null;
+        _searchIntentHint = null;
         _currentPage = 1;
         _hasMoreData = true;
       });
@@ -127,6 +137,7 @@ class _SearchScreenState extends State<SearchScreen> {
       if (mounted) {
         setState(() {
           _searchResults = results.books;
+          _searchIntentHint = results.intentHint;
           _isSearching = false;
           _currentPage = 1;
           _hasMoreData = results.hasMore;
@@ -261,24 +272,49 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 16),
+          Icon(Icons.search, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 12),
           Text(
             '搜尋書籍',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(color: Colors.grey[600]),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: Colors.grey[700],
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            '輸入書名、作者或關鍵字來搜尋',
-            style: Theme.of(
-              context,
-            ).textTheme.bodyLarge?.copyWith(color: Colors.grey[500]),
+            '支援 ISBN、關鍵字與自然語句（語意搜尋）',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              '試試這些探索句',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _exploreQueries.map((q) {
+              return ActionChip(
+                label: Text(q),
+                onPressed: () {
+                  _searchController.text = q;
+                  _performSearch(q);
+                },
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -313,19 +349,50 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget _buildSearchResults() {
     return Column(
       children: [
-        // 搜尋結果標題
         Container(
-          padding: const EdgeInsets.all(16),
-          child: Row(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('搜尋結果', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(width: 8),
-              Text(
-                '(${_searchResults.length} 本書)',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+              Row(
+                children: [
+                  Text('搜尋結果', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(width: 8),
+                  Text(
+                    '(${_searchResults.length} 本書)',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
+              if (_searchIntentHint != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.auto_awesome,
+                        size: 18,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _searchIntentHint!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/api_config.dart';
 import '../providers/book_provider.dart';
 import '../providers/cart_provider.dart';
 import '../widgets/book_card.dart';
@@ -141,7 +142,7 @@ class _BookListScreenState extends State<BookListScreen> {
 
   String? _inferEndpointFromTitle(String title) {
     if (title.contains('注目新品')) {
-      return BookProvider.taazeNewArrivalsEndpoint;
+      return ApiConfig.newArrivalsEndpoint;
     }
     return null;
   }

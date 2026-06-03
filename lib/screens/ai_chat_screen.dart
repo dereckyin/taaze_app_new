@@ -38,7 +38,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   Future<void> _sendPrompt(String prompt) async {
     final aiProvider = context.read<AiChatProvider>();
-    final authToken = await _requireAuthToken();
+    final authProvider = context.read<AuthProvider>();
+    var authToken = await authProvider.tokenForApi();
+    if (authToken == null) {
+      authToken = await _requireAuthToken();
+    }
     if (authToken == null) return;
 
     await aiProvider.sendMessage(
@@ -50,7 +54,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   Future<String?> _requireAuthToken() async {
     final authProvider = context.read<AuthProvider>();
-    final existingToken = authProvider.authToken;
+    final existingToken = await authProvider.tokenForApi();
     if (existingToken != null && existingToken.isNotEmpty) {
       return existingToken;
     }

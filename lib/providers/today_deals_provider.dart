@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show ChangeNotifier, kReleaseMode;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../models/book.dart';
@@ -123,19 +123,21 @@ class TodayDealsProvider with ChangeNotifier {
           tag: 'TodayDealsProvider',
         );
       } else {
-        // API 返回空資料，使用 mock data
-        DebugHelper.log('API 返回空資料，使用 mock data', tag: 'TodayDealsProvider');
-        _loadMockData();
-        _error = 'API 返回空資料，已載入模擬資料';
+        _todayDeals = [];
+        _error = 'API 返回空資料';
       }
     } catch (e) {
-      // API 調用失敗，使用 mock data 作為 fallback
       DebugHelper.log(
-        'API 調用失敗: ${e.toString()}，使用 mock data',
+        'API 調用失敗: ${e.toString()}',
         tag: 'TodayDealsProvider',
       );
-      _loadMockData();
-      _error = 'API 連接失敗，已載入模擬資料：${e.toString()}';
+      if (!kReleaseMode) {
+        _loadMockData();
+        _error = 'API 連接失敗，已載入模擬資料';
+      } else {
+        _todayDeals = [];
+        _error = '今日特惠載入失敗，請稍後重試';
+      }
     }
 
     _isLoading = false;
