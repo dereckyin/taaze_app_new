@@ -113,6 +113,13 @@ class AiChatProvider with ChangeNotifier {
           _stopStreaming();
           return;
         }
+        if (response.statusCode == 429) {
+          _setAssistantMessageContent(
+            _formatRateLimitMessage(errorBody),
+          );
+          _stopStreaming();
+          return;
+        }
         throw Exception(
           'AI 服務錯誤 (${response.statusCode})：'
           '${errorBody.isEmpty ? '請稍後再試' : errorBody}',
@@ -730,5 +737,13 @@ class AiChatProvider with ChangeNotifier {
       ..clear()
       ..addAll(unique);
     notifyListeners();
+  }
+
+  String _formatRateLimitMessage(String errorBody) {
+    final trimmed = errorBody.trim();
+    if (trimmed.contains('AI 對話請求過於頻繁')) {
+      return trimmed;
+    }
+    return 'AI 對話請求過於頻繁，請稍後再試。（15 分鐘內最多 30 次）';
   }
 }

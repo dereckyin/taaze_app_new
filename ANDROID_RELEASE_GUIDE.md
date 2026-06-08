@@ -160,7 +160,8 @@ flutter doctor -v
 ## 已知限制 / 待辦
 
 - [x] 建立 upload keystore（`android/app/upload-keystore.jks` + `android/key.properties`）
-- [ ] **備份 keystore 密碼**（見本機 `android/key.properties`，勿提交 Git）
+- [x] 使用 Play Console 已登記的上傳金鑰（`android/releasebuild.jks`，alias: `key0`）
+- [ ] **備份 keystore 密碼**（`releasebuild.jks` 與 `key.properties`，勿提交 Git）
 - [ ] 將 release SHA-1 加入 Google Cloud OAuth
 - [ ] 更新 Facebook release key hash
 - [ ] 用 FlutterFire CLI 更新 `firebase_options.dart`
