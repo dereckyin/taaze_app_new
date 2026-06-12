@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/custom_app_bar.dart';
@@ -291,11 +292,14 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _showAboutDialog(BuildContext context) {
+  Future<void> _showAboutDialog(BuildContext context) async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (!context.mounted) return;
+
     showAboutDialog(
       context: context,
       applicationName: '讀冊新生活',
-      applicationVersion: '1.0.0',
+      applicationVersion: packageInfo.version,
       applicationIcon: Icon(
         Icons.book,
         size: 48,

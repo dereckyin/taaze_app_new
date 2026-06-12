@@ -26,10 +26,10 @@ class CheckoutService {
           .map(
             (item) => {
               'prod_id': item.book.id,
-              'org_prod_id': item.book.orgProdId,
+              'org_prod_id': item.book.orgProdId ?? item.book.id,
               'title': item.book.title,
               'price': item.book.price,
-              'quantity': item.quantity,
+              'qty': item.quantity,
               'unit_price': item.book.price,
               'total_price': item.totalPrice,
             },
@@ -138,6 +138,8 @@ class CheckoutService {
         return '您沒有權限執行此結帳操作';
       case 404:
         return '找不到結帳服務，請稍後再試';
+      case 429:
+        return '結帳操作過於頻繁，請稍後再試';
       case 500:
         return '結帳服務暫時不可用，請稍後再試';
       default:

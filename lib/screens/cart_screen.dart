@@ -250,7 +250,7 @@ class CartScreen extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 if (authProvider.isAuthenticated) {
-                  _handleCheckout(context, cartProvider, authProvider);
+                  _confirmAndCheckout(context, cartProvider, authProvider);
                 } else {
                   () async {
                     final loggedIn = await Navigator.push<bool>(
@@ -262,7 +262,7 @@ class CartScreen extends StatelessWidget {
                       ),
                     );
                     if (loggedIn == true && context.mounted) {
-                      _handleCheckout(context, cartProvider, authProvider);
+                      _confirmAndCheckout(context, cartProvider, authProvider);
                     }
                   }();
                 }
@@ -285,6 +285,42 @@ class CartScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _confirmAndCheckout(
+    BuildContext context,
+    CartProvider cartProvider,
+    AuthProvider authProvider,
+  ) async {
+    if (cartProvider.items.isEmpty) {
+      _showSnackBar(context, '購物車目前沒有商品，請先加入商品後再結帳');
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('前往網站結帳'),
+        content: const Text(
+          '購物車商品將同步至您的讀冊帳號，並開啟瀏覽器完成結帳。\n\n'
+          '同步成功後，App 購物車將自動清空；若尚未完成結帳，請至讀冊官網購物車繼續。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('前往結帳'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await _handleCheckout(context, cartProvider, authProvider);
+    }
   }
 
   Future<void> _handleCheckout(
@@ -316,7 +352,7 @@ class CartScreen extends StatelessWidget {
 
       final ticket =
           await CheckoutService.requestCheckoutTicket(token: token);
-      await _openCheckoutUrl(context, ticket.checkoutUrl);
+      await _openCheckoutUrl(context, ticket.checkoutUrl, cartProvider);
     } on CheckoutException catch (e) {
       _showSnackBar(context, e.message);
     } catch (e) {
@@ -326,7 +362,11 @@ class CartScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _openCheckoutUrl(BuildContext context, String url) async {
+  Future<void> _openCheckoutUrl(
+    BuildContext context,
+    String url,
+    CartProvider cartProvider,
+  ) async {
     final uri = Uri.tryParse(url);
     if (uri == null) {
       _showSnackBar(context, '伺服器回傳的結帳連結格式不正確');
@@ -340,6 +380,13 @@ class CartScreen extends StatelessWidget {
       );
       if (!launched) {
         _showSnackBar(context, '無法開啟結帳頁面，請確認裝置是否允許外部瀏覽器');
+        return;
+      }
+
+      // 商品已同步至網站帳號購物車，清空 App 本地購物車避免重複結帳
+      cartProvider.clearCart();
+      if (context.mounted) {
+        _showSnackBar(context, '已開啟網站結帳，購物車已清空');
       }
     } catch (e) {
       _showSnackBar(context, '開啟結帳頁面時發生錯誤，請稍後再試');
