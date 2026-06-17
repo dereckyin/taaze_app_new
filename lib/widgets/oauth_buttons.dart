@@ -69,8 +69,26 @@ class OAuthButtons extends StatelessWidget {
   ) {
     final buttons = <Widget>[];
 
+    // Sign in with Apple 按鈕（依 Apple HIG 優先顯示於最上方）
+    if (configuredProviders.contains('apple')) {
+      buttons.add(
+        _buildOAuthButton(
+          context: context,
+          label: '使用 Apple 登入',
+          icon: FontAwesomeIcons.apple,
+          backgroundColor: Colors.black,
+          textColor: Colors.white,
+          borderColor: Colors.black,
+          onPressed: authProvider.isLoading
+              ? null
+              : () => _handleAppleSignIn(context),
+        ),
+      );
+    }
+
     // Google 登入按鈕
     if (configuredProviders.contains('google')) {
+      if (buttons.isNotEmpty) buttons.add(const SizedBox(height: 8));
       buttons.add(
         _buildOAuthButton(
           context: context,
@@ -165,6 +183,28 @@ class OAuthButtons extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// 處理 Apple 登入
+  Future<void> _handleAppleSignIn(BuildContext context) async {
+    final authProvider = context.read<AuthProvider>();
+
+    try {
+      final success = await authProvider.signInWithApple();
+
+      if (success && context.mounted) {
+        onSuccess?.call();
+        _showSuccessMessage(context, 'Apple 登入成功');
+      } else if (context.mounted) {
+        onError?.call();
+        _showErrorMessage(context, authProvider.error ?? 'Apple 登入失敗');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        onError?.call();
+        _showErrorMessage(context, 'Apple 登入發生錯誤：${e.toString()}');
+      }
+    }
   }
 
   /// 處理 Google 登入

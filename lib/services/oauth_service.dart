@@ -1,9 +1,12 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 import '../models/oauth_user.dart';
@@ -221,6 +224,114 @@ class OAuthService {
     }
   }
 
+  /// 產生隨機 nonce 字串（用於 Sign in with Apple 的防重放保護）
+  static String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  /// 計算字串的 SHA256 雜湊值（以十六進位字串回傳）
+  static String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  /// Sign in with Apple 登入
+  ///
+  /// 依 App Store 審查指南 4.8，提供與其他第三方登入對等的 Apple 登入選項。
+  static Future<OAuthLoginResponse> signInWithApple() async {
+    try {
+      _log('Start Apple sign-in');
+
+      // 僅 Apple 平台支援原生流程
+      if (!OAuthConfig.isAppleConfigured()) {
+        return const OAuthLoginResponse(
+          success: false,
+          error: '此裝置不支援使用 Apple 登入',
+        );
+      }
+
+      // 產生 nonce，原始值送後端驗證，雜湊值送給 Apple
+      final rawNonce = _generateNonce();
+      final hashedNonce = _sha256ofString(rawNonce);
+
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce,
+      );
+
+      final identityToken = credential.identityToken;
+      if (identityToken == null || identityToken.isEmpty) {
+        _log('Apple sign-in missing identityToken');
+        return const OAuthLoginResponse(
+          success: false,
+          error: '無法取得 Apple 憑證，請稍後再試',
+        );
+      }
+
+      // Apple 僅在「首次授權」時回傳姓名與 email，之後皆為 null。
+      final fullName = [
+        credential.givenName,
+        credential.familyName,
+      ].where((part) => part != null && part.isNotEmpty).join(' ').trim();
+
+      final oauthUser = OAuthUser(
+        id: credential.userIdentifier ?? '',
+        // email 可能為 null（非首次登入或使用私密轉寄），後端可由 identityToken 解析
+        email: credential.email ?? '',
+        name: fullName,
+        provider: 'apple',
+        // 後端以 identityToken 驗證 Apple 身分
+        accessToken: identityToken,
+        idToken: identityToken,
+        createdAt: DateTime.now(),
+        lastLoginAt: DateTime.now(),
+      );
+
+      // 額外攜帶 Apple 專屬欄位供後端驗證
+      final response = await _sendOAuthToBackend(
+        oauthUser,
+        extraUserInfo: {
+          'authorization_code': credential.authorizationCode,
+          'identity_token': identityToken,
+          'nonce': rawNonce,
+          'user_identifier': credential.userIdentifier,
+          'given_name': credential.givenName,
+          'family_name': credential.familyName,
+        },
+      );
+      _log('Apple sign-in backend response success=${response.success}');
+      return response;
+    } on SignInWithAppleAuthorizationException catch (e) {
+      _log('Apple sign-in authorization exception: ${e.code}');
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return const OAuthLoginResponse(
+          success: false,
+          error: 'Apple 登入被取消',
+        );
+      }
+      return OAuthLoginResponse(
+        success: false,
+        error: 'Apple 登入失敗：${e.message}',
+      );
+    } catch (e, stackTrace) {
+      _log('Apple sign-in exception', error: e, stackTrace: stackTrace);
+      return OAuthLoginResponse(
+        success: false,
+        error: 'Apple 登入失敗：${e.toString()}',
+      );
+    }
+  }
+
   /// Facebook 登入
   static Future<OAuthLoginResponse> signInWithFacebook() async {
     try {
@@ -345,17 +456,22 @@ class OAuthService {
 
   /// 發送 OAuth 資料到後端驗證
   static Future<OAuthLoginResponse> _sendOAuthToBackend(
-    OAuthUser oauthUser,
-  ) async {
+    OAuthUser oauthUser, {
+    Map<String, dynamic>? extraUserInfo,
+  }) async {
     try {
       _log(
         'Send OAuth user to backend: provider=${oauthUser.provider}, email=${oauthUser.email}',
       );
+      final userInfo = oauthUser.toJson();
+      if (extraUserInfo != null) {
+        userInfo.addAll(extraUserInfo);
+      }
       final request = OAuthLoginRequest(
         provider: oauthUser.provider,
         accessToken: oauthUser.accessToken!,
         idToken: oauthUser.idToken,
-        userInfo: oauthUser.toJson(),
+        userInfo: userInfo,
       );
 
       final response = await http

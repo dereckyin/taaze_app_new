@@ -1,9 +1,21 @@
+import 'dart:io' show Platform;
+
 /// OAuth 配置類
 ///
 /// 注意：在生產環境中，這些配置應該從環境變數或安全存儲中讀取
 class OAuthConfig {
   // 私有構造函數，防止實例化
   OAuthConfig._();
+
+  // ========== Apple 配置 ==========
+
+  /// Sign in with Apple 的 Service ID（僅 Android / Web 流程需要）。
+  /// iOS / macOS 原生流程使用 App 的 Bundle ID，不需要此值。
+  static const String appleServiceId = 'tw.com.taaze.readlife.signin';
+
+  /// Sign in with Apple 在 Android / Web 流程的重新導向 URI（後端轉接端點）。
+  static const String appleRedirectUri =
+      'https://www.taaze.tw/auth/apple/callback';
 
   // ========== Google 配置 ==========
 
@@ -73,6 +85,11 @@ class OAuthConfig {
   /// 是否啟用 LINE 登入
   static const bool enableLine = true;
 
+  /// 是否啟用 Sign in with Apple
+  /// 依 App Store 審查指南 4.8，若提供第三方登入（Google/Facebook 等），
+  /// 必須在 Apple 平台同時提供 Sign in with Apple。
+  static const bool enableApple = true;
+
   // ========== 驗證方法 ==========
 
   /// 驗證 Google 配置（檢查 iOS 和 Android 是否至少有一個已配置）
@@ -106,6 +123,19 @@ class OAuthConfig {
     return facebookAppId.isNotEmpty && facebookClientToken.isNotEmpty;
   }
 
+  /// 驗證 Apple 配置
+  ///
+  /// Sign in with Apple 僅在 Apple 平台（iOS / macOS）提供原生流程，
+  /// 在這些平台上一律視為已配置（系統內建支援）。
+  static bool isAppleConfigured() {
+    try {
+      return Platform.isIOS || Platform.isMacOS;
+    } catch (_) {
+      // 非原生平台（例如測試環境）預設為未配置
+      return false;
+    }
+  }
+
   /// 驗證 LINE 配置
   static bool isLineConfigured() {
     // 需要有 channelId / channelSecret / redirectUri 才視為已配置
@@ -120,6 +150,11 @@ class OAuthConfig {
   /// 獲取所有已配置的 OAuth 提供商
   static List<String> getConfiguredProviders() {
     final providers = <String>[];
+
+    // 依 Apple Human Interface Guidelines，Sign in with Apple 應優先顯示
+    if (enableApple && isAppleConfigured()) {
+      providers.add('apple');
+    }
 
     if (enableGoogle && isGoogleConfigured()) {
       providers.add('google');
@@ -144,6 +179,7 @@ class OAuthConfig {
   /// 獲取配置狀態摘要
   static Map<String, bool> getConfigurationStatus() {
     return {
+      'apple': enableApple && isAppleConfigured(),
       'google': enableGoogle && isGoogleConfigured(),
       'facebook': enableFacebook && isFacebookConfigured(),
       'line': enableLine && isLineConfigured(),
@@ -153,6 +189,7 @@ class OAuthConfig {
 
 /// OAuth 提供商枚舉
 enum OAuthProvider {
+  apple('apple', 'Apple', ''),
   google('google', 'Google', OAuthConfig.googleClientIdIOS),
   facebook('facebook', 'Facebook', OAuthConfig.facebookAppId),
   line('line', 'LINE', OAuthConfig.lineChannelId);
@@ -166,6 +203,8 @@ enum OAuthProvider {
   /// 從字符串創建 OAuth 提供商
   static OAuthProvider fromString(String value) {
     switch (value.toLowerCase()) {
+      case 'apple':
+        return OAuthProvider.apple;
       case 'google':
         return OAuthProvider.google;
       case 'facebook':
@@ -180,6 +219,8 @@ enum OAuthProvider {
   /// 檢查提供商是否已配置
   bool get isConfigured {
     switch (this) {
+      case OAuthProvider.apple:
+        return OAuthConfig.isAppleConfigured();
       case OAuthProvider.google:
         return OAuthConfig.isGoogleConfigured();
       case OAuthProvider.facebook:
@@ -192,6 +233,8 @@ enum OAuthProvider {
   /// 檢查提供商是否啟用
   bool get isEnabled {
     switch (this) {
+      case OAuthProvider.apple:
+        return OAuthConfig.enableApple;
       case OAuthProvider.google:
         return OAuthConfig.enableGoogle;
       case OAuthProvider.facebook:

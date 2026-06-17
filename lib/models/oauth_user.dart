@@ -8,7 +8,7 @@ class OAuthUser {
   final String email;
   final String name;
   final String? avatar;
-  final String provider; // 'google', 'facebook', 'line'
+  final String provider; // 'apple', 'google', 'facebook', 'line'
   final String? accessToken;
   final String? idToken;
   final String? refreshToken;
@@ -157,6 +157,7 @@ class OAuthLoginResponse {
 
 /// OAuth 提供商枚舉
 enum OAuthProvider {
+  apple('apple', 'Apple'),
   google('google', 'Google'),
   facebook('facebook', 'Facebook'),
   line('line', 'LINE');
@@ -168,6 +169,8 @@ enum OAuthProvider {
 
   static OAuthProvider fromString(String value) {
     switch (value.toLowerCase()) {
+      case 'apple':
+        return OAuthProvider.apple;
       case 'google':
         return OAuthProvider.google;
       case 'facebook':

@@ -256,6 +256,32 @@ class AuthProvider with ChangeNotifier {
 
   // ========== OAuth 登入方法 ==========
 
+  /// Sign in with Apple 登入
+  Future<bool> signInWithApple() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final response = await OAuthService.signInWithApple();
+
+      if (response.success) {
+        await _handleOAuthSuccess(response);
+        return true;
+      } else {
+        _error = response.error ?? 'Apple 登入失敗';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _error = 'Apple 登入失敗：${e.toString()}';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// Google 登入
   Future<bool> signInWithGoogle() async {
     _isLoading = true;

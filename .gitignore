@@ -47,3 +47,6 @@ app.*.map.json
 # Firebase/Google Services configuration files (contain sensitive keys)
 **/GoogleService-Info.plist
 **/google-services.json
+
+# Local tooling (image resize venv)
+.venv_theme/
