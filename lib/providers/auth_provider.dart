@@ -56,6 +56,13 @@ class AuthProvider with ChangeNotifier {
   OAuthUser? get oauthUser => _oauthUser;
   String? get oauthProvider => _oauthProvider;
 
+  /// 是否可在 App 內刪除帳號（僅 Apple 登入且 JWT cust_id 為 AP 開頭）
+  bool get canDeleteAccount {
+    if (_oauthProvider != 'apple') return false;
+    final custId = _custIdFromAuthToken;
+    return custId != null && custId.toUpperCase().startsWith('AP');
+  }
+
   Future<bool> login(
     String email,
     String password, {
@@ -699,6 +706,54 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  /// 刪除帳號（呼叫後端軟刪除並清除本地登入狀態）
+  Future<bool> deleteAccount() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final token = await tokenForApi();
+      if (token == null || token.isEmpty) {
+        _error = '請先登入';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      final response = await AuthApiService.deleteAccount(token);
+      if (!response.success) {
+        _error = response.error ?? '刪除帳號失敗';
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      }
+
+      await OAuthService.signOutAll();
+
+      try {
+        await NotificationService.instance.revokeCurrentToken();
+      } catch (_) {}
+
+      _user = null;
+      _authToken = null;
+      _refreshToken = null;
+      _currentCaptcha = null;
+      _oauthUser = null;
+      _oauthProvider = null;
+      await _clearStoredData();
+
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = '刪除帳號失敗：${e.toString()}';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   /// 使用API進行登出
   Future<void> logoutWithApi() async {
     if (_authToken != null) {
@@ -933,26 +988,39 @@ class AuthProvider with ChangeNotifier {
   }
 
   DateTime? _getJwtExpiry(String token) {
+    final payload = _decodeJwtPayload(token);
+    if (payload == null) return null;
+    final exp = payload['exp'];
+    if (exp is int) {
+      return DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true)
+          .toLocal();
+    }
+    if (exp is String) {
+      final parsed = int.tryParse(exp);
+      if (parsed != null) {
+        return DateTime.fromMillisecondsSinceEpoch(parsed * 1000, isUtc: true)
+            .toLocal();
+      }
+    }
+    return null;
+  }
+
+  String? get _custIdFromAuthToken {
+    if (_authToken == null || _authToken!.isEmpty) return null;
+    final payload = _decodeJwtPayload(_authToken!);
+    final custId = payload?['cust_id'];
+    if (custId is String && custId.isNotEmpty) return custId;
+    return custId?.toString();
+  }
+
+  Map<String, dynamic>? _decodeJwtPayload(String token) {
     try {
       final parts = token.split('.');
       if (parts.length != 3) return null;
-      final payload = parts[1];
-      final normalized = base64Url.normalize(payload);
+      final normalized = base64Url.normalize(parts[1]);
       final decoded = utf8.decode(base64Url.decode(normalized));
       final jsonMap = jsonDecode(decoded);
-      final exp = jsonMap is Map<String, dynamic> ? jsonMap['exp'] : null;
-      if (exp is int) {
-        return DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true)
-            .toLocal();
-      }
-      if (exp is String) {
-        final parsed = int.tryParse(exp);
-        if (parsed != null) {
-          return DateTime.fromMillisecondsSinceEpoch(parsed * 1000, isUtc: true)
-              .toLocal();
-        }
-      }
-      return null;
+      return jsonMap is Map<String, dynamic> ? jsonMap : null;
     } catch (_) {
       return null;
     }

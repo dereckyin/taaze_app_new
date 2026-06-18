@@ -26,7 +26,7 @@ class ProfileScreen extends StatelessWidget {
           }
 
           final user = authProvider.user!;
-          return _buildProfileContent(context, user);
+          return _buildProfileContent(context, authProvider, user);
         },
       ),
     );
@@ -77,18 +77,24 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileContent(BuildContext context, user) {
+  Widget _buildProfileContent(
+    BuildContext context,
+    AuthProvider authProvider,
+    user,
+  ) {
     return SingleChildScrollView(
       child: Column(
         children: [
           // 用戶頭像和基本資訊
           _buildUserHeader(context, user),
-          
+
           // 功能選單
           _buildMenuSection(context),
-          
-          // 登出按鈕
+
+          // 登出與刪除帳號
           _buildLogoutSection(context),
+          if (authProvider.canDeleteAccount)
+            _buildDeleteAccountSection(context),
         ],
       ),
     );
@@ -250,7 +256,7 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildLogoutSection(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Card(
         child: ListTile(
           leading: const Icon(
@@ -264,6 +270,26 @@ class ProfileScreen extends StatelessWidget {
           onTap: () {
             _showLogoutDialog(context);
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeleteAccountSection(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: Card(
+        child: ListTile(
+          leading: const Icon(
+            Icons.person_remove_outlined,
+            color: Colors.red,
+          ),
+          title: const Text(
+            '刪除帳號',
+            style: TextStyle(color: Colors.red),
+          ),
+          subtitle: const Text('停用會員帳號並解除第三方登入綁定'),
+          onTap: () => _showDeleteAccountDialog(context),
         ),
       ),
     );
@@ -288,6 +314,64 @@ class ProfileScreen extends StatelessWidget {
             child: const Text('登出'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('刪除帳號'),
+        content: const Text(
+          '此操作將停用您的會員帳號，並清除個人資料與第三方登入綁定。\n\n'
+          '若尚有進行中訂單，將無法刪除。\n\n'
+          '刪除後若需再次使用，須重新註冊或登入建立新帳號。\n\n'
+          '確定要繼續嗎？',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _performDeleteAccount(context);
+            },
+            child: const Text(
+              '刪除帳號',
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performDeleteAccount(BuildContext context) async {
+    final authProvider = context.read<AuthProvider>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final success = await authProvider.deleteAccount();
+
+    if (context.mounted) {
+      Navigator.pop(context);
+    }
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? '帳號已刪除'
+              : (authProvider.error ?? '刪除帳號失敗'),
+        ),
       ),
     );
   }

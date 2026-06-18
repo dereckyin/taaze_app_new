@@ -100,6 +100,19 @@ class LoginResponse {
   }
 }
 
+/// 刪除帳號響應模型
+class DeleteAccountResponse {
+  final bool success;
+  final String? message;
+  final String? error;
+
+  const DeleteAccountResponse({
+    required this.success,
+    this.message,
+    this.error,
+  });
+}
+
 /// 用戶數據模型
 class UserData {
   final String id;

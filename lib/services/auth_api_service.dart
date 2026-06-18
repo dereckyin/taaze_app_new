@@ -178,6 +178,88 @@ class AuthApiService {
     }
   }
 
+  /// 刪除帳號（軟刪除，需 Bearer token 且 JWT 含 cust_id）
+  static Future<DeleteAccountResponse> deleteAccount(String token) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/auth/delete-account'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+          )
+          .timeout(timeout);
+
+      final responseData = response.body.isNotEmpty
+          ? jsonDecode(response.body) as Map<String, dynamic>
+          : <String, dynamic>{};
+
+      if (response.statusCode == 200 && responseData['success'] == true) {
+        return DeleteAccountResponse(
+          success: true,
+          message: responseData['message'] as String? ?? '帳號已刪除',
+        );
+      }
+
+      return DeleteAccountResponse(
+        success: false,
+        error: _extractErrorMessage(responseData, response.statusCode),
+      );
+    } on SocketException {
+      return const DeleteAccountResponse(
+        success: false,
+        error: '網路連接失敗，請檢查網路設置',
+      );
+    } on TimeoutException {
+      return const DeleteAccountResponse(
+        success: false,
+        error: '請求逾時，請稍後再試',
+      );
+    } on HttpException {
+      return const DeleteAccountResponse(
+        success: false,
+        error: 'HTTP請求失敗',
+      );
+    } on FormatException {
+      return const DeleteAccountResponse(
+        success: false,
+        error: '響應格式錯誤',
+      );
+    } catch (e) {
+      return DeleteAccountResponse(
+        success: false,
+        error: '刪除帳號失敗：${e.toString()}',
+      );
+    }
+  }
+
+  static String _extractErrorMessage(
+    Map<String, dynamic> data,
+    int statusCode,
+  ) {
+    final detail = data['detail'];
+    if (detail is String && detail.isNotEmpty) {
+      return detail;
+    }
+    if (detail is List && detail.isNotEmpty) {
+      final first = detail.first;
+      if (first is Map && first['msg'] != null) {
+        return first['msg'].toString();
+      }
+    }
+    final message = data['message'];
+    if (message is String && message.isNotEmpty) {
+      return message;
+    }
+    final error = data['error'];
+    if (error is String && error.isNotEmpty) {
+      return error;
+    }
+    return '刪除帳號失敗（$statusCode）';
+  }
+
   /// 刷新令牌
   static Future<LoginResponse> refreshToken(String refreshToken) async {
     try {
