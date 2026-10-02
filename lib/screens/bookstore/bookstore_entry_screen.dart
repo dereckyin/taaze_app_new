@@ -167,7 +167,7 @@ class _HowItWorks extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           step(Icons.qr_code_2, '1. 掃門口 QR Code', '確認你在店裡，才能結帳'),
-          step(Icons.qr_code_scanner, '2. 掃書背條碼', '或在 App 裡逛書架，加入店內袋'),
+          step(Icons.qr_code_scanner, '2. 掃書背條碼', '或在 App 裡逛書架，加入購物籃'),
           step(Icons.verified_outlined, '3. App 付款，出示出門憑證', '店員核對後就能帶書回家'),
           const SizedBox(height: 16),
           SizedBox(

@@ -131,7 +131,7 @@ class PriceText extends StatelessWidget {
   }
 }
 
-/// 店內頁共用的底部列：掃書 + 店內袋
+/// 店內頁共用的底部列：掃書 + 購物籃
 class BagBottomBar extends StatelessWidget {
   final VoidCallback onScan;
   final VoidCallback onOpenBag;
@@ -184,7 +184,7 @@ class BagBottomBar extends StatelessWidget {
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        bag.isEmpty ? '店內袋' : ntd(bag.estimatedSubtotal),
+                        bag.isEmpty ? '購物籃' : ntd(bag.estimatedSubtotal),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),

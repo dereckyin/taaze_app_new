@@ -16,7 +16,7 @@ class BagItem {
 
 enum BagAddResult { added, maxReached, unavailable }
 
-/// 店內袋：與線上購物車（CartProvider）完全分開，只存在記憶體，
+/// 購物籃：與線上購物車（CartProvider）完全分開，只存在記憶體，
 /// 金額僅供顯示，實際以伺服器結帳回傳為準。
 class BookstoreProvider extends ChangeNotifier {
   BookstoreStore? _store;

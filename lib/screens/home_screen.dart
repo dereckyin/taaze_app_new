@@ -584,6 +584,8 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.storefront_outlined,
         label: '實體書店',
         color: const Color(0xFFF08A24),
+        highlighted: true,
+        badge: 'NEW',
         onTap: () async {
           final auth = context.read<AuthProvider>();
           if (!auth.isAuthenticated) {
@@ -649,17 +651,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final padding = compact
         ? const EdgeInsets.symmetric(horizontal: 8, vertical: 10)
         : const EdgeInsets.symmetric(horizontal: 12, vertical: 14);
+    final hl = item.highlighted;
     final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
+          fontWeight: hl ? FontWeight.w700 : FontWeight.w600,
+          color: hl ? Colors.white : Colors.black87,
           fontSize: compact ? 11 : null,
         );
 
-    return Material(
-      color: Colors.white,
-      elevation: 1.2,
+    final tile = Material(
+      color: hl ? item.color : Colors.white,
+      elevation: hl ? 3 : 1.2,
       borderRadius: BorderRadius.circular(16),
-      shadowColor: Colors.black.withValues(alpha: 0.12),
+      shadowColor: hl
+          ? item.color.withValues(alpha: 0.45)
+          : Colors.black.withValues(alpha: 0.12),
       child: InkWell(
         onTap: item.onTap,
         borderRadius: BorderRadius.circular(16),
@@ -672,12 +677,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: containerSize,
                 height: containerSize,
                 decoration: BoxDecoration(
-                  color: item.color.withValues(alpha: 0.12),
+                  color: hl
+                      ? Colors.white.withValues(alpha: 0.22)
+                      : item.color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   item.icon,
-                  color: item.color,
+                  color: hl ? Colors.white : item.color,
                   size: iconSize,
                 ),
               ),
@@ -693,6 +700,35 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    );
+
+    if (item.badge == null) return tile;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        tile,
+        Positioned(
+          top: -6,
+          right: -4,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE53935),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white, width: 1.5),
+            ),
+            child: Text(
+              item.badge!,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                height: 1.1,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1125,11 +1161,15 @@ class _QuickActionItem {
   final String label;
   final Color color;
   final VoidCallback onTap;
+  final bool highlighted;
+  final String? badge;
 
   const _QuickActionItem({
     required this.icon,
     required this.label,
     required this.color,
     required this.onTap,
+    this.highlighted = false,
+    this.badge,
   });
 }
