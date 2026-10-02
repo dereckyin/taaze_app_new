@@ -24,6 +24,7 @@ import 'providers/orders_provider.dart';
 import 'providers/watchlist_provider.dart';
 import 'providers/theme_content_provider.dart';
 import 'providers/social_feed_provider.dart';
+import 'providers/bookstore_provider.dart';
 import 'services/onboarding_prefs.dart';
 import 'screens/main_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -178,6 +179,7 @@ class BookStoreApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => WatchlistProvider()),
         ChangeNotifierProvider(create: (_) => ThemeContentProvider()),
         ChangeNotifierProvider(create: (_) => SocialFeedProvider()),
+        ChangeNotifierProvider(create: (_) => BookstoreProvider()),
       ],
       child: MaterialApp(
         title: '讀冊生活網路書店',

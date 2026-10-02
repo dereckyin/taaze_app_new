@@ -23,6 +23,7 @@ import 'search_screen.dart';
 import 'category_screen.dart';
 import 'book_list_screen.dart';
 import 'barcode_scanner_screen.dart';
+import 'bookstore/bookstore_entry_screen.dart';
 import 'ai_chat_screen.dart';
 import 'ai_listing_wizard_screen.dart';
 import 'podcast_hub_screen.dart';
@@ -579,6 +580,29 @@ class _HomeScreenState extends State<HomeScreen> {
       //     );
       //   },
       // ),
+      _QuickActionItem(
+        icon: Icons.storefront_outlined,
+        label: '實體書店',
+        color: const Color(0xFFF08A24),
+        onTap: () async {
+          final auth = context.read<AuthProvider>();
+          if (!auth.isAuthenticated) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('請先登入後再使用門市自助結帳')),
+            );
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            );
+            return;
+          }
+          if (!mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const BookstoreEntryScreen()),
+          );
+        },
+      ),
       _QuickActionItem(
         icon: FontAwesomeIcons.qrcode,
         label: '掃描條碼',

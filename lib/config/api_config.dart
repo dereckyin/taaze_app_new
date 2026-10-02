@@ -85,6 +85,9 @@ class ApiConfig {
   static const String secondHandDraftAutoFillEndpoint = '/applications/second-hand-book/draft/auto-fill';
   static const String watchlistAutoFillEndpoint = '/applications/watchlist/auto-fill';
   static const String watchlistEndpoint = '/applications/watchlist';
+  static const String bookstoreStoresEndpoint = '/bookstore/stores';
+  static const String bookstoreDoorQrEndpoint = '/bookstore/door-qr/resolve';
+  static const String bookstoreCheckoutsEndpoint = '/bookstore/checkouts';
 
   /// 獲取所有可用的 API 端點
   static List<ApiEndpoint> get availableEndpoints => [
