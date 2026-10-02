@@ -584,7 +584,6 @@ class _HomeScreenState extends State<HomeScreen> {
         icon: Icons.storefront_outlined,
         label: '實體書店',
         color: const Color(0xFFF08A24),
-        highlighted: true,
         badge: 'NEW',
         onTap: () async {
           final auth = context.read<AuthProvider>();
@@ -651,20 +650,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final padding = compact
         ? const EdgeInsets.symmetric(horizontal: 8, vertical: 10)
         : const EdgeInsets.symmetric(horizontal: 12, vertical: 14);
-    final hl = item.highlighted;
     final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          fontWeight: hl ? FontWeight.w700 : FontWeight.w600,
-          color: hl ? Colors.white : Colors.black87,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
           fontSize: compact ? 11 : null,
         );
 
     final tile = Material(
-      color: hl ? item.color : Colors.white,
-      elevation: hl ? 3 : 1.2,
+      color: Colors.white,
+      elevation: 1.2,
       borderRadius: BorderRadius.circular(16),
-      shadowColor: hl
-          ? item.color.withValues(alpha: 0.45)
-          : Colors.black.withValues(alpha: 0.12),
+      shadowColor: Colors.black.withValues(alpha: 0.12),
       child: InkWell(
         onTap: item.onTap,
         borderRadius: BorderRadius.circular(16),
@@ -677,14 +673,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: containerSize,
                 height: containerSize,
                 decoration: BoxDecoration(
-                  color: hl
-                      ? Colors.white.withValues(alpha: 0.22)
-                      : item.color.withValues(alpha: 0.12),
+                  color: item.color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   item.icon,
-                  color: hl ? Colors.white : item.color,
+                  color: item.color,
                   size: iconSize,
                 ),
               ),
@@ -1161,7 +1155,6 @@ class _QuickActionItem {
   final String label;
   final Color color;
   final VoidCallback onTap;
-  final bool highlighted;
   final String? badge;
 
   const _QuickActionItem({
@@ -1169,7 +1162,6 @@ class _QuickActionItem {
     required this.label,
     required this.color,
     required this.onTap,
-    this.highlighted = false,
     this.badge,
   });
 }

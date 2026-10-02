@@ -11,7 +11,7 @@ import 'door_qr_scanner_screen.dart';
 
 enum _InvoiceKind { member, mobile, taxId, donation }
 
-/// 購物籃：調整數量、選發票、結帳（伺服器重新計價並鎖庫存）
+/// 購物車：調整數量、選發票、結帳（伺服器重新計價並鎖庫存）
 class BookstoreBagScreen extends StatefulWidget {
   const BookstoreBagScreen({super.key});
 
@@ -121,7 +121,7 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
     final bag = context.watch<BookstoreProvider>();
     return Scaffold(
       appBar: AppBar(
-        title: Text('購物籃${bag.isEmpty ? '' : '（${bag.itemCount}）'}'),
+        title: Text('購物車${bag.isEmpty ? '' : '（${bag.itemCount}）'}'),
         actions: [
           if (!bag.isEmpty)
             TextButton(
@@ -129,7 +129,7 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                 final ok = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('清空購物籃？'),
+                    title: const Text('清空購物車？'),
                     actions: [
                       TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
                       TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('清空')),
@@ -149,7 +149,7 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                 children: [
                   Icon(Icons.shopping_bag_outlined, size: 56, color: Colors.grey),
                   SizedBox(height: 8),
-                  Text('購物籃是空的，掃書或逛書架加入吧'),
+                  Text('購物車是空的，掃書或逛書架加入吧'),
                 ],
               ),
             )

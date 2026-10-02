@@ -181,7 +181,7 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
       builder: (ctx) => AlertDialog(
         title: const Text('還沒付款喔'),
         content: Text(cash
-            ? '書會繼續為你保留到倒數結束。之後回到購物籃再按一次結帳，就能找回這張付款碼。'
+            ? '書會繼續為你保留到倒數結束。之後回到購物車再按一次結帳，就能找回這張付款碼。'
             : '離開後書會繼續為你保留到倒數結束。若已在付款頁完成付款，請按「我已付款」。'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('先離開')),
@@ -277,7 +277,7 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
                 ? FilledButton(
                     onPressed: () => Navigator.pop(context),
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                    child: const Text('回購物籃重新結帳'),
+                    child: const Text('回購物車重新結帳'),
                   )
                 : showCashCode
                     ? Row(

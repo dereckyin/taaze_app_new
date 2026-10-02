@@ -10,7 +10,7 @@ import '../../theme/app_theme.dart';
 import 'bookstore_bag_screen.dart';
 import 'bookstore_widgets.dart';
 
-/// 連續掃書：掃到就加入購物籃，不用每本確認
+/// 連續掃書：掃到就加入購物車，不用每本確認
 class BookstoreScanScreen extends StatefulWidget {
   const BookstoreScanScreen({super.key});
 
@@ -65,7 +65,7 @@ class _BookstoreScanScreenState extends State<BookstoreScanScreen> {
         case BagAddResult.added:
           HapticFeedback.mediumImpact();
           SystemSound.play(SystemSoundType.click);
-          _show(product, '已加入購物籃', false);
+          _show(product, '已加入購物車', false);
         case BagAddResult.maxReached:
           HapticFeedback.heavyImpact();
           _show(product, '已達可購買數量（${product.maxQty} 本）', true);
@@ -172,7 +172,7 @@ class _BookstoreScanScreenState extends State<BookstoreScanScreen> {
               minimumSize: const Size.fromHeight(50),
               backgroundColor: AppTheme.primaryColor,
             ),
-            child: Text(bag.isEmpty ? '查看購物籃' : '完成・購物籃 ${bag.itemCount} 本 ${ntd(bag.estimatedSubtotal)}'),
+            child: Text(bag.isEmpty ? '查看購物車' : '完成・購物車 ${bag.itemCount} 本 ${ntd(bag.estimatedSubtotal)}'),
           ),
         ),
       ),

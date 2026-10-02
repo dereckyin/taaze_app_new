@@ -14,7 +14,7 @@ import 'bookstore_scan_screen.dart';
 import 'bookstore_widgets.dart';
 import 'door_qr_scanner_screen.dart';
 
-/// 店內商品展示：搜尋、分類、書牆，底部固定「掃書／購物籃」
+/// 店內商品展示：搜尋、分類、書牆，底部固定「掃書／購物車」
 class BookstoreHomeScreen extends StatefulWidget {
   const BookstoreHomeScreen({super.key});
 
@@ -122,7 +122,7 @@ class _BookstoreHomeScreenState extends State<BookstoreHomeScreen> {
   void _add(BookstoreProduct p) {
     final result = context.read<BookstoreProvider>().add(p);
     final msg = switch (result) {
-      BagAddResult.added => '已加入購物籃：${p.name}',
+      BagAddResult.added => '已加入購物車：${p.name}',
       BagAddResult.maxReached => '這本書已達可購買數量',
       BagAddResult.unavailable => '這本書目前已售完',
     };

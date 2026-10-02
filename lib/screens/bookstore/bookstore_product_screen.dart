@@ -9,7 +9,7 @@ import '../../theme/app_theme.dart';
 import 'bookstore_bag_screen.dart';
 import 'bookstore_widgets.dart';
 
-/// 店內商品詳情：顯示店內即時庫存，可直接加入購物籃
+/// 店內商品詳情：顯示店內即時庫存，可直接加入購物車
 class BookstoreProductScreen extends StatefulWidget {
   final BookstoreProduct product;
 
@@ -44,7 +44,7 @@ class _BookstoreProductScreenState extends State<BookstoreProductScreen> {
   void _add() {
     final result = context.read<BookstoreProvider>().add(_product);
     final msg = switch (result) {
-      BagAddResult.added => '已加入購物籃',
+      BagAddResult.added => '已加入購物車',
       BagAddResult.maxReached => '已達可購買數量（${_product.maxQty} 本）',
       BagAddResult.unavailable => '這本書目前已售完',
     };
@@ -55,7 +55,7 @@ class _BookstoreProductScreenState extends State<BookstoreProductScreen> {
         content: Text(msg),
         action: result == BagAddResult.added
             ? SnackBarAction(
-                label: '看購物籃',
+                label: '看購物車',
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const BookstoreBagScreen()),
@@ -152,7 +152,7 @@ class _BookstoreProductScreenState extends State<BookstoreProductScreen> {
           child: FilledButton.icon(
             onPressed: p.available ? _add : null,
             icon: const Icon(Icons.shopping_bag_outlined),
-            label: Text(!p.available ? '已售完' : inBag > 0 ? '再加一本（袋內 $inBag 本）' : '加入購物籃'),
+            label: Text(!p.available ? '已售完' : inBag > 0 ? '再加一本（袋內 $inBag 本）' : '加入購物車'),
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
               backgroundColor: AppTheme.primaryColor,
