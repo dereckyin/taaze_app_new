@@ -22,6 +22,7 @@ class BookstoreBagScreen extends StatefulWidget {
 class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
   _InvoiceKind _invoiceKind = _InvoiceKind.member;
   final _invoiceInput = TextEditingController();
+  final _invoiceFocus = FocusNode();
   bool _submitting = false;
 
   static final _mobileCarrier = RegExp(r'^/[0-9A-Z.+\-]{7}$');
@@ -31,6 +32,7 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
   @override
   void dispose() {
     _invoiceInput.dispose();
+    _invoiceFocus.dispose();
     super.dispose();
   }
 
@@ -154,6 +156,7 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
               ),
             )
           : ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
                 if (!bag.isInStore) _presenceBanner(),
@@ -291,9 +294,26 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
               const SizedBox(height: 8),
               TextField(
                 controller: _invoiceInput,
+                focusNode: _invoiceFocus,
                 keyboardType: keyboard,
                 textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(hintText: hint, isDense: true),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _invoiceFocus.unfocus(),
+                onTapOutside: (_) => _invoiceFocus.unfocus(),
+                decoration: InputDecoration(
+                  hintText: hint,
+                  isDense: true,
+                  // iOS number pads have no return key to dismiss the keyboard.
+                  suffixIcon: ListenableBuilder(
+                    listenable: _invoiceFocus,
+                    builder: (_, __) => _invoiceFocus.hasFocus
+                        ? TextButton(
+                            onPressed: _invoiceFocus.unfocus,
+                            child: const Text('完成'),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ),
               ),
             ],
           ],

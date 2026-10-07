@@ -195,6 +195,7 @@ class _BookstoreHomeScreenState extends State<BookstoreHomeScreen> {
               controller: _search,
               onChanged: _onSearchChanged,
               textInputAction: TextInputAction.search,
+              onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
               decoration: InputDecoration(
                 hintText: '搜尋店內書名、作者、ISBN',
                 prefixIcon: const Icon(Icons.search),
