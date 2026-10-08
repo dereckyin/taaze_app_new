@@ -24,6 +24,9 @@ class BookstoreStore {
   final int cashPricePct;
   final bool onlinePaymentEnabled;
 
+  /// 後端旗標：false 時不顯示/不送出訂單回寫、發票、紅利折抵
+  final bool memberSyncEnabled;
+
   const BookstoreStore({
     required this.id,
     required this.code,
@@ -34,6 +37,7 @@ class BookstoreStore {
     this.cashEnabled = true,
     this.cashPricePct = 100,
     this.onlinePaymentEnabled = false,
+    this.memberSyncEnabled = false,
   });
 
   bool get hasCashDiscount => cashEnabled && cashPricePct < 100;
@@ -57,6 +61,7 @@ class BookstoreStore {
         cashEnabled: j['cash_enabled'] != false,
         cashPricePct: j['cash_price_pct'] == null ? 100 : _int(j['cash_price_pct']).clamp(1, 100),
         onlinePaymentEnabled: j['online_payment_enabled'] == true,
+        memberSyncEnabled: j['member_sync_enabled'] == true,
       );
 }
 
@@ -317,6 +322,20 @@ class BookstoreCheckout {
             .map(CheckoutLine.fromJson)
             .toList(),
         createdAt: _date(j['created_at']),
+      );
+}
+
+class MemberWallet {
+  final int bonus;
+  final int acc;
+  final bool enabled;
+
+  const MemberWallet({this.bonus = 0, this.acc = 0, this.enabled = false});
+
+  factory MemberWallet.fromJson(Map<String, dynamic> j) => MemberWallet(
+        bonus: _int(j['bonus']),
+        acc: _int(j['acc']),
+        enabled: j['enabled'] == true || j['member_sync_enabled'] == true,
       );
 }
 

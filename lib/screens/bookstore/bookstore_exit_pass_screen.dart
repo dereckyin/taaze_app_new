@@ -216,9 +216,9 @@ class _BookstoreExitPassScreenState extends State<BookstoreExitPassScreen>
             if (c.discount > 0) _kv('現金折扣', '-${ntd(c.discount)}'),
             _kv('合計', ntd(c.total)),
             if (c.isCash) _kv('付款方式', '現金（櫃台）'),
-            if (c.orderNo != null) _kv('訂單編號', c.orderNo!),
             if (c.paidAt != null) _kv('付款時間', _hm(c.paidAt!, withDate: true)),
-            _kv('電子發票', invoice),
+            if (c.invoiceStatus == 'issued' || (c.invoiceNumber != null && c.invoiceNumber!.isNotEmpty))
+              _kv('電子發票', invoice),
           ],
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/bookstore.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/bookstore_provider.dart';
 import '../../services/bookstore_service.dart';
 import '../../theme/app_theme.dart';
@@ -23,10 +24,46 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
   _InvoiceKind _invoiceKind = _InvoiceKind.member;
   final _invoiceInput = TextEditingController();
   bool _submitting = false;
+  MemberWallet _wallet = const MemberWallet();
+  int _redeemBonus = 0;
+  int _redeemAcc = 0;
 
   static final _mobileCarrier = RegExp(r'^/[0-9A-Z.+\-]{7}$');
   static final _taxId = RegExp(r'^\d{8}$');
   static final _donation = RegExp(r'^\d{3,7}$');
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadWallet());
+  }
+
+  bool get _memberSync =>
+      context.read<BookstoreProvider>().store?.memberSyncEnabled == true;
+
+  Future<void> _loadWallet() async {
+    if (!mounted) return;
+    if (!_memberSync) return;
+    final token = context.read<AuthProvider>().authToken;
+    if (token == null) return;
+    try {
+      final wallet = await BookstoreService.getWallet(token);
+      if (!mounted) return;
+      setState(() => _wallet = wallet);
+    } on BookstoreException {
+      // 折抵列隱藏即可，不擋結帳
+    }
+  }
+
+  int get _maxRedeem {
+    final bag = context.read<BookstoreProvider>();
+    return bag.estimatedSubtotal;
+  }
+
+  int get _payablePreview {
+    final raw = _maxRedeem - _redeemBonus - _redeemAcc;
+    return raw < 0 ? 0 : raw;
+  }
 
   @override
   void dispose() {
@@ -56,10 +93,13 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
       showBookstoreError(context, BookstoreException('這家店目前暫停營業'));
       return;
     }
-    final invoice = _invoice();
-    if (invoice == null) {
-      showBookstoreError(context, BookstoreException('發票資料格式不正確，請再確認'));
-      return;
+    InvoiceChoice? invoice;
+    if (_memberSync) {
+      invoice = _invoice();
+      if (invoice == null) {
+        showBookstoreError(context, BookstoreException('發票資料格式不正確，請再確認'));
+        return;
+      }
     }
     var presence = bag.presence;
     if (presence == null) {
@@ -79,6 +119,8 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
         clientRequestId: bag.clientRequestId,
         lines: bag.lines,
         invoice: invoice,
+        redeemBonus: _memberSync ? _redeemBonus : 0,
+        redeemAcc: _memberSync ? _redeemAcc : 0,
       );
       if (!mounted) return;
       Navigator.push(
@@ -159,8 +201,12 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                 if (!bag.isInStore) _presenceBanner(),
                 for (final item in bag.items) _BagRow(item: item),
                 const SizedBox(height: 16),
-                _invoiceSection(),
-                const SizedBox(height: 12),
+                if (_memberSync) ...[
+                  _invoiceSection(),
+                  const SizedBox(height: 12),
+                  _redeemSection(),
+                  const SizedBox(height: 12),
+                ],
                 const Text(
                   '・金額與庫存以結帳當下為準，結帳後會為你保留 5 分鐘\n'
                   '・付款完成請出示「出門憑證」給店員核對\n'
@@ -190,7 +236,7 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                         children: [
                           const Text('預估金額', style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor)),
                           Text(
-                            ntd(bag.estimatedSubtotal),
+                            ntd(_payablePreview),
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -299,6 +345,45 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _redeemSection() {
+    if (!_wallet.enabled || (_wallet.bonus <= 0 && _wallet.acc <= 0)) {
+      return const SizedBox.shrink();
+    }
+    final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
+    final maxAcc = (_maxRedeem - _redeemBonus).clamp(0, _wallet.acc).toInt();
+    return Card(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('會員折抵', style: TextStyle(fontWeight: FontWeight.bold)),
+            if (_wallet.bonus > 0)
+              _redeemRow('紅利', _wallet.bonus, _redeemBonus, maxBonus, (v) => setState(() => _redeemBonus = v)),
+            if (_wallet.acc > 0)
+              _redeemRow('回饋金', _wallet.acc, _redeemAcc, maxAcc, (v) => setState(() => _redeemAcc = v)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _redeemRow(String label, int available, int value, int maxUse, ValueChanged<int> onChanged) {
+    return Row(
+      children: [
+        Expanded(child: Text('$label（可用 $available）', style: const TextStyle(fontSize: 13))),
+        TextButton(onPressed: value == 0 ? null : () => onChanged(0), child: const Text('不用')),
+        Text('$value', style: const TextStyle(fontWeight: FontWeight.bold)),
+        TextButton(
+          onPressed: maxUse == 0 || value == maxUse ? null : () => onChanged(maxUse),
+          child: const Text('全折'),
+        ),
+      ],
     );
   }
 }

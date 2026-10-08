@@ -96,6 +96,14 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
     _done = true;
     _stopPolling();
     context.read<BookstoreProvider>().clearBag();
+    final token = context.read<AuthProvider>().authToken;
+    if (token != null) {
+      unawaited(() async {
+        try {
+          await BookstoreService.settleCheckout(token, paid.id);
+        } catch (_) {}
+      }());
+    }
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => BookstoreExitPassScreen(checkout: paid, justPaid: true)),

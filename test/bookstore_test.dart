@@ -59,6 +59,22 @@ void main() {
     expect(bag.isInStore, isFalse);
   });
 
+  test('parses member wallet', () {
+    final w = MemberWallet.fromJson({'bonus': 80, 'acc': '20'});
+    expect(w.bonus, 80);
+    expect(w.acc, 20);
+    expect(w.enabled, isFalse);
+    expect(MemberWallet.fromJson({'bonus': 1, 'acc': 0, 'enabled': true}).enabled, isTrue);
+  });
+
+  test('store member sync defaults off', () {
+    expect(BookstoreStore.fromJson({'id': 's1'}).memberSyncEnabled, isFalse);
+    expect(
+      BookstoreStore.fromJson({'id': 's1', 'member_sync_enabled': true}).memberSyncEnabled,
+      isTrue,
+    );
+  });
+
   test('server error detail becomes friendly message', () {
     final e = BookstoreException.fromResponse(403, {
       'detail': {'code': 'presence_required', 'message': '請先掃描門口 QR Code 再結帳'},

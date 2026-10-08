@@ -88,6 +88,7 @@ class ApiConfig {
   static const String bookstoreStoresEndpoint = '/bookstore/stores';
   static const String bookstoreDoorQrEndpoint = '/bookstore/door-qr/resolve';
   static const String bookstoreCheckoutsEndpoint = '/bookstore/checkouts';
+  static const String bookstoreWalletEndpoint = '/bookstore/wallet';
 
   /// 獲取所有可用的 API 端點
   static List<ApiEndpoint> get availableEndpoints => [

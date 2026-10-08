@@ -71,6 +71,11 @@ class BookstoreService {
     return BookstoreProduct.fromJson(data as Map<String, dynamic>);
   }
 
+  static Future<MemberWallet> getWallet(String token) async {
+    final data = await _send('GET', ApiConfig.bookstoreWalletEndpoint, token);
+    return MemberWallet.fromJson(data as Map<String, dynamic>);
+  }
+
   static Future<BookstoreCheckout> createCheckout(
     String token, {
     required String storeId,
@@ -78,6 +83,8 @@ class BookstoreService {
     required String clientRequestId,
     required Map<String, int> lines,
     InvoiceChoice? invoice,
+    int redeemBonus = 0,
+    int redeemAcc = 0,
   }) async {
     final data = await _send('POST', ApiConfig.bookstoreCheckoutsEndpoint, token, body: {
       'store_id': storeId,
@@ -87,8 +94,15 @@ class BookstoreService {
         for (final e in lines.entries) {'product_id': e.key, 'qty': e.value},
       ],
       if (invoice?.toJson() != null) 'invoice': invoice!.toJson(),
+      if (redeemBonus > 0) 'redeem_bonus': redeemBonus,
+      if (redeemAcc > 0) 'redeem_acc': redeemAcc,
     });
     return BookstoreCheckout.fromJson(data as Map<String, dynamic>);
+  }
+
+  /// 收現後把已結案訂單回寫讀冊；失敗不影響出門憑證（POS 也會回呼）。
+  static Future<void> settleCheckout(String token, String id) async {
+    await _send('POST', '${ApiConfig.bookstoreCheckoutsEndpoint}/$id/settle', token);
   }
 
   static Future<List<BookstoreCheckout>> listCheckouts(String token) async {
