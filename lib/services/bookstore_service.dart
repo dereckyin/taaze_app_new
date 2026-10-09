@@ -100,7 +100,7 @@ class BookstoreService {
     return BookstoreCheckout.fromJson(data as Map<String, dynamic>);
   }
 
-  /// 收現後把已結案訂單回寫讀冊；失敗不影響出門憑證（POS 也會回呼）。
+  /// 收現後把已結案訂單回寫讀冊；失敗不影響顧客帶書（POS 也會回呼）。
   static Future<void> settleCheckout(String token, String id) async {
     await _send('POST', '${ApiConfig.bookstoreCheckoutsEndpoint}/$id/settle', token);
   }

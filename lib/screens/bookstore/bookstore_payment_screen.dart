@@ -16,7 +16,7 @@ import 'bookstore_widgets.dart';
 enum _PayMethod { cash, online }
 
 /// 選付款方式 →
-///   現金：出示櫃台付款碼，店員收款後自動切到出門憑證
+///   現金：出示櫃台付款碼，店員收款後訂單完成即可帶書離開
 ///   線上：外部瀏覽器付款，回到 App 自動查詢結果（未開通時顯示「準備中」）
 class BookstorePaymentScreen extends StatefulWidget {
   final BookstoreCheckout checkout;
@@ -241,8 +241,6 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
                   ],
                 ),
               ),
-            const Divider(height: 24),
-            ..._summary(c),
             if (!c.isCash && !closed) ...[
               const SizedBox(height: 24),
               const Text('付款方式', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -302,39 +300,22 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
     );
   }
 
+  int _cashDue(BookstoreCheckout c) {
+    final store = _store;
+    if (store != null && store.hasCashDiscount && !c.isCash) {
+      final due = store.cashPriceOf(c.subtotal) - c.discount;
+      return due < 0 ? 0 : due;
+    }
+    return c.total;
+  }
+
   String _cashSubtitle(BookstoreCheckout c) {
     final store = _store;
     if (!_cashAvailable) return '這家店目前不接受現金';
     if (store != null && store.hasCashDiscount) {
-      return '現金價約 ${ntd(store.cashPriceOf(c.subtotal))}（零頭捨去）';
+      return '現金價約 ${ntd(_cashDue(c))}（零頭捨去）';
     }
     return '到櫃台出示付款碼，由店員收款';
-  }
-
-  List<Widget> _summary(BookstoreCheckout c) {
-    const muted = TextStyle(color: AppTheme.textSecondaryColor);
-    return [
-      if (c.discount > 0) ...[
-        Row(children: [const Expanded(child: Text('原價', style: muted)), Text(ntd(c.subtotal), style: muted)]),
-        const SizedBox(height: 4),
-        Row(children: [
-          const Expanded(child: Text('現金折扣', style: TextStyle(color: AppTheme.successColor))),
-          Text('-${ntd(c.discount)}', style: const TextStyle(color: AppTheme.successColor)),
-        ]),
-        const SizedBox(height: 8),
-      ],
-      Row(
-        children: [
-          Expanded(child: Text(c.isCash ? '應付現金' : '應付金額', style: const TextStyle(fontSize: 16))),
-          Text(
-            ntd(c.total),
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
-          ),
-        ],
-      ),
-      const SizedBox(height: 4),
-      const Text('含稅，金額由門市系統計算', style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor)),
-    ];
   }
 
   Widget _payButtons(BookstoreCheckout c) {
@@ -344,7 +325,7 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
     final VoidCallback? action;
     switch (method) {
       case _PayMethod.cash:
-        final preview = (store?.hasCashDiscount ?? false) ? ' ${ntd(store!.cashPriceOf(c.subtotal))}' : '';
+        final preview = (store?.hasCashDiscount ?? false) ? ' ${ntd(_cashDue(c))}' : '';
         label = '到櫃台付現金$preview';
         action = _chooseCash;
       case _PayMethod.online:
@@ -491,7 +472,7 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
             children: [
               SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
               SizedBox(width: 8),
-              Text('店員收款後，這裡會自動換成出門憑證'),
+              Text('店員確認收款後，即可帶書離開'),
             ],
           ),
         ],

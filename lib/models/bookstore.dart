@@ -288,7 +288,7 @@ class BookstoreCheckout {
 
   String get statusLabel => switch (status) {
         'pending' => '待付款',
-        'paid' => exitVerifiedAt != null ? '已出門核銷' : '已付款',
+        'paid' => exitVerifiedAt != null ? '已付款，可帶走' : '已付款',
         'refunded' => '已退貨',
         'expired' => '已逾時',
         'cancelled' => '已取消',

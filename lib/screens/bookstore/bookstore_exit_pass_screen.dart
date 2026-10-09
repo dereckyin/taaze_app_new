@@ -10,7 +10,7 @@ import '../../services/bookstore_service.dart';
 import '../../theme/app_theme.dart';
 import 'bookstore_widgets.dart';
 
-/// 付款完成與出門憑證：大 QR + 6 碼，店員核銷後自動變成「已核銷」
+/// 付款完成收據。現金收款當下即可帶走；線上付款才可能還有出門 QR。
 class BookstoreExitPassScreen extends StatefulWidget {
   final BookstoreCheckout checkout;
   final bool justPaid;
@@ -68,7 +68,7 @@ class _BookstoreExitPassScreenState extends State<BookstoreExitPassScreen>
   Widget build(BuildContext context) {
     final c = _checkout;
     return Scaffold(
-      appBar: AppBar(title: const Text('出門憑證')),
+      appBar: AppBar(title: Text(c.exitVerifiedAt != null || (c.isCash && c.isPaid) ? '購買完成' : '出門憑證')),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
@@ -99,8 +99,8 @@ class _BookstoreExitPassScreenState extends State<BookstoreExitPassScreen>
       return _statusBox(Icons.undo, Colors.grey, '這筆已退貨', '退款依原付款方式辦理');
     }
     if (c.exitVerifiedAt != null) {
-      return _statusBox(Icons.verified, AppTheme.successColor, '已核銷，謝謝光臨',
-          '核銷時間 ${_hm(c.exitVerifiedAt!)}');
+      return _statusBox(Icons.verified, AppTheme.successColor, '已付款，可以帶走',
+          c.paidAt != null ? '付款時間 ${_hm(c.paidAt!, withDate: true)}' : '謝謝光臨');
     }
     final pass = c.exitPass;
     if (pass == null || DateTime.now().isAfter(pass.expiresAt)) {

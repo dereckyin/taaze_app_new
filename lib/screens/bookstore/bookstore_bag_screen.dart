@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/bookstore.dart';
@@ -23,6 +24,8 @@ class BookstoreBagScreen extends StatefulWidget {
 class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
   _InvoiceKind _invoiceKind = _InvoiceKind.member;
   final _invoiceInput = TextEditingController();
+  final _bonusInput = TextEditingController(text: '0');
+  final _accInput = TextEditingController(text: '0');
   bool _submitting = false;
   MemberWallet _wallet = const MemberWallet();
   int _redeemBonus = 0;
@@ -55,20 +58,58 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
     }
   }
 
-  int get _maxRedeem {
+  int get _maxRedeem => _cashBase;
+
+  int get _cashBase {
     final bag = context.read<BookstoreProvider>();
+    final store = bag.store;
+    if (store != null && store.hasCashDiscount) {
+      return store.cashPriceOf(bag.estimatedSubtotal);
+    }
     return bag.estimatedSubtotal;
   }
 
   int get _payablePreview {
-    final raw = _maxRedeem - _redeemBonus - _redeemAcc;
+    final raw = _cashBase - _redeemBonus - _redeemAcc;
     return raw < 0 ? 0 : raw;
   }
 
   @override
   void dispose() {
     _invoiceInput.dispose();
+    _bonusInput.dispose();
+    _accInput.dispose();
     super.dispose();
+  }
+
+  void _assignRedeem(TextEditingController ctrl, int value) {
+    final text = '$value';
+    if (ctrl.text != text) {
+      ctrl.value = TextEditingValue(text: text, selection: TextSelection.collapsed(offset: text.length));
+    }
+  }
+
+  void _setRedeem({int? bonus, int? acc, bool rewrite = true}) {
+    setState(() {
+      if (bonus != null) {
+        _redeemBonus = bonus.clamp(0, (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt());
+        if (rewrite) _assignRedeem(_bonusInput, _redeemBonus);
+      }
+      if (acc != null) {
+        _redeemAcc = acc.clamp(0, (_maxRedeem - _redeemBonus).clamp(0, _wallet.acc).toInt());
+        if (rewrite) _assignRedeem(_accInput, _redeemAcc);
+      }
+      final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
+      final maxAcc = (_maxRedeem - _redeemBonus).clamp(0, _wallet.acc).toInt();
+      if (_redeemBonus > maxBonus) {
+        _redeemBonus = maxBonus;
+        _assignRedeem(_bonusInput, _redeemBonus);
+      }
+      if (_redeemAcc > maxAcc) {
+        _redeemAcc = maxAcc;
+        _assignRedeem(_accInput, _redeemAcc);
+      }
+    });
   }
 
   InvoiceChoice? _invoice() {
@@ -209,7 +250,7 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                 ],
                 const Text(
                   '・金額與庫存以結帳當下為準，結帳後會為你保留 5 分鐘\n'
-                  '・付款完成請出示「出門憑證」給店員核對\n'
+                  '・櫃台收款完成後即可帶書離開\n'
                   '・退換貨請至店內櫃檯辦理',
                   style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12, height: 1.6),
                 ),
@@ -234,7 +275,10 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('預估金額', style: TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor)),
+                          Text(
+                            (bag.store?.hasCashDiscount ?? false) ? '預估現金' : '預估金額',
+                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+                          ),
                           Text(
                             ntd(_payablePreview),
                             style: const TextStyle(
@@ -245,7 +289,8 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                           ),
                           if (bag.store?.hasCashDiscount ?? false)
                             Text(
-                              '現金結帳 ${bag.store!.cashDiscountLabel}・約 ${ntd(bag.store!.cashPriceOf(bag.estimatedSubtotal))}',
+                              '原價 ${ntd(bag.estimatedSubtotal)}・${bag.store!.cashDiscountLabel}'
+                              '${(_redeemBonus + _redeemAcc) > 0 ? '・已扣折抵' : ''}',
                               style: const TextStyle(fontSize: 12, color: AppTheme.successColor),
                             ),
                         ],
@@ -364,28 +409,83 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
           children: [
             const Text('會員折抵', style: TextStyle(fontWeight: FontWeight.bold)),
             if (_wallet.bonus > 0)
-              _redeemRow('紅利', _wallet.bonus, _redeemBonus, maxBonus, (v) => setState(() => _redeemBonus = v)),
+              _redeemRow(
+                '紅利',
+                _wallet.bonus,
+                _redeemBonus,
+                maxBonus,
+                _bonusInput,
+                (v) => _setRedeem(bonus: v),
+              ),
             if (_wallet.acc > 0)
-              _redeemRow('回饋金', _wallet.acc, _redeemAcc, maxAcc, (v) => setState(() => _redeemAcc = v)),
+              _redeemRow(
+                '回饋金',
+                _wallet.acc,
+                _redeemAcc,
+                maxAcc,
+                _accInput,
+                (v) => _setRedeem(acc: v),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _redeemRow(String label, int available, int value, int maxUse, ValueChanged<int> onChanged) {
-    return Row(
-      children: [
-        Expanded(child: Text('$label（可用 $available）', style: const TextStyle(fontSize: 13))),
-        TextButton(onPressed: value == 0 ? null : () => onChanged(0), child: const Text('不用')),
-        Text('$value', style: const TextStyle(fontWeight: FontWeight.bold)),
-        TextButton(
-          onPressed: maxUse == 0 || value == maxUse ? null : () => onChanged(maxUse),
-          child: const Text('全折'),
-        ),
-      ],
+  Widget _redeemRow(
+    String label,
+    int available,
+    int value,
+    int maxUse,
+    TextEditingController controller,
+    ValueChanged<int> onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        children: [
+          Expanded(child: Text('$label（可用 $available）', style: const TextStyle(fontSize: 13))),
+          TextButton(onPressed: value == 0 ? null : () => onChanged(0), child: const Text('不用')),
+          SizedBox(
+            width: 76,
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              style: const TextStyle(fontWeight: FontWeight.bold),
+              decoration: const InputDecoration(
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (raw) {
+                if (raw.isEmpty) {
+                  _setRedeem(
+                    bonus: label == '紅利' ? 0 : null,
+                    acc: label == '回饋金' ? 0 : null,
+                    rewrite: false,
+                  );
+                  return;
+                }
+                final parsed = int.tryParse(raw) ?? 0;
+                _setRedeem(
+                  bonus: label == '紅利' ? parsed : null,
+                  acc: label == '回饋金' ? parsed : null,
+                  rewrite: parsed > maxUse,
+                );
+              },
+            ),
+          ),
+          TextButton(
+            onPressed: maxUse == 0 || value == maxUse ? null : () => onChanged(maxUse),
+            child: const Text('全折'),
+          ),
+        ],
+      ),
     );
   }
+
 }
 
 class _BagRow extends StatelessWidget {
