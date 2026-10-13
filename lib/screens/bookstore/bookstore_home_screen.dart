@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/bookstore.dart';
@@ -117,19 +116,6 @@ class _BookstoreHomeScreenState extends State<BookstoreHomeScreen> {
     setState(() {});
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 400), _reload);
-  }
-
-  void _add(BookstoreProduct p) {
-    final result = context.read<BookstoreProvider>().add(p);
-    final msg = switch (result) {
-      BagAddResult.added => '已加入購物車：${p.name}',
-      BagAddResult.maxReached => '這本書已達可購買數量',
-      BagAddResult.unavailable => '這本書目前已售完',
-    };
-    if (result == BagAddResult.added) HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 1)));
   }
 
   Future<void> _scanDoor() async {
@@ -304,7 +290,6 @@ class _BookstoreHomeScreenState extends State<BookstoreHomeScreen> {
               context,
               MaterialPageRoute(builder: (_) => BookstoreProductScreen(product: p)),
             ),
-            onAdd: () => _add(p),
           );
         },
       ),
@@ -315,9 +300,8 @@ class _BookstoreHomeScreenState extends State<BookstoreHomeScreen> {
 class _ProductCard extends StatelessWidget {
   final BookstoreProduct product;
   final VoidCallback onTap;
-  final VoidCallback onAdd;
 
-  const _ProductCard({required this.product, required this.onTap, required this.onAdd});
+  const _ProductCard({required this.product, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -367,18 +351,22 @@ class _ProductCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(child: PriceText(price: product.price, listPrice: product.listPrice, fontSize: 14)),
-                  SizedBox(
-                    width: 34,
-                    height: 34,
-                    child: IconButton.filled(
-                      padding: EdgeInsets.zero,
-                      onPressed: soldOut ? null : onAdd,
-                      style: IconButton.styleFrom(backgroundColor: AppTheme.primaryColor),
-                      icon: inBag > 0
-                          ? Text('$inBag', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-                          : const Icon(Icons.add, size: 18),
+                  if (inBag > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '已加 $inBag',
+                        style: const TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],

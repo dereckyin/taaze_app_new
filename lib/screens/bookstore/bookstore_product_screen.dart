@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/bookstore.dart';
 import '../../providers/bookstore_provider.dart';
 import '../../services/bookstore_service.dart';
 import '../../theme/app_theme.dart';
-import 'bookstore_bag_screen.dart';
+import 'bookstore_scan_screen.dart';
 import 'bookstore_widgets.dart';
 
-/// 店內商品詳情：顯示店內即時庫存，可直接加入購物車
+/// 店內商品詳情：顯示店內即時庫存；加入購物車只能掃書背條碼
 class BookstoreProductScreen extends StatefulWidget {
   final BookstoreProduct product;
 
@@ -41,28 +40,10 @@ class _BookstoreProductScreenState extends State<BookstoreProductScreen> {
     }
   }
 
-  void _add() {
-    final result = context.read<BookstoreProvider>().add(_product);
-    final msg = switch (result) {
-      BagAddResult.added => '已加入購物車',
-      BagAddResult.maxReached => '已達可購買數量（${_product.maxQty} 本）',
-      BagAddResult.unavailable => '這本書目前已售完',
-    };
-    if (result == BagAddResult.added) HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(
-        content: Text(msg),
-        action: result == BagAddResult.added
-            ? SnackBarAction(
-                label: '看購物車',
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const BookstoreBagScreen()),
-                ),
-              )
-            : null,
-      ));
+  // Browsing never adds to the cart: only scanning the physical copy does,
+  // so nobody pays for a book they never picked up.
+  void _scan() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const BookstoreScanScreen()));
   }
 
   @override
@@ -135,7 +116,7 @@ class _BookstoreProductScreenState extends State<BookstoreProductScreen> {
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '書在店內架上。拿到實體書後直接「掃書加入」最準確。',
+                      '請到架上拿到這本書後，掃描書背條碼加入購物車。',
                       style: TextStyle(fontSize: 12),
                     ),
                   ),
@@ -150,9 +131,15 @@ class _BookstoreProductScreenState extends State<BookstoreProductScreen> {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: FilledButton.icon(
-            onPressed: p.available ? _add : null,
-            icon: const Icon(Icons.shopping_bag_outlined),
-            label: Text(!p.available ? '已售完' : inBag > 0 ? '再加一本（袋內 $inBag 本）' : '加入購物車'),
+            onPressed: p.available ? _scan : null,
+            icon: const Icon(Icons.qr_code_scanner),
+            label: Text(
+              !p.available
+                  ? '已售完'
+                  : inBag > 0
+                      ? '購物車已有 $inBag 本・掃條碼再加'
+                      : '拿到書後，掃條碼加入',
+            ),
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
               backgroundColor: AppTheme.primaryColor,

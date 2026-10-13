@@ -527,10 +527,10 @@ class _BagRow extends StatelessWidget {
               icon: Icon(item.qty <= 1 ? Icons.delete_outline : Icons.remove_circle_outline),
               onPressed: () => bag.setQty(p.id, item.qty - 1),
             ),
-            Text('${item.qty}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              onPressed: item.qty >= p.maxQty ? null : () => bag.setQty(p.id, item.qty + 1),
+            // No "+": another copy is added by scanning it, like the first one.
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Text('${item.qty}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ],
         ),

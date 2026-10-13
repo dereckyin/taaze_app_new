@@ -286,12 +286,9 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
                     child: const Text('回購物車重新結帳'),
                   )
                 : showCashCode
-                    ? Row(
-                        children: [
-                          TextButton(onPressed: _cancel, child: const Text('取消結帳')),
-                          const Spacer(),
-                          TextButton(onPressed: _refresh, child: const Text('店員已收款')),
-                        ],
+                    ? Center(
+                        heightFactor: 1,
+                        child: TextButton(onPressed: _cancel, child: const Text('取消結帳')),
                       )
                     : _payButtons(c),
           ),
@@ -472,7 +469,7 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
             children: [
               SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
               SizedBox(width: 8),
-              Text('店員確認收款後，即可帶書離開'),
+              Text('店員收款後，畫面會自動顯示出門憑證'),
             ],
           ),
         ],
