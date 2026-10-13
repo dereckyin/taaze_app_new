@@ -209,7 +209,7 @@ class _BookstoreScanScreenState extends State<BookstoreScanScreen> {
                   if (_last != null) ...[
                     const SizedBox(height: 4),
                     Text(_last!.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text(ntd(_last!.price), style: const TextStyle(color: AppTheme.primaryColor)),
+                    PriceText(price: _last!.price, listPrice: _last!.listPrice, fontSize: 14),
                   ],
                 ],
               ),

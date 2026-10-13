@@ -519,7 +519,7 @@ class _BagRow extends StatelessWidget {
                 children: [
                   Text(p.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
-                  Text(ntd(p.price), style: const TextStyle(color: AppTheme.primaryColor)),
+                  PriceText(price: p.price, listPrice: p.listPrice, fontSize: 14),
                 ],
               ),
             ),
