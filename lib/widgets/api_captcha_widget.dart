@@ -79,15 +79,48 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
+        // 驗證碼圖獨立一排放大，四字才看得清楚
+        Container(
+          width: double.infinity,
+          height: 96,
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade400, width: 1.2),
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.white,
+          ),
+          child: widget.isLoading
+              ? const Center(
+                  child: SizedBox(
+                    width: 26,
+                    height: 26,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                )
+              : _captchaImageBytes != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(7),
+                  child: Image.memory(
+                    _captchaImageBytes!,
+                    fit: BoxFit.contain,
+                    width: double.infinity,
+                    height: 96,
+                    errorBuilder: (context, error, stackTrace) {
+                      return _buildFallbackCaptcha();
+                    },
+                  ),
+                )
+              : _buildFallbackCaptcha(),
+        ),
+        const SizedBox(height: 8),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: TextFormField(
                 controller: _controller,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: 2),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, letterSpacing: 4),
                 decoration: InputDecoration(
-                  hintText: '請輸入圖中文字',
+                  hintText: '請輸入上方 4 碼',
                   hintStyle: TextStyle(fontSize: 15, color: Colors.grey.shade500, letterSpacing: 0),
                   filled: true,
                   fillColor: Colors.white,
@@ -115,45 +148,12 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
                 },
               ),
             ),
-            const SizedBox(width: 10),
-            // 驗證碼圖片顯示區域（放大以便辨識）
-            Container(
-              width: 148,
-              height: 56,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade400, width: 1.2),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.white,
-              ),
-              child: widget.isLoading
-                  ? const Center(
-                      child: SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : _captchaImageBytes != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(7),
-                      child: Image.memory(
-                        _captchaImageBytes!,
-                        fit: BoxFit.contain,
-                        width: 148,
-                        height: 56,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildFallbackCaptcha();
-                        },
-                      ),
-                    )
-                  : _buildFallbackCaptcha(),
-            ),
             IconButton(
               onPressed: widget.isLoading ? null : widget.onRefreshCaptcha,
-              icon: const Icon(Icons.refresh, size: 26),
+              icon: const Icon(Icons.refresh, size: 28),
               tooltip: '刷新驗證碼',
               padding: const EdgeInsets.only(left: 4, top: 8),
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             ),
           ],
         ),
@@ -175,16 +175,16 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
         child: Text(
           widget.captcha!.captchaText!,
           style: const TextStyle(
-            fontSize: 26,
+            fontSize: 40,
             fontWeight: FontWeight.bold,
             color: Color(0xFF1565C0),
-            letterSpacing: 4,
+            letterSpacing: 8,
           ),
         ),
       );
     } else {
       return const Center(
-        child: Icon(Icons.image_not_supported, color: Colors.grey),
+        child: Icon(Icons.image_not_supported, color: Colors.grey, size: 36),
       );
     }
   }
@@ -263,32 +263,33 @@ class _SimpleTextCaptchaWidgetState extends State<SimpleTextCaptchaWidget> {
             ),
             const SizedBox(width: 10),
             // 文字驗證碼顯示
-            Container(
-              width: 148,
-              height: 56,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade400, width: 1.2),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.white,
-              ),
-              child: Center(
-                child: Text(
-                  widget.captchaText,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1565C0),
-                    letterSpacing: 4,
+            Expanded(
+              child: Container(
+                height: 72,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade400, width: 1.2),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
+                ),
+                child: Center(
+                  child: Text(
+                    widget.captchaText,
+                    style: const TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1565C0),
+                      letterSpacing: 8,
+                    ),
                   ),
                 ),
               ),
             ),
             IconButton(
               onPressed: widget.onRefreshCaptcha,
-              icon: const Icon(Icons.refresh, size: 26),
+              icon: const Icon(Icons.refresh, size: 28),
               tooltip: '刷新驗證碼',
               padding: const EdgeInsets.only(left: 4, top: 8),
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             ),
           ],
         ),
