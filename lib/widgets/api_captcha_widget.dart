@@ -101,9 +101,9 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
                   borderRadius: BorderRadius.circular(7),
                   child: Image.memory(
                     _captchaImageBytes!,
-                    fit: BoxFit.contain,
+                    fit: BoxFit.fitWidth,
                     width: double.infinity,
-                    height: 64,
+                    alignment: Alignment.center,
                     errorBuilder: (context, error, stackTrace) {
                       return _buildFallbackCaptcha();
                     },
