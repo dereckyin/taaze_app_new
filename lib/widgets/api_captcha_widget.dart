@@ -76,13 +76,13 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
       children: [
         const Text(
           '驗證碼',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
         ),
         const SizedBox(height: 8),
-        // 驗證碼圖獨立一排；後端已用中等字級＋干擾線
+        // 驗證碼圖獨立一排
         Container(
           width: double.infinity,
-          height: 72,
+          height: 64,
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade400, width: 1.2),
             borderRadius: BorderRadius.circular(8),
@@ -103,7 +103,7 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
                     _captchaImageBytes!,
                     fit: BoxFit.contain,
                     width: double.infinity,
-                    height: 72,
+                    height: 64,
                     errorBuilder: (context, error, stackTrace) {
                       return _buildFallbackCaptcha();
                     },
@@ -118,10 +118,10 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
             Expanded(
               child: TextFormField(
                 controller: _controller,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, letterSpacing: 4),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400, letterSpacing: 1),
                 decoration: InputDecoration(
                   hintText: '請輸入上方 4 碼',
-                  hintStyle: TextStyle(fontSize: 15, color: Colors.grey.shade500, letterSpacing: 0),
+                  hintStyle: TextStyle(fontSize: 14, color: Colors.grey.shade500, letterSpacing: 0),
                   filled: true,
                   fillColor: Colors.white,
                   border: border,
@@ -175,16 +175,16 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
         child: Text(
           widget.captcha!.captchaText!,
           style: const TextStyle(
-            fontSize: 40,
-            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            fontWeight: FontWeight.w400,
             color: Color(0xFF1565C0),
-            letterSpacing: 8,
+            letterSpacing: 4,
           ),
         ),
       );
     } else {
       return const Center(
-        child: Icon(Icons.image_not_supported, color: Colors.grey, size: 36),
+        child: Icon(Icons.image_not_supported, color: Colors.grey, size: 28),
       );
     }
   }
