@@ -101,6 +101,12 @@ class BookstoreProvider extends ChangeNotifier {
   /// 袋子內容一變就換新的請求編號；同一袋重送結帳時伺服器會回同一筆，不會重複鎖庫存。
   void _touch() => _clientRequestId = _newRequestId();
 
+  /// 取消／保留結束後換新 id，才能再開一筆結帳（不必改購物車數量）。
+  void rotateClientRequestId() {
+    _clientRequestId = _newRequestId();
+    notifyListeners();
+  }
+
   static String _newRequestId() {
     final rnd = Random.secure();
     return List.generate(24, (_) => rnd.nextInt(16).toRadixString(16)).join();

@@ -43,7 +43,23 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() {});
     });
-    if (_checkout.isCash && _checkout.isPending) _startPolling();
+    if (_checkout.isClosed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<BookstoreProvider>().rotateClientRequestId();
+      });
+    }
+    if (_checkout.isCash && _checkout.isPending) {
+      _startPolling();
+    } else if (_checkout.isPending && !_checkout.isCash) {
+      // 僅現金可用時自動產生付款碼（避免停在無 QR 的確認頁）
+      WidgetsBinding.instance.addPostFrameCallback((_) => _autoChooseCashIfNeeded());
+    }
+  }
+
+  Future<void> _autoChooseCashIfNeeded() async {
+    if (!mounted || _checkout.isCash || _checkout.isClosed) return;
+    if (!_cashAvailable || _onlineAvailable) return;
+    await _chooseCash();
   }
 
   @override
@@ -178,7 +194,9 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
       showBookstoreError(context, e);
       return;
     }
-    if (mounted) Navigator.pop(context);
+    if (!mounted) return;
+    context.read<BookstoreProvider>().rotateClientRequestId();
+    Navigator.pop(context);
   }
 
   Future<bool> _confirmLeave() async {
@@ -279,9 +297,12 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
           top: false,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: closed
+            child:             closed
                 ? FilledButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      context.read<BookstoreProvider>().rotateClientRequestId();
+                      Navigator.pop(context);
+                    },
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
                     child: const Text('回購物車重新結帳'),
                   )
@@ -323,7 +344,7 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
     switch (method) {
       case _PayMethod.cash:
         final preview = (store?.hasCashDiscount ?? false) ? ' ${ntd(_cashDue(c))}' : '';
-        label = '到櫃台付現金$preview';
+        label = '點此產生付款碼$preview';
         action = _chooseCash;
       case _PayMethod.online:
         label = _awaitingPayment ? '重新開啟付款頁' : '前往付款 ${ntd(c.total)}';
@@ -480,7 +501,7 @@ class _BookstorePaymentScreenState extends State<BookstorePaymentScreen> with Wi
   Widget _countdownCard(bool closed, {required bool cash}) {
     final color = closed ? Colors.grey : (_remaining.inSeconds < 60 ? AppTheme.errorColor : AppTheme.infoColor);
     final text = closed
-        ? '保留已結束，書已放回架上'
+        ? '保留已結束，書已放回架上。回購物車再按結帳即可重新結帳。'
         : cash
             ? '已為你保留這些書，請在時間內到櫃台付款'
             : '已為你保留這些書，請在時間內完成付款';

@@ -12,7 +12,14 @@ import '../login_screen.dart';
 String ntd(int amount) {
   final s = amount.abs().toString().replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => ',');
-  return '${amount < 0 ? '-' : ''}NT\$ $s';
+  return '${amount < 0 ? '-' : ''}\$$s';
+}
+
+/// 「45折」「9折」；無折扣回傳 null
+String? discountFoldLabel(int price, int? listPrice) {
+  if (listPrice == null || listPrice <= 0 || listPrice <= price) return null;
+  final pct = ((price * 100) / listPrice).round().clamp(1, 99);
+  return pct % 10 == 0 ? '${pct ~/ 10}折' : '$pct折';
 }
 
 String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -105,10 +112,20 @@ class PriceText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fold = discountFoldLabel(price, listPrice);
     return Wrap(
       crossAxisAlignment: WrapCrossAlignment.end,
       spacing: 6,
       children: [
+        if (fold != null)
+          Text(
+            fold,
+            style: TextStyle(
+              color: AppTheme.primaryColor,
+              fontWeight: FontWeight.bold,
+              fontSize: fontSize,
+            ),
+          ),
         Text(
           ntd(price),
           style: TextStyle(
@@ -184,7 +201,9 @@ class BagBottomBar extends StatelessWidget {
                     const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        bag.isEmpty ? '購物車' : ntd(bag.estimatedSubtotal),
+                        bag.isEmpty
+                            ? '購物車'
+                            : '已加入購物車${bag.itemCount}本 ${ntd(bag.estimatedSubtotal)}',
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),

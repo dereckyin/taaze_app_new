@@ -153,7 +153,7 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
 
     setState(() => _submitting = true);
     try {
-      final checkout = await BookstoreService.createCheckout(
+      var checkout = await BookstoreService.createCheckout(
         token,
         storeId: store.id,
         presenceToken: presence.token,
@@ -163,6 +163,24 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
         redeemBonus: _memberSync ? _redeemBonus : 0,
         redeemAcc: _memberSync ? _redeemAcc : 0,
       );
+      // 同一 client_request_id 可能回已關閉舊單 → 換 id 再送一次
+      if (checkout.isClosed) {
+        bag.rotateClientRequestId();
+        checkout = await BookstoreService.createCheckout(
+          token,
+          storeId: store.id,
+          presenceToken: presence.token,
+          clientRequestId: bag.clientRequestId,
+          lines: bag.lines,
+          invoice: invoice,
+          redeemBonus: _memberSync ? _redeemBonus : 0,
+          redeemAcc: _memberSync ? _redeemAcc : 0,
+        );
+      }
+      // 僅現金店：略過「確認付款」中間頁，直接產生 QR／6 碼
+      if (store.cashEnabled && !store.onlinePaymentEnabled && !checkout.isCash && checkout.isPending) {
+        checkout = await BookstoreService.chooseCash(token, checkout.id);
+      }
       if (!mounted) return;
       Navigator.push(
         context,
@@ -236,7 +254,11 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                 ],
               ),
             )
-          : ListView(
+          : GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              behavior: HitTestBehavior.deferToChild,
+              child: ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
                 if (!bag.isInStore) _presenceBanner(),
@@ -249,12 +271,13 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                   const SizedBox(height: 12),
                 ],
                 const Text(
-                  '・金額與庫存以結帳當下為準，結帳後會為你保留 5 分鐘\n'
+                  '・金額與庫存以結帳當下為準，按下結帳後會為你保留15分鐘\n'
                   '・櫃台收款完成後即可帶書離開\n'
                   '・退換貨請至店內櫃檯辦理',
                   style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12, height: 1.6),
                 ),
               ],
+            ),
             ),
       bottomNavigationBar: bag.isEmpty
           ? null
@@ -445,12 +468,21 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
       child: Row(
         children: [
           Expanded(child: Text('$label（可用 $available）', style: const TextStyle(fontSize: 13))),
-          TextButton(onPressed: value == 0 ? null : () => onChanged(0), child: const Text('不用')),
+          TextButton(
+            onPressed: value == 0
+                ? null
+                : () {
+                    FocusScope.of(context).unfocus();
+                    onChanged(0);
+                  },
+            child: const Text('不用'),
+          ),
           SizedBox(
             width: 76,
             child: TextField(
               controller: controller,
               keyboardType: TextInputType.number,
+              textInputAction: TextInputAction.done,
               textAlign: TextAlign.center,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               style: const TextStyle(fontWeight: FontWeight.bold),
@@ -459,6 +491,8 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                 contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                 border: OutlineInputBorder(),
               ),
+              onEditingComplete: () => FocusScope.of(context).unfocus(),
+              onSubmitted: (_) => FocusScope.of(context).unfocus(),
               onChanged: (raw) {
                 if (raw.isEmpty) {
                   _setRedeem(
@@ -478,7 +512,12 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
             ),
           ),
           TextButton(
-            onPressed: maxUse == 0 || value == maxUse ? null : () => onChanged(maxUse),
+            onPressed: maxUse == 0 || value == maxUse
+                ? null
+                : () {
+                    FocusScope.of(context).unfocus();
+                    onChanged(maxUse);
+                  },
             child: const Text('全折'),
           ),
         ],

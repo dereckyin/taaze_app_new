@@ -100,7 +100,7 @@ class _BookstoreHomeScreenState extends State<BookstoreHomeScreen> {
       );
       if (!mounted || generation != _generation) return;
       setState(() {
-        _items.addAll(page.items);
+        _items.addAll(page.items.where((p) => p.available));
         _page = page.page;
         _hasMore = page.hasMore;
       });

@@ -65,7 +65,8 @@ class _BookstoreScanScreenState extends State<BookstoreScanScreen> {
         case BagAddResult.added:
           HapticFeedback.mediumImpact();
           SystemSound.play(SystemSoundType.click);
-          _show(product, '已加入購物車', false);
+          final bag = context.read<BookstoreProvider>();
+          _show(product, '已加入購物車${bag.itemCount}本 ${ntd(bag.estimatedSubtotal)}', false);
         case BagAddResult.maxReached:
           HapticFeedback.heavyImpact();
           _show(product, '已達可購買數量（${product.maxQty} 本）', true);
@@ -172,7 +173,7 @@ class _BookstoreScanScreenState extends State<BookstoreScanScreen> {
               minimumSize: const Size.fromHeight(50),
               backgroundColor: AppTheme.primaryColor,
             ),
-            child: Text(bag.isEmpty ? '查看購物車' : '完成・購物車 ${bag.itemCount} 本 ${ntd(bag.estimatedSubtotal)}'),
+            child: Text(bag.isEmpty ? '查看購物車' : '已加入購物車${bag.itemCount}本 ${ntd(bag.estimatedSubtotal)}'),
           ),
         ),
       ),
