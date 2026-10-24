@@ -79,10 +79,10 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
-        // 驗證碼圖獨立一排放大，四字才看得清楚
+        // 驗證碼圖獨立一排；後端已用中等字級＋干擾線
         Container(
           width: double.infinity,
-          height: 96,
+          height: 72,
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey.shade400, width: 1.2),
             borderRadius: BorderRadius.circular(8),
@@ -103,7 +103,7 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
                     _captchaImageBytes!,
                     fit: BoxFit.contain,
                     width: double.infinity,
-                    height: 96,
+                    height: 72,
                     errorBuilder: (context, error, stackTrace) {
                       return _buildFallbackCaptcha();
                     },
