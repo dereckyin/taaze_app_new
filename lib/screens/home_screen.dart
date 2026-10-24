@@ -15,7 +15,6 @@ import '../providers/ebook_new_arrivals_provider.dart';
 import '../providers/used_books_latest_provider.dart';
 import '../models/banner.dart' as banner_model;
 import '../widgets/book_card.dart';
-import '../widgets/loading_widget.dart';
 import '../widgets/custom_app_bar.dart';
 import '../utils/debug_helper.dart';
 import 'book_detail_screen.dart';
@@ -114,41 +113,13 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         },
       ),
+      // Podcast 載入失敗時不要整頁錯誤；首頁其他區塊仍可顯示。
       body: Consumer<BookProvider>(
         builder: (context, bookProvider, child) {
-          if (bookProvider.isLoading) {
-            return const Center(child: LoadingWidget());
-          }
-
-          if (bookProvider.error != null) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-                  const SizedBox(height: 16),
-                  Text(
-                    bookProvider.error!,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      bookProvider.clearError();
-                      bookProvider.refreshBooks();
-                    },
-                    child: const Text('重試'),
-                  ),
-                ],
-              ),
-            );
-          }
-
           return RefreshIndicator(
             onRefresh: () async {
               await Future.wait([
-                bookProvider.refreshBooks(),
+                bookProvider.loadPodcastBooks(),
                 context.read<BannerProvider>().refreshBanners(),
               ]);
             },

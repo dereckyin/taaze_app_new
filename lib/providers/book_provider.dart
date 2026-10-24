@@ -21,6 +21,7 @@ class BookProvider with ChangeNotifier {
   List<Book> _newReleases = [];
   List<Book> _usedBooks = [];
   List<Book> _podcastBooks = [];
+  bool _isLoadingPodcast = false;
 
   // 分頁相關
   int _currentPage = 1;
@@ -54,6 +55,7 @@ class BookProvider with ChangeNotifier {
   }
   
   bool get isLoading => _isLoading;
+  bool get isLoadingPodcast => _isLoadingPodcast;
   String? get error => _error;
 
   // 新增的getter
@@ -901,10 +903,10 @@ class BookProvider with ChangeNotifier {
     _books.clear();
   }
 
-  // 載入Podcast書籍
+  // 載入Podcast書籍（不佔用全域 isLoading，避免拖垮首頁）
   Future<void> loadPodcastBooks({int page = 1, int pageSize = 20}) async {
     try {
-      _isLoading = true;
+      _isLoadingPodcast = true;
       notifyListeners();
 
       DebugHelper.log('載入Podcast書籍 - 第 $page 頁', tag: 'BookProvider');
@@ -925,8 +927,8 @@ class BookProvider with ChangeNotifier {
 
       DebugHelper.logApiRequest('GET', uri.toString());
 
-      // 發送請求
-      final response = await http.get(uri).timeout(const Duration(seconds: 60));
+      // 發送請求（首頁區塊用較短逾時，失敗就略過）
+      final response = await http.get(uri).timeout(const Duration(seconds: 12));
       DebugHelper.logApiResponse(response.statusCode, response.body);
 
       if (response.statusCode == 200) {
@@ -934,7 +936,6 @@ class BookProvider with ChangeNotifier {
         
         // 解析分頁響應
         final items = decoded['items'] as List<dynamic>;
-        final total = decoded['total'] as int;
 
         // 轉換為 Book 物件
         final newBooks = items.map((json) => _bookFromJson(json as Map<String, dynamic>)).toList();
@@ -946,8 +947,6 @@ class BookProvider with ChangeNotifier {
           _podcastBooks.addAll(newBooks);
         }
 
-        _totalCount = total;
-        _error = null;
         DebugHelper.log(
           'Podcast書籍載入完成，共 ${_podcastBooks.length} 本書籍',
           tag: 'BookProvider',
@@ -957,12 +956,12 @@ class BookProvider with ChangeNotifier {
       }
     } catch (e) {
       DebugHelper.log('Podcast書籍載入失敗: ${e.toString()}', tag: 'BookProvider');
-      _error = '載入失敗：${e.toString()}';
-      if (_podcastBooks.isEmpty) {
+      // 不寫入全域 _error，避免首頁整頁顯示錯誤
+      if (page == 1) {
         _podcastBooks = [];
       }
     } finally {
-      _isLoading = false;
+      _isLoadingPodcast = false;
       notifyListeners();
     }
   }
