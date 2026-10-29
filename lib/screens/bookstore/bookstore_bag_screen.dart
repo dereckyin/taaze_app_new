@@ -8,6 +8,7 @@ import '../../providers/bookstore_provider.dart';
 import '../../services/bookstore_service.dart';
 import '../../theme/app_theme.dart';
 import 'bookstore_payment_screen.dart';
+import 'bookstore_scan_screen.dart';
 import 'bookstore_widgets.dart';
 import 'door_qr_scanner_screen.dart';
 
@@ -244,14 +245,33 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
         ],
       ),
       body: bag.isEmpty
-          ? const Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.shopping_bag_outlined, size: 56, color: Colors.grey),
-                  SizedBox(height: 8),
-                  Text('購物車是空的，掃書或逛書架加入吧'),
-                ],
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.shopping_bag_outlined, size: 56, color: Colors.grey),
+                    const SizedBox(height: 8),
+                    const Text('購物車是空的，掃書或逛書架加入吧'),
+                    const SizedBox(height: 20),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const BookstoreScanScreen()),
+                        );
+                      },
+                      icon: const Icon(Icons.qr_code_scanner),
+                      label: const Text('掃書加入'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primaryColor,
+                        side: const BorderSide(color: AppTheme.primaryColor),
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             )
           : GestureDetector(
@@ -291,47 +311,69 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                     BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 8, offset: const Offset(0, -2)),
                   ],
                 ),
-                child: Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            (bag.store?.hasCashDiscount ?? false) ? '預估現金' : '預估金額',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                (bag.store?.hasCashDiscount ?? false) ? '預估現金' : '預估金額',
+                                style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+                              ),
+                              Text(
+                                ntd(_payablePreview),
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primaryColor,
+                                ),
+                              ),
+                              if (bag.store?.hasCashDiscount ?? false)
+                                Text(
+                                  '原價 ${ntd(bag.estimatedSubtotal)}・${bag.store!.cashDiscountLabel}'
+                                  '${(_redeemBonus + _redeemAcc) > 0 ? '・已扣折抵' : ''}',
+                                  style: const TextStyle(fontSize: 12, color: AppTheme.successColor),
+                                ),
+                            ],
                           ),
-                          Text(
-                            ntd(_payablePreview),
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.primaryColor,
-                            ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const BookstoreScanScreen()),
+                            );
+                          },
+                          icon: const Icon(Icons.qr_code_scanner, size: 20),
+                          label: const Text('掃書加入'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.primaryColor,
+                            side: const BorderSide(color: AppTheme.primaryColor),
+                            minimumSize: const Size(0, 50),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                           ),
-                          if (bag.store?.hasCashDiscount ?? false)
-                            Text(
-                              '原價 ${ntd(bag.estimatedSubtotal)}・${bag.store!.cashDiscountLabel}'
-                              '${(_redeemBonus + _redeemAcc) > 0 ? '・已扣折抵' : ''}',
-                              style: const TextStyle(fontSize: 12, color: AppTheme.successColor),
-                            ),
-                        ],
-                      ),
-                    ),
-                    FilledButton(
-                      onPressed: _submitting ? null : _checkout,
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(140, 50),
-                        backgroundColor: AppTheme.primaryColor,
-                      ),
-                      child: _submitting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Text('結帳'),
+                        ),
+                        const SizedBox(width: 8),
+                        FilledButton(
+                          onPressed: _submitting ? null : _checkout,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(110, 50),
+                            backgroundColor: AppTheme.primaryColor,
+                          ),
+                          child: _submitting
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                )
+                              : const Text('結帳'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
