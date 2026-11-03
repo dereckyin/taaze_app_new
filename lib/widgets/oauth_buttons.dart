@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
 import '../config/oauth_config.dart';
+import '../providers/auth_provider.dart';
+import '../theme/app_theme.dart';
 
 /// OAuth 登入按鈕組件
 class OAuthButtons extends StatelessWidget {
@@ -162,7 +163,7 @@ class OAuthButtons extends StatelessWidget {
           foregroundColor: textColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(2), // 平坦化設計 - 減少圓角
+            borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
             side: BorderSide(color: borderColor, width: 1),
           ),
         ),
@@ -329,7 +330,7 @@ class OAuthButton extends StatelessWidget {
           foregroundColor: textColor,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(2), // 平坦化設計 - 減少圓角
+            borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
             side: BorderSide(color: borderColor, width: 1),
           ),
         ),

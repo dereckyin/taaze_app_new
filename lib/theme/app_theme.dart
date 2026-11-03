@@ -26,6 +26,13 @@ class AppTheme {
   static const Color errorColor = Color(0xFFF44336);
   static const Color infoColor = Color(0xFF2196F3);
 
+  /// 一般按鈕圓角。各頁未另外指定 shape 時都用這個。
+  static const double buttonRadius = 12;
+
+  static RoundedRectangleBorder get buttonShape => RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(buttonRadius),
+      );
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
@@ -61,26 +68,30 @@ class AppTheme {
         margin: const EdgeInsets.all(8),
       ),
       
-      // 按鈕主題 - 平坦化設計
+      // 按鈕主題
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
-          elevation: 0, // 移除陰影
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(2), // 減少圓角
-          ),
+          elevation: 0,
+          shape: buttonShape,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         ),
       ),
-      
-      // 文字按鈕主題 - 平坦化設計
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          shape: buttonShape,
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          shape: buttonShape,
+        ),
+      ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: primaryColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(2), // 減少圓角
-          ),
+          shape: buttonShape,
         ),
       ),
       
