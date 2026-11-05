@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/custom_app_bar.dart';
 import 'login_screen.dart';
@@ -207,9 +207,7 @@ class ProfileScreen extends StatelessWidget {
             icon: Icons.info_outline,
             title: '關於我們',
             subtitle: '應用程式資訊',
-            onTap: () {
-              _showAboutDialog(context);
-            },
+            onTap: () => _openAboutPage(context),
           ),
         ],
       ),
@@ -360,23 +358,14 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _showAboutDialog(BuildContext context) async {
-    final packageInfo = await PackageInfo.fromPlatform();
-    if (!context.mounted) return;
-
-    showAboutDialog(
-      context: context,
-      applicationName: '讀冊新生活',
-      applicationVersion: packageInfo.version,
-      applicationIcon: Icon(
-        Icons.book,
-        size: 48,
-        color: Theme.of(context).colorScheme.primary,
-      ),
-      children: [
-        const Text('TAAZE讀冊生活網路書店'),
-      ],
-    );
+  Future<void> _openAboutPage(BuildContext context) async {
+    final uri = Uri.parse('https://www.taaze.tw/static_act/about/index.htm');
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('無法開啟關於我們頁面')),
+      );
+    }
   }
 
   String _formatDate(DateTime date) {
