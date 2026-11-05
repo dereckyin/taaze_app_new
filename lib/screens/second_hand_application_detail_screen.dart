@@ -84,10 +84,9 @@ class _SecondHandApplicationDetailScreenState extends State<SecondHandApplicatio
               }
 
               // Create a minimal application object if we have items but no application
-              final displayApplication = application ?? 
+              final displayApplication = application ??
                 SecondHandBookApplication(
                   id: widget.applicationId,
-                  deliveryType: DeliveryType.home,
                 );
 
               return RefreshIndicator(
@@ -210,24 +209,6 @@ class _SecondHandApplicationDetailScreenState extends State<SecondHandApplicatio
             const Divider(),
             const SizedBox(height: 8),
             _buildInfoRow('申請單編號', application.id ?? 'N/A'),
-            if (application.custName != null)
-              _buildInfoRow('姓名', application.custName!),
-            if (application.custMobile != null)
-              _buildInfoRow('電話', application.custMobile!),
-            if (application.address != null)
-              _buildInfoRow(
-                '地址',
-                '${application.cityId ?? ''}${application.townId ?? ''} ${application.address ?? ''}',
-              ),
-            if (application.zip != null) _buildInfoRow('郵遞區號', application.zip!),
-            _buildInfoRow(
-              '配送方式',
-              _getDeliveryTypeText(application.deliveryType),
-            ),
-            if (application.telDay != null)
-              _buildInfoRow('日間電話', application.telDay!),
-            if (application.telNight != null)
-              _buildInfoRow('夜間電話', application.telNight!),
             if (application.sprodAskNo != null)
               _buildInfoRow('詢問單號', application.sprodAskNo!),
             if (application.createdAt != null)
@@ -359,17 +340,6 @@ class _SecondHandApplicationDetailScreenState extends State<SecondHandApplicatio
         ],
       ),
     );
-  }
-
-  String _getDeliveryTypeText(DeliveryType type) {
-    switch (type) {
-      case DeliveryType.home:
-        return '宅配';
-      case DeliveryType.store:
-        return '超商取貨';
-      case DeliveryType.post:
-        return '郵寄';
-    }
   }
 
   String _getProductMarkText(ProductMark mark) {

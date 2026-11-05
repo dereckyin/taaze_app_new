@@ -289,30 +289,8 @@ class _SecondHandApplicationListScreenState extends State<SecondHandApplicationL
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              if (application.custName != null) ...[
-                _buildInfoRow(Icons.person, '姓名', application.custName!),
-                const SizedBox(height: 8),
-              ],
-              if (application.custMobile != null) ...[
-                _buildInfoRow(Icons.phone, '電話', application.custMobile!),
-                const SizedBox(height: 8),
-              ],
-              if (application.address != null) ...[
-                _buildInfoRow(
-                  Icons.location_on,
-                  '地址',
-                  '${application.cityId ?? ''}${application.townId ?? ''} ${application.address ?? ''}',
-                ),
-                const SizedBox(height: 8),
-              ],
-              _buildInfoRow(
-                Icons.local_shipping,
-                '配送方式',
-                _getDeliveryTypeText(application.deliveryType),
-              ),
               if (application.createdAt != null) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 _buildInfoRow(
                   Icons.calendar_today,
                   '申請日期',
@@ -345,17 +323,6 @@ class _SecondHandApplicationListScreenState extends State<SecondHandApplicationL
         ),
       ],
     );
-  }
-
-  String _getDeliveryTypeText(DeliveryType type) {
-    switch (type) {
-      case DeliveryType.home:
-        return '宅配';
-      case DeliveryType.store:
-        return '超商取貨';
-      case DeliveryType.post:
-        return '郵寄';
-    }
   }
 
   String _formatDate(DateTime date) {

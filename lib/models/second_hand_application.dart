@@ -34,23 +34,6 @@ enum ProductMark {
   }
 }
 
-/// 配送方式
-enum DeliveryType {
-  home('home'),
-  store('store'),
-  post('post');
-
-  final String value;
-  const DeliveryType(this.value);
-
-  static DeliveryType fromString(String value) {
-    return DeliveryType.values.firstWhere(
-      (e) => e.value == value.toLowerCase(),
-      orElse: () => DeliveryType.home,
-    );
-  }
-}
-
 /// 二手書申請單項目
 class SecondHandBookApplicationItem {
   final String? id;
@@ -103,15 +86,6 @@ class SecondHandBookApplicationItem {
 class SecondHandBookApplication {
   final String? id;
   final String? custId;
-  final String? custName;
-  final String? custMobile;
-  final String? cityId;
-  final String? townId;
-  final String? zip;
-  final String? address;
-  final DeliveryType deliveryType;
-  final String? telDay;
-  final String? telNight;
   final String? sprodAskNo;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -119,15 +93,6 @@ class SecondHandBookApplication {
   SecondHandBookApplication({
     this.id,
     this.custId,
-    this.custName,
-    this.custMobile,
-    this.cityId,
-    this.townId,
-    this.zip,
-    this.address,
-    required this.deliveryType,
-    this.telDay,
-    this.telNight,
     this.sprodAskNo,
     this.createdAt,
     this.updatedAt,
@@ -137,17 +102,6 @@ class SecondHandBookApplication {
     return SecondHandBookApplication(
       id: json['id']?.toString(),
       custId: json['cust_id']?.toString(),
-      custName: json['cust_name']?.toString(),
-      custMobile: json['cust_mobile']?.toString(),
-      cityId: json['city_id']?.toString(),
-      townId: json['town_id']?.toString(),
-      zip: json['zip']?.toString(),
-      address: json['address']?.toString(),
-      deliveryType: DeliveryType.fromString(
-        json['delivery_type']?.toString() ?? 'home',
-      ),
-      telDay: json['tel_day']?.toString(),
-      telNight: json['tel_night']?.toString(),
       sprodAskNo: json['sprod_ask_no']?.toString(),
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
@@ -162,15 +116,6 @@ class SecondHandBookApplication {
     return {
       if (id != null) 'id': id,
       if (custId != null) 'cust_id': custId,
-      if (custName != null) 'cust_name': custName,
-      if (custMobile != null) 'cust_mobile': custMobile,
-      if (cityId != null) 'city_id': cityId,
-      if (townId != null) 'town_id': townId,
-      if (zip != null) 'zip': zip,
-      if (address != null) 'address': address,
-      'delivery_type': deliveryType.value,
-      if (telDay != null) 'tel_day': telDay,
-      if (telNight != null) 'tel_night': telNight,
       if (sprodAskNo != null) 'sprod_ask_no': sprodAskNo,
     };
   }
