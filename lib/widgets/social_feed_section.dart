@@ -25,7 +25,10 @@ class _SocialFeedSectionState extends State<SocialFeedSection> {
     _loadedForCustId = custId;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<SocialFeedProvider>().loadForUser(custId);
+      context.read<SocialFeedProvider>().loadForUser(
+            custId,
+            authToken: auth.authToken,
+          );
     });
   }
 
@@ -60,6 +63,7 @@ class _SocialFeedSectionState extends State<SocialFeedSection> {
                   TextButton(
                     onPressed: () => feedProvider.loadForUser(
                       authProvider.user!.id,
+                      authToken: authProvider.authToken,
                     ),
                     child: const Text('重試'),
                   ),

@@ -16,7 +16,7 @@ class SocialFeedProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  Future<void> loadForUser(String custId) async {
+  Future<void> loadForUser(String custId, {String? authToken}) async {
     if (custId.isEmpty) return;
     _isLoading = true;
     _error = null;
@@ -24,7 +24,13 @@ class SocialFeedProvider with ChangeNotifier {
 
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/content/social/$custId');
-      final res = await http.get(uri).timeout(const Duration(seconds: 15));
+      final res = await http.get(
+        uri,
+        headers: {
+          if (authToken != null && authToken.isNotEmpty)
+            'Authorization': 'Bearer $authToken',
+        },
+      ).timeout(const Duration(seconds: 15));
       if (res.statusCode != 200) {
         throw Exception('社群動態 ${res.statusCode}');
       }
