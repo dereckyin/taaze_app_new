@@ -73,8 +73,12 @@ class _BookstoreOrdersScreenState extends State<BookstoreOrdersScreen> {
                 },
                 title: Text(c.storeName, style: const TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: Text(
-                  '${date == null ? '' : '${date.year}/${twoDigits(date.month)}/${twoDigits(date.day)}  '}'
-                  '${c.itemCount} 本',
+                  [
+                    if (date != null) '${date.year}/${twoDigits(date.month)}/${twoDigits(date.day)}',
+                    '${c.itemCount} 本',
+                    if (c.externalMasNo != null && c.externalMasNo!.isNotEmpty) c.externalMasNo!,
+                    if (c.invoiceNumber != null && c.invoiceNumber!.isNotEmpty) c.invoiceNumber!,
+                  ].join(' · '),
                 ),
                 trailing: Column(
                   mainAxisAlignment: MainAxisAlignment.center,

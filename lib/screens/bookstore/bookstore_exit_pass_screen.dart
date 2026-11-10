@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show FontFeature;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -217,7 +218,11 @@ class _BookstoreExitPassScreenState extends State<BookstoreExitPassScreen>
             _kv('合計', ntd(c.total)),
             if (c.isCash) _kv('付款方式', '現金（櫃台）'),
             if (c.paidAt != null) _kv('付款時間', _hm(c.paidAt!, withDate: true)),
-            if (c.invoiceStatus == 'issued' || (c.invoiceNumber != null && c.invoiceNumber!.isNotEmpty))
+            if (c.externalMasNo != null && c.externalMasNo!.isNotEmpty)
+              _kv('本站訂單', c.externalMasNo!),
+            if (c.invoiceNumber != null && c.invoiceNumber!.isNotEmpty)
+              _kv('電子發票', c.invoiceNumber!)
+            else if (c.invoiceStatus == 'issued')
               _kv('電子發票', invoice),
           ],
         ),
@@ -230,7 +235,7 @@ class _BookstoreExitPassScreenState extends State<BookstoreExitPassScreen>
         child: Row(
           children: [
             SizedBox(width: 72, child: Text(k, style: const TextStyle(color: AppTheme.textSecondaryColor))),
-            Expanded(child: Text(v)),
+            Expanded(child: Text(v, style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]))),
           ],
         ),
       );

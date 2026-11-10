@@ -251,6 +251,8 @@ class BookstoreCheckout {
   final DateTime? paidAt;
   final String? invoiceStatus;
   final String? invoiceNumber;
+  /// 讀冊本站訂單號（ORDER_MAS.MAS_NO），結帳回寫後才有。
+  final String? externalMasNo;
   final String? orderNo;
   final DateTime? exitVerifiedAt;
   final ExitPass? exitPass;
@@ -272,6 +274,7 @@ class BookstoreCheckout {
     this.paidAt,
     this.invoiceStatus,
     this.invoiceNumber,
+    this.externalMasNo,
     this.orderNo,
     this.exitVerifiedAt,
     this.exitPass,
@@ -312,6 +315,7 @@ class BookstoreCheckout {
         paidAt: _date(j['paid_at']),
         invoiceStatus: _str(j['invoice_status']),
         invoiceNumber: _str(j['invoice_number']),
+        externalMasNo: _str(j['external_mas_no']),
         orderNo: _str(j['order_no']),
         exitVerifiedAt: _date(j['exit_verified_at']),
         exitPass: j['exit_pass'] is Map<String, dynamic>
