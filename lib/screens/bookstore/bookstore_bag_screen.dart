@@ -25,10 +25,10 @@ class BookstoreBagScreen extends StatefulWidget {
 class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
   _InvoiceKind _invoiceKind = _InvoiceKind.member;
   final _invoiceInput = TextEditingController();
-  final _bonusInput = TextEditingController(text: '0');
   final _accInput = TextEditingController(text: '0');
   bool _submitting = false;
   MemberWallet _wallet = const MemberWallet();
+  final Set<int> _selectedBonusLots = {};
   int _redeemBonus = 0;
   int _redeemAcc = 0;
 
@@ -53,7 +53,12 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
     try {
       final wallet = await BookstoreService.getWallet(token);
       if (!mounted) return;
-      setState(() => _wallet = wallet);
+      setState(() {
+        _wallet = wallet;
+        final valid = wallet.bonusLots.map((e) => e.pkNo).toSet();
+        _selectedBonusLots.removeWhere((id) => !valid.contains(id));
+        _syncBonusFromLots();
+      });
     } on BookstoreException {
       // 折抵列隱藏即可，不擋結帳
     }
@@ -78,7 +83,6 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
   @override
   void dispose() {
     _invoiceInput.dispose();
-    _bonusInput.dispose();
     _accInput.dispose();
     super.dispose();
   }
@@ -90,22 +94,49 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
     }
   }
 
-  void _setRedeem({int? bonus, int? acc, bool rewrite = true}) {
-    setState(() {
-      if (bonus != null) {
-        _redeemBonus = bonus.clamp(0, (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt());
-        if (rewrite) _assignRedeem(_bonusInput, _redeemBonus);
+  int _bonusFromSelection() {
+    if (_wallet.bonusLots.isEmpty) return 0;
+    var sum = 0;
+    for (final lot in _wallet.bonusLots) {
+      if (_selectedBonusLots.contains(lot.pkNo)) sum += lot.remain;
+    }
+    return sum;
+  }
+
+  void _syncBonusFromLots() {
+    final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
+    var sum = _bonusFromSelection();
+    if (sum > maxBonus) {
+      // Drop latest-expiry selections first until within cap.
+      final ordered = _wallet.bonusLots.reversed.toList();
+      for (final lot in ordered) {
+        if (sum <= maxBonus) break;
+        if (_selectedBonusLots.remove(lot.pkNo)) sum -= lot.remain;
       }
+    }
+    _redeemBonus = sum.clamp(0, maxBonus);
+  }
+
+  void _autoPickBonusLots() {
+    final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
+    _selectedBonusLots.clear();
+    var need = maxBonus;
+    for (final lot in _wallet.bonusLots) {
+      if (need <= 0) break;
+      _selectedBonusLots.add(lot.pkNo);
+      need -= lot.remain;
+    }
+    _syncBonusFromLots();
+  }
+
+  void _setRedeem({int? acc, bool rewrite = true}) {
+    setState(() {
       if (acc != null) {
         _redeemAcc = acc.clamp(0, (_maxRedeem - _redeemBonus).clamp(0, _wallet.acc).toInt());
         if (rewrite) _assignRedeem(_accInput, _redeemAcc);
       }
-      final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
+      _syncBonusFromLots();
       final maxAcc = (_maxRedeem - _redeemBonus).clamp(0, _wallet.acc).toInt();
-      if (_redeemBonus > maxBonus) {
-        _redeemBonus = maxBonus;
-        _assignRedeem(_bonusInput, _redeemBonus);
-      }
       if (_redeemAcc > maxAcc) {
         _redeemAcc = maxAcc;
         _assignRedeem(_accInput, _redeemAcc);
@@ -462,7 +493,6 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
     if (!_wallet.enabled || (_wallet.bonus <= 0 && _wallet.acc <= 0)) {
       return const SizedBox.shrink();
     }
-    final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
     final maxAcc = (_maxRedeem - _redeemBonus).clamp(0, _wallet.acc).toInt();
     return Card(
       margin: EdgeInsets.zero,
@@ -473,56 +503,101 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('會員折抵', style: TextStyle(fontWeight: FontWeight.bold)),
-            if (_wallet.bonus > 0)
-              _redeemRow(
-                '紅利',
-                _wallet.bonus,
-                _redeemBonus,
-                maxBonus,
-                _bonusInput,
-                (v) => _setRedeem(bonus: v),
-              ),
+            if (_wallet.bonusLots.isNotEmpty) _bonusLotsSection(),
             if (_wallet.acc > 0)
-              _redeemRow(
-                '回饋金',
-                _wallet.acc,
-                _redeemAcc,
-                maxAcc,
-                _accInput,
-                (v) => _setRedeem(acc: v),
-              ),
+              _accRedeemRow(maxAcc),
           ],
         ),
       ),
     );
   }
 
-  Widget _redeemRow(
-    String label,
-    int available,
-    int value,
-    int maxUse,
-    TextEditingController controller,
-    ValueChanged<int> onChanged,
-  ) {
+  Widget _bonusLotsSection() {
+    final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '回饋金（可用 ${_wallet.bonus}，已選 $_redeemBonus）',
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+              TextButton(
+                onPressed: _redeemBonus == 0
+                    ? null
+                    : () {
+                        FocusScope.of(context).unfocus();
+                        setState(() {
+                          _selectedBonusLots.clear();
+                          _syncBonusFromLots();
+                        });
+                      },
+                child: const Text('不用'),
+              ),
+              TextButton(
+                onPressed: maxBonus == 0
+                    ? null
+                    : () {
+                        FocusScope.of(context).unfocus();
+                        setState(_autoPickBonusLots);
+                      },
+                child: const Text('依到期折抵'),
+              ),
+            ],
+          ),
+          const Text('請勾選批次（越早上到期越優先）', style: TextStyle(fontSize: 12, color: Colors.black54)),
+          ..._wallet.bonusLots.map((lot) {
+            final selected = _selectedBonusLots.contains(lot.pkNo);
+            return CheckboxListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              value: selected,
+              onChanged: (v) {
+                setState(() {
+                  if (v == true) {
+                    _selectedBonusLots.add(lot.pkNo);
+                  } else {
+                    _selectedBonusLots.remove(lot.pkNo);
+                  }
+                  _syncBonusFromLots();
+                });
+              },
+              title: Text(
+                '${lot.remain} 點 · 到期 ${lot.endDateLabel}',
+                style: const TextStyle(fontSize: 13),
+              ),
+              controlAffinity: ListTileControlAffinity.leading,
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _accRedeemRow(int maxUse) {
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Row(
         children: [
-          Expanded(child: Text('$label（可用 $available）', style: const TextStyle(fontSize: 13))),
+          Expanded(child: Text('帳戶餘額（可用 ${_wallet.acc}）', style: const TextStyle(fontSize: 13))),
           TextButton(
-            onPressed: value == 0
+            onPressed: _redeemAcc == 0
                 ? null
                 : () {
                     FocusScope.of(context).unfocus();
-                    onChanged(0);
+                    _setRedeem(acc: 0);
                   },
             child: const Text('不用'),
           ),
           SizedBox(
             width: 76,
             child: TextField(
-              controller: controller,
+              controller: _accInput,
               keyboardType: TextInputType.number,
               textInputAction: TextInputAction.done,
               textAlign: TextAlign.center,
@@ -537,28 +612,20 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
               onSubmitted: (_) => FocusScope.of(context).unfocus(),
               onChanged: (raw) {
                 if (raw.isEmpty) {
-                  _setRedeem(
-                    bonus: label == '紅利' ? 0 : null,
-                    acc: label == '回饋金' ? 0 : null,
-                    rewrite: false,
-                  );
+                  _setRedeem(acc: 0, rewrite: false);
                   return;
                 }
                 final parsed = int.tryParse(raw) ?? 0;
-                _setRedeem(
-                  bonus: label == '紅利' ? parsed : null,
-                  acc: label == '回饋金' ? parsed : null,
-                  rewrite: parsed > maxUse,
-                );
+                _setRedeem(acc: parsed, rewrite: parsed > maxUse);
               },
             ),
           ),
           TextButton(
-            onPressed: maxUse == 0 || value == maxUse
+            onPressed: maxUse == 0 || _redeemAcc == maxUse
                 ? null
                 : () {
                     FocusScope.of(context).unfocus();
-                    onChanged(maxUse);
+                    _setRedeem(acc: maxUse);
                   },
             child: const Text('全折'),
           ),

@@ -325,18 +325,53 @@ class BookstoreCheckout {
       );
 }
 
+class BonusLot {
+  final int pkNo;
+  final int remain;
+  final String? bonusEndDate;
+
+  const BonusLot({required this.pkNo, required this.remain, this.bonusEndDate});
+
+  factory BonusLot.fromJson(Map<String, dynamic> j) => BonusLot(
+        pkNo: _int(j['pk_no']),
+        remain: _int(j['remain']),
+        bonusEndDate: _str(j['bonus_end_date']),
+      );
+
+  /// 「2026-11-20」顯示用
+  String get endDateLabel {
+    final raw = bonusEndDate ?? '';
+    return raw.length >= 10 ? raw.substring(0, 10) : raw;
+  }
+}
+
 class MemberWallet {
   final int bonus;
   final int acc;
   final bool enabled;
+  final List<BonusLot> bonusLots;
 
-  const MemberWallet({this.bonus = 0, this.acc = 0, this.enabled = false});
+  const MemberWallet({
+    this.bonus = 0,
+    this.acc = 0,
+    this.enabled = false,
+    this.bonusLots = const [],
+  });
 
-  factory MemberWallet.fromJson(Map<String, dynamic> j) => MemberWallet(
-        bonus: _int(j['bonus']),
-        acc: _int(j['acc']),
-        enabled: j['enabled'] == true || j['member_sync_enabled'] == true,
-      );
+  factory MemberWallet.fromJson(Map<String, dynamic> j) {
+    final lots = (j['bonus_lots'] as List? ?? [])
+        .whereType<Map>()
+        .map((e) => BonusLot.fromJson(Map<String, dynamic>.from(e)))
+        .where((e) => e.pkNo > 0 && e.remain > 0)
+        .toList();
+    final lotSum = lots.fold<int>(0, (s, e) => s + e.remain);
+    return MemberWallet(
+      bonus: lotSum > 0 ? lotSum : _int(j['bonus']),
+      acc: _int(j['acc']),
+      enabled: j['enabled'] == true || j['member_sync_enabled'] == true,
+      bonusLots: lots,
+    );
+  }
 }
 
 /// 發票選項；全部為空代表會員載具（由後端預設處理）
