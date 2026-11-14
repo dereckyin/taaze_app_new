@@ -9,6 +9,7 @@ import 'login_screen.dart';
 import 'ai_listing_wizard_screen.dart';
 import 'book_detail_screen.dart';
 import '../providers/support_provider.dart';
+import '../models/support.dart';
 import 'support_chat_screen.dart';
 import 'support_conversations_screen.dart';
 
@@ -24,6 +25,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
   final TextEditingController _textController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   bool _suggestionsCollapsed = true;
+  bool _openingSupport = false;
 
   @override
   void dispose() {
@@ -103,10 +105,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
   }
 
   Future<void> _openSupport({bool handoff = false}) async {
-    final token = await _requireAuthToken();
-    if (token == null || !mounted) return;
-
     if (!handoff) {
+      final token = await _requireAuthToken();
+      if (token == null || !mounted) return;
       await Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const SupportConversationsScreen()),
@@ -114,27 +115,57 @@ class _AiChatScreenState extends State<AiChatScreen> {
       return;
     }
 
-    // One-tap human ticket: create with AI context, skip auto AI reply.
-    final support = context.read<SupportProvider>();
-    final conv = await support.createConversation(
-      authToken: token,
-      body: _buildSupportHandoffBody(),
-      subject: '轉接真人客服',
-      handoff: true,
-    );
-    if (!mounted) return;
-    if (conv == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(support.error ?? '無法連線客服，請稍後再試')),
+    // Guard against rapid double/triple taps while the request is in flight
+    // (laggy network previously created a new ticket on every tap).
+    if (_openingSupport) return;
+    setState(() => _openingSupport = true);
+    try {
+      final token = await _requireAuthToken();
+      if (token == null || !mounted) return;
+
+      final support = context.read<SupportProvider>();
+
+      // Reuse an existing open human ticket instead of opening a new one.
+      await support.refreshConversations(token);
+      if (!mounted) return;
+      SupportConversation? existing;
+      for (final c in support.conversations) {
+        if (c.status != 'closed' && c.category == 'human') {
+          existing = c;
+          break;
+        }
+      }
+
+      int convId;
+      if (existing != null) {
+        convId = existing.convId;
+      } else {
+        final conv = await support.createConversation(
+          authToken: token,
+          body: _buildSupportHandoffBody(),
+          subject: '轉接真人客服',
+          handoff: true,
+        );
+        if (!mounted) return;
+        if (conv == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(support.error ?? '無法連線客服，請稍後再試')),
+          );
+          return;
+        }
+        convId = conv.convId;
+      }
+
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SupportChatScreen(conversationId: convId),
+        ),
       );
-      return;
+    } finally {
+      if (mounted) setState(() => _openingSupport = false);
     }
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SupportChatScreen(conversationId: conv.convId),
-      ),
-    );
   }
 
   @override
@@ -148,8 +179,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.support_agent),
-            onPressed: () => _openSupport(handoff: true),
+            icon: _openingSupport
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.support_agent),
+            onPressed: _openingSupport ? null : () => _openSupport(handoff: true),
             tooltip: '聯絡客服',
           ),
           IconButton(

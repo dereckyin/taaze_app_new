@@ -143,9 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   // 快速功能區域
                   _buildQuickActionsSection(),
 
-                  // 客服入口（溝通主幹道，置於首頁顯眼位置）
-                  _buildSupportEntryBanner(),
-
                   // 分類導航
                   _buildCategorySection(bookProvider.categories),
 
@@ -540,89 +537,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSupportEntryBanner() {
-    return Consumer2<AuthProvider, SupportProvider>(
-      builder: (context, auth, support, _) {
-        final unread = support.unreadCount;
-        final primary = Theme.of(context).colorScheme.primary;
-        return Container(
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Material(
-            color: primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => _openSupport(),
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                child: Row(
-                  children: [
-                    Icon(Icons.support_agent, color: primary, size: 22),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                '聯絡客服',
-                                style: TextStyle(
-                                  color: primary,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              if (unread > 0) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 1,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFE53935),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Text(
-                                    '$unread',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '訂單、書籍、會員問題',
-                            style: TextStyle(
-                              color: Colors.grey[700],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(
-                      Icons.chevron_right,
-                      size: 20,
-                      color: primary.withValues(alpha: 0.7),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildQuickActionsSection() {
     final actions = [
       _QuickActionItem(
@@ -764,18 +678,46 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: containerSize,
-                height: containerSize,
-                decoration: BoxDecoration(
-                  color: item.color.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  item.icon,
-                  color: item.color,
-                  size: iconSize,
-                ),
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: containerSize,
+                    height: containerSize,
+                    decoration: BoxDecoration(
+                      color: item.color.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      item.icon,
+                      color: item.color,
+                      size: iconSize,
+                    ),
+                  ),
+                  if (item.badge != null)
+                    Positioned(
+                      top: -6,
+                      right: -10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE53935),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white, width: 1.5),
+                        ),
+                        child: Text(
+                          item.badge!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            height: 1.1,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
               SizedBox(height: compact ? 8 : 10),
               Text(
@@ -791,34 +733,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (item.badge == null) return tile;
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        tile,
-        Positioned(
-          top: -6,
-          right: -4,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE53935),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white, width: 1.5),
-            ),
-            child: Text(
-              item.badge!,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-                height: 1.1,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+    return tile;
   }
 
   Widget _buildCategorySection(List<String> categories) {
