@@ -320,6 +320,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return FontAwesomeIcons.book;
       case NotificationType.system:
         return FontAwesomeIcons.gear;
+      case NotificationType.support:
+        return FontAwesomeIcons.headset;
     }
   }
 
@@ -335,6 +337,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return Colors.purple;
       case NotificationType.system:
         return Colors.grey;
+      case NotificationType.support:
+        return const Color(0xFF1F4E79);
     }
   }
 
@@ -350,6 +354,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         return '推薦';
       case NotificationType.system:
         return '系統';
+      case NotificationType.support:
+        return '客服';
     }
   }
 

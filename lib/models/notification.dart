@@ -93,4 +93,5 @@ enum NotificationType {
   order,
   bookRecommendation,
   system,
+  support,
 }

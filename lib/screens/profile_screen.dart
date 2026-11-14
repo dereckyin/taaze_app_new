@@ -7,6 +7,7 @@ import 'login_screen.dart';
 import 'order_list_screen.dart';
 import 'watchlist_screen.dart';
 import 'draft_list_screen.dart';
+import 'support_conversations_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -182,6 +183,21 @@ class ProfileScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const WatchlistScreen(),
+                ),
+              );
+            },
+          ),
+
+          _buildMenuItem(
+            context,
+            icon: Icons.support_agent,
+            title: '聯絡客服',
+            subtitle: '留言詢問與查看客服回覆',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SupportConversationsScreen(),
                 ),
               );
             },

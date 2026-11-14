@@ -25,6 +25,7 @@ class BookstoreBagScreen extends StatefulWidget {
 class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
   _InvoiceKind _invoiceKind = _InvoiceKind.member;
   final _invoiceInput = TextEditingController();
+  final _bonusInput = TextEditingController(text: '0');
   final _accInput = TextEditingController(text: '0');
   bool _submitting = false;
   MemberWallet _wallet = const MemberWallet();
@@ -57,7 +58,7 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
         _wallet = wallet;
         final valid = wallet.bonusLots.map((e) => e.pkNo).toSet();
         _selectedBonusLots.removeWhere((id) => !valid.contains(id));
-        _syncBonusFromLots();
+        _applyBonusAmount(_redeemBonus, rewrite: true);
       });
     } on BookstoreException {
       // 折抵列隱藏即可，不擋結帳
@@ -83,6 +84,7 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
   @override
   void dispose() {
     _invoiceInput.dispose();
+    _bonusInput.dispose();
     _accInput.dispose();
     super.dispose();
   }
@@ -103,39 +105,57 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
     return sum;
   }
 
-  void _syncBonusFromLots() {
-    final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
-    var sum = _bonusFromSelection();
-    if (sum > maxBonus) {
-      // Drop latest-expiry selections first until within cap.
-      final ordered = _wallet.bonusLots.reversed.toList();
-      for (final lot in ordered) {
-        if (sum <= maxBonus) break;
-        if (_selectedBonusLots.remove(lot.pkNo)) sum -= lot.remain;
+  /// Website-style: amount is primary; lots are FIFO preview for that amount.
+  Map<int, int> _bonusApplyByLot(int amount) {
+    var left = amount;
+    final out = <int, int>{};
+    for (final lot in _wallet.bonusLots) {
+      if (!_selectedBonusLots.contains(lot.pkNo)) continue;
+      if (left <= 0) {
+        out[lot.pkNo] = 0;
+        continue;
       }
+      final take = lot.remain < left ? lot.remain : left;
+      out[lot.pkNo] = take;
+      left -= take;
     }
-    _redeemBonus = sum.clamp(0, maxBonus);
+    return out;
   }
 
-  void _autoPickBonusLots() {
-    final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
+  void _pickLotsForAmount(int amount) {
     _selectedBonusLots.clear();
-    var need = maxBonus;
+    var need = amount;
     for (final lot in _wallet.bonusLots) {
       if (need <= 0) break;
       _selectedBonusLots.add(lot.pkNo);
       need -= lot.remain;
     }
-    _syncBonusFromLots();
   }
 
-  void _setRedeem({int? acc, bool rewrite = true}) {
+  void _applyBonusAmount(int amount, {bool rewrite = true}) {
+    final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
+    _redeemBonus = amount.clamp(0, maxBonus);
+    _pickLotsForAmount(_redeemBonus);
+    if (rewrite) _assignRedeem(_bonusInput, _redeemBonus);
+  }
+
+  void _syncBonusFromLots({bool rewrite = true}) {
+    final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
+    _redeemBonus = _bonusFromSelection().clamp(0, maxBonus);
+    if (rewrite) _assignRedeem(_bonusInput, _redeemBonus);
+  }
+
+  void _setRedeem({int? bonus, int? acc, bool rewrite = true}) {
     setState(() {
       if (acc != null) {
         _redeemAcc = acc.clamp(0, (_maxRedeem - _redeemBonus).clamp(0, _wallet.acc).toInt());
         if (rewrite) _assignRedeem(_accInput, _redeemAcc);
       }
-      _syncBonusFromLots();
+      if (bonus != null) {
+        _applyBonusAmount(bonus, rewrite: rewrite);
+      } else if (acc != null) {
+        _applyBonusAmount(_redeemBonus, rewrite: true);
+      }
       final maxAcc = (_maxRedeem - _redeemBonus).clamp(0, _wallet.acc).toInt();
       if (_redeemAcc > maxAcc) {
         _redeemAcc = maxAcc;
@@ -514,6 +534,7 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
 
   Widget _bonusLotsSection() {
     final maxBonus = (_maxRedeem - _redeemAcc).clamp(0, _wallet.bonus).toInt();
+    final applyByLot = _bonusApplyByLot(_redeemBonus);
     return Padding(
       padding: const EdgeInsets.only(top: 8),
       child: Column(
@@ -522,37 +543,62 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  '回饋金（可用 ${_wallet.bonus}，已選 $_redeemBonus）',
-                  style: const TextStyle(fontSize: 13),
-                ),
+                child: Text('回饋金（可用 ${_wallet.bonus}）', style: const TextStyle(fontSize: 13)),
               ),
               TextButton(
                 onPressed: _redeemBonus == 0
                     ? null
                     : () {
                         FocusScope.of(context).unfocus();
-                        setState(() {
-                          _selectedBonusLots.clear();
-                          _syncBonusFromLots();
-                        });
+                        _setRedeem(bonus: 0);
                       },
                 child: const Text('不用'),
               ),
+              SizedBox(
+                width: 76,
+                child: TextField(
+                  controller: _bonusInput,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.done,
+                  textAlign: TextAlign.center,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                    border: OutlineInputBorder(),
+                  ),
+                  onEditingComplete: () => FocusScope.of(context).unfocus(),
+                  onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                  onChanged: (raw) {
+                    if (raw.isEmpty) {
+                      _setRedeem(bonus: 0, rewrite: false);
+                      return;
+                    }
+                    final parsed = int.tryParse(raw) ?? 0;
+                    _setRedeem(bonus: parsed, rewrite: parsed > maxBonus);
+                  },
+                ),
+              ),
               TextButton(
-                onPressed: maxBonus == 0
+                onPressed: maxBonus == 0 || _redeemBonus == maxBonus
                     ? null
                     : () {
                         FocusScope.of(context).unfocus();
-                        setState(_autoPickBonusLots);
+                        _setRedeem(bonus: maxBonus);
                       },
-                child: const Text('依到期折抵'),
+                child: const Text('全折'),
               ),
             ],
           ),
-          const Text('請勾選批次（越早上到期越優先）', style: TextStyle(fontSize: 12, color: Colors.black54)),
+          const Text(
+            '批次依到期日自動扣抵（與官網相同，可只折部分金額）',
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
           ..._wallet.bonusLots.map((lot) {
             final selected = _selectedBonusLots.contains(lot.pkNo);
+            final apply = applyByLot[lot.pkNo] ?? 0;
+            final partial = selected && apply > 0 && apply < lot.remain;
             return CheckboxListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
@@ -564,11 +610,18 @@ class _BookstoreBagScreenState extends State<BookstoreBagScreen> {
                   } else {
                     _selectedBonusLots.remove(lot.pkNo);
                   }
-                  _syncBonusFromLots();
+                  _syncBonusFromLots(rewrite: true);
+                  final maxAcc = (_maxRedeem - _redeemBonus).clamp(0, _wallet.acc).toInt();
+                  if (_redeemAcc > maxAcc) {
+                    _redeemAcc = maxAcc;
+                    _assignRedeem(_accInput, _redeemAcc);
+                  }
                 });
               },
               title: Text(
-                '${lot.remain} 點 · 到期 ${lot.endDateLabel}',
+                partial
+                    ? '${lot.remain} 點 · 到期 ${lot.endDateLabel}（本單折 $apply）'
+                    : '${lot.remain} 點 · 到期 ${lot.endDateLabel}',
                 style: const TextStyle(fontSize: 13),
               ),
               controlAffinity: ListTileControlAffinity.leading,

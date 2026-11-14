@@ -30,6 +30,8 @@ import '../providers/auth_provider.dart';
 import '../widgets/theme_activity_section.dart';
 import '../widgets/social_feed_section.dart';
 import 'login_screen.dart';
+import 'support_conversations_screen.dart';
+import '../providers/support_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -47,12 +49,19 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       context.read<BookProvider>().clearError();
       context.read<BannerProvider>().clearError();
       // Load podcast books
       context.read<BookProvider>().loadPodcastBooks();
       _startBannerTimer();
+      final auth = context.read<AuthProvider>();
+      if (auth.isAuthenticated) {
+        final token = await auth.tokenForApi();
+        if (token != null && mounted) {
+          await context.read<SupportProvider>().refreshUnreadCount(token);
+        }
+      }
     });
   }
 
@@ -133,6 +142,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // 快速功能區域
                   _buildQuickActionsSection(),
+
+                  // 客服入口（溝通主幹道，置於首頁顯眼位置）
+                  _buildSupportEntryBanner(),
 
                   // 分類導航
                   _buildCategorySection(bookProvider.categories),
@@ -501,6 +513,116 @@ class _HomeScreenState extends State<HomeScreen> {
     _launchExternalUrl('https://www.taaze.tw/act66.html');
   }
 
+  Future<void> _openSupport({bool requireLogin = true}) async {
+    final auth = context.read<AuthProvider>();
+    if (requireLogin && !auth.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('請先登入後再聯絡客服')),
+      );
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+      if (!mounted) return;
+      if (!context.read<AuthProvider>().isAuthenticated) return;
+    }
+    if (!mounted) return;
+    final support = context.read<SupportProvider>();
+    final token = await context.read<AuthProvider>().tokenForApi();
+    if (!mounted) return;
+    if (token != null) {
+      await support.refreshUnreadCount(token);
+    }
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SupportConversationsScreen()),
+    );
+  }
+
+  Widget _buildSupportEntryBanner() {
+    return Consumer2<AuthProvider, SupportProvider>(
+      builder: (context, auth, support, _) {
+        final unread = support.unreadCount;
+        final primary = Theme.of(context).colorScheme.primary;
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Material(
+            color: primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _openSupport(),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                child: Row(
+                  children: [
+                    Icon(Icons.support_agent, color: primary, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                '聯絡客服',
+                                style: TextStyle(
+                                  color: primary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              if (unread > 0) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 1,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE53935),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '$unread',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '訂單、書籍、會員問題',
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: primary.withValues(alpha: 0.7),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildQuickActionsSection() {
     final actions = [
       _QuickActionItem(
@@ -513,6 +635,12 @@ class _HomeScreenState extends State<HomeScreen> {
             MaterialPageRoute(builder: (context) => const AiChatScreen()),
           );
         },
+      ),
+      _QuickActionItem(
+        icon: Icons.support_agent,
+        label: '聯絡客服',
+        color: const Color(0xFFE91E63),
+        onTap: () => _openSupport(),
       ),
       _QuickActionItem(
         icon: Icons.camera_alt_outlined,
@@ -533,24 +661,6 @@ class _HomeScreenState extends State<HomeScreen> {
         color: const Color(0xFF00A7A0),
         onTap: _navigateToPodcast,
       ),
-      // _QuickActionItem(
-      //   icon: FontAwesomeIcons.bookOpen,
-      //   label: '二手書',
-      //   color: const Color(0xFF5C6B7A),
-      //   onTap: () {
-      //     Navigator.push(
-      //       context,
-      //       MaterialPageRoute(
-      //         builder: (context) => BookListScreen(
-      //           title: '二手書',
-      //           type: 'used',
-      //           startNum: 0,
-      //           endNum: 19,
-      //         ),
-      //       ),
-      //     );
-      //   },
-      // ),
       _QuickActionItem(
         icon: Icons.storefront_outlined,
         label: '實體書店',
@@ -602,14 +712,28 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     ];
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Row(
+    // 兩列快捷入口，避免單列過擠
+    final firstRow = actions.take(3).toList();
+    final secondRow = actions.skip(3).toList();
+
+    Widget buildRow(List<_QuickActionItem> row) {
+      return Row(
         children: [
-          for (int index = 0; index < actions.length; index++) ...[
-            Expanded(child: _buildQuickActionTile(actions[index], compact: true)),
-            if (index != actions.length - 1) const SizedBox(width: 10),
+          for (int index = 0; index < row.length; index++) ...[
+            Expanded(child: _buildQuickActionTile(row[index], compact: true)),
+            if (index != row.length - 1) const SizedBox(width: 10),
           ],
+        ],
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      child: Column(
+        children: [
+          buildRow(firstRow),
+          const SizedBox(height: 10),
+          buildRow(secondRow),
         ],
       ),
     );

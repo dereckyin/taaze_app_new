@@ -8,6 +8,9 @@ import '../models/book.dart';
 import 'login_screen.dart';
 import 'ai_listing_wizard_screen.dart';
 import 'book_detail_screen.dart';
+import '../providers/support_provider.dart';
+import 'support_chat_screen.dart';
+import 'support_conversations_screen.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -70,12 +73,68 @@ class _AiChatScreenState extends State<AiChatScreen> {
       MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
 
+    if (!mounted) return null;
     final refreshedToken = context.read<AuthProvider>().authToken;
     if (refreshedToken != null && refreshedToken.isNotEmpty) {
       return refreshedToken;
     }
 
     return null;
+  }
+
+  String _buildSupportHandoffBody() {
+    final ai = context.read<AiChatProvider>();
+    final recent = ai.messages
+        .where((m) => m.content.trim().isNotEmpty)
+        .toList();
+    if (recent.isEmpty) {
+      return '我想聯絡客服協助。';
+    }
+    final tail = recent.length > 6 ? recent.sublist(recent.length - 6) : recent;
+    final buf = StringBuffer('【由 AI 助手轉接】\n');
+    for (final m in tail) {
+      final who = m.isUser ? '我' : 'AI';
+      var text = m.content.trim().replaceAll('\n', ' ');
+      if (text.length > 120) text = '${text.substring(0, 120)}…';
+      buf.writeln('$who：$text');
+    }
+    buf.writeln('\n請客服協助處理以上問題。');
+    return buf.toString();
+  }
+
+  Future<void> _openSupport({bool handoff = false}) async {
+    final token = await _requireAuthToken();
+    if (token == null || !mounted) return;
+
+    if (!handoff) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const SupportConversationsScreen()),
+      );
+      return;
+    }
+
+    // One-tap human ticket: create with AI context, skip auto AI reply.
+    final support = context.read<SupportProvider>();
+    final conv = await support.createConversation(
+      authToken: token,
+      body: _buildSupportHandoffBody(),
+      subject: '轉接真人客服',
+      handoff: true,
+    );
+    if (!mounted) return;
+    if (conv == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(support.error ?? '無法連線客服，請稍後再試')),
+      );
+      return;
+    }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SupportChatScreen(conversationId: conv.convId),
+      ),
+    );
   }
 
   @override
@@ -88,6 +147,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.support_agent),
+            onPressed: () => _openSupport(handoff: true),
+            tooltip: '聯絡客服',
+          ),
           IconButton(
             icon: const Icon(Icons.camera_alt),
             onPressed: () async {
@@ -297,6 +361,24 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 ),
 
                 const SizedBox(height: 24),
+
+                // 與首頁「聯絡客服」同一系統；從此進入會帶 AI 摘要並開立人工案件
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
+                  child: FilledButton.icon(
+                    onPressed: () => _openSupport(handoff: true),
+                    icon: const Icon(Icons.support_agent),
+                    label: const Text('聯絡客服'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
 
                 // AI上架精靈快速入口
                 Container(
