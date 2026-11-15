@@ -16,10 +16,18 @@ class SupportChatScreen extends StatefulWidget {
   final int? conversationId;
   final String? subject;
 
+  /// When true, first send creates a human-priority ticket (skips auto AI reply).
+  final bool handoff;
+
+  /// Optional AI transcript attached only when the member actually sends.
+  final String? handoffContext;
+
   const SupportChatScreen({
     super.key,
     required this.conversationId,
     this.subject,
+    this.handoff = false,
+    this.handoffContext,
   });
 
   @override
@@ -41,6 +49,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
   bool _closed = false;
   bool _awaitingAi = false;
   DateTime? _awaitingAiSince;
+  bool _handoffRouted = false;
 
   @override
   void initState() {
@@ -111,9 +120,9 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
   }
 
   bool _expectsImmediateAi(List<SupportMessage> messages) {
-    // Only show typing while waiting for the first auto reply.
-    // After AI/agent has joined, backend sends a short「已通知」text instead —
-    // fake "..." would look like a human typing when nobody is online.
+    // Human handoff has no auto reply — don't fake typing.
+    if (widget.handoff) return false;
+    // Only show typing while waiting for the first auto AI reply.
     return !messages.any(
       (m) => m.senderType == 'ai' || m.senderType == 'agent',
     );
@@ -161,15 +170,35 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
     });
   }
 
+  String _composeCreateBody(String? seedBody) {
+    final userText = (seedBody ?? '').trim();
+    final contextText = (widget.handoffContext ?? '').trim();
+    if (widget.handoff && contextText.isNotEmpty) {
+      if (userText.isEmpty) return contextText;
+      return '$contextText\n\n【會員訊息】\n$userText';
+    }
+    if (userText.isNotEmpty) return userText;
+    return '您好';
+  }
+
   Future<int?> _ensureConversation(String token, {String? seedBody}) async {
-    if (_convId != null) return _convId;
+    // Handoff always goes through create API once so the server can merge into
+    // the customer's open ticket and bump queue/priority.
+    if (_convId != null && !(widget.handoff && !_handoffRouted)) {
+      return _convId;
+    }
     final provider = context.read<SupportProvider>();
     final conv = await provider.createConversation(
       authToken: token,
-      body: seedBody?.trim().isNotEmpty == true ? seedBody!.trim() : '您好',
+      body: _composeCreateBody(seedBody),
+      subject: widget.subject,
+      handoff: widget.handoff,
     );
     if (conv == null) return null;
-    setState(() => _convId = conv.convId);
+    setState(() {
+      _convId = conv.convId;
+      if (widget.handoff) _handoffRouted = true;
+    });
     await provider.loadMessages(authToken: token, convId: conv.convId);
     if (!mounted) return conv.convId;
     provider.startPolling(authToken: token, convId: conv.convId);
@@ -183,7 +212,8 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
     if (token == null || !mounted) return;
     final provider = context.read<SupportProvider>();
 
-    if (_convId == null) {
+    final needsCreate = _convId == null || (widget.handoff && !_handoffRouted);
+    if (needsCreate) {
       _textController.clear();
       final convId = await _ensureConversation(token, seedBody: text);
       if (!mounted) return;

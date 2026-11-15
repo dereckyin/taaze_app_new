@@ -115,8 +115,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       return;
     }
 
-    // Guard against rapid double/triple taps while the request is in flight
-    // (laggy network previously created a new ticket on every tap).
+    // Guard against rapid double/triple taps (list refresh can feel laggy).
     if (_openingSupport) return;
     setState(() => _openingSupport = true);
     try {
@@ -125,42 +124,43 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
       final support = context.read<SupportProvider>();
 
-      // Reuse an existing open human ticket instead of opening a new one.
+      // Single-thread model: reuse any open conversation; else draft until send.
+      // Server also merges into the open ticket when handoff create is posted.
       await support.refreshConversations(token);
       if (!mounted) return;
       SupportConversation? existing;
       for (final c in support.conversations) {
-        if (c.status != 'closed' && c.category == 'human') {
+        if (!c.isClosed) {
           existing = c;
           break;
         }
       }
 
-      int convId;
+      if (!mounted) return;
       if (existing != null) {
-        convId = existing.convId;
-      } else {
-        final conv = await support.createConversation(
-          authToken: token,
-          body: _buildSupportHandoffBody(),
-          subject: '轉接真人客服',
-          handoff: true,
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SupportChatScreen(
+              conversationId: existing!.convId,
+              subject: '轉接真人客服',
+              handoff: true,
+              handoffContext: _buildSupportHandoffBody(),
+            ),
+          ),
         );
-        if (!mounted) return;
-        if (conv == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(support.error ?? '無法連線客服，請稍後再試')),
-          );
-          return;
-        }
-        convId = conv.convId;
+        return;
       }
 
-      if (!mounted) return;
       await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => SupportChatScreen(conversationId: convId),
+          builder: (_) => SupportChatScreen(
+            conversationId: null,
+            subject: '轉接真人客服',
+            handoff: true,
+            handoffContext: _buildSupportHandoffBody(),
+          ),
         ),
       );
     } finally {

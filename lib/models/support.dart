@@ -3,6 +3,9 @@ class SupportConversation {
   final String custId;
   final String subject;
   final String? category;
+  final String priority;
+  final String source;
+  final String queue;
   final String status;
   final String? assignedAgent;
   final int unreadCustomer;
@@ -17,6 +20,9 @@ class SupportConversation {
     required this.custId,
     required this.subject,
     this.category,
+    this.priority = 'normal',
+    this.source = 'app',
+    this.queue = 'bot',
     required this.status,
     this.assignedAgent,
     this.unreadCustomer = 0,
@@ -28,11 +34,30 @@ class SupportConversation {
   });
 
   factory SupportConversation.fromJson(Map<String, dynamic> json) {
+    final rawCategory = json['category']?.toString();
+    var category = rawCategory;
+    var priority =
+        (json['priority'] ?? 'normal').toString().toLowerCase();
+    var source = (json['source'] ?? 'app').toString().toLowerCase();
+    var queue = (json['queue'] ?? 'bot').toString().toLowerCase();
+    // Legacy: category=human before backend migration.
+    if ((rawCategory ?? '').toLowerCase() == 'human') {
+      category = null;
+      priority = 'high';
+      queue = 'human';
+    }
+    if (priority != 'high') priority = 'normal';
+    if (queue != 'human') queue = 'bot';
+    if (source != 'ai_handoff') source = 'app';
+
     return SupportConversation(
       convId: _asInt(json['conv_id'] ?? json['convId']),
       custId: (json['cust_id'] ?? json['custId'] ?? '').toString(),
       subject: (json['subject'] ?? '').toString(),
-      category: json['category']?.toString(),
+      category: category,
+      priority: priority,
+      source: source,
+      queue: queue,
       status: (json['status'] ?? 'open').toString(),
       assignedAgent: json['assigned_agent']?.toString() ??
           json['assignedAgent']?.toString(),
@@ -53,6 +78,8 @@ class SupportConversation {
 
   bool get hasUnread => unreadCustomer > 0;
   bool get isClosed => status == 'closed';
+  bool get isHumanQueue => queue == 'human';
+  bool get isHighPriority => priority == 'high';
 }
 
 class SupportMessage {

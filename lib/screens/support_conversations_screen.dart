@@ -212,9 +212,12 @@ class _ConversationTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 4),
-            if (conversation.category == 'human')
+            if (conversation.isHumanQueue || conversation.isHighPriority)
               Text(
-                '人工優先',
+                [
+                  if (conversation.isHumanQueue) '人工佇列',
+                  if (conversation.isHighPriority) '高優先',
+                ].join(' · '),
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(context).colorScheme.primary,
