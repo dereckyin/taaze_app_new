@@ -93,7 +93,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       return '我想聯絡客服協助。';
     }
     final tail = recent.length > 6 ? recent.sublist(recent.length - 6) : recent;
-    final buf = StringBuffer('【由 AI 助手轉接】\n');
+    final buf = StringBuffer('【由 AI 助手轉來】\n');
     for (final m in tail) {
       final who = m.isUser ? '我' : 'AI';
       var text = m.content.trim().replaceAll('\n', ' ');
@@ -143,7 +143,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
           MaterialPageRoute(
             builder: (_) => SupportChatScreen(
               conversationId: existing!.convId,
-              subject: '轉接真人客服',
+              subject: '聯絡客服',
               handoff: true,
               handoffContext: _buildSupportHandoffBody(),
             ),
@@ -157,7 +157,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
         MaterialPageRoute(
           builder: (_) => SupportChatScreen(
             conversationId: null,
-            subject: '轉接真人客服',
+            subject: '聯絡客服',
             handoff: true,
             handoffContext: _buildSupportHandoffBody(),
           ),
