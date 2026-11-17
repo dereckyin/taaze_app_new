@@ -11,7 +11,8 @@ import 'book_detail_screen.dart';
 import '../providers/support_provider.dart';
 import '../models/support.dart';
 import 'support_chat_screen.dart';
-import 'support_conversations_screen.dart';
+import 'main_screen.dart';
+import 'messages_hub_screen.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -108,10 +109,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
     if (!handoff) {
       final token = await _requireAuthToken();
       if (token == null || !mounted) return;
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const SupportConversationsScreen()),
-      );
+      if (MainScreen.navKey.currentState != null) {
+        Navigator.popUntil(context, (route) => route.isFirst);
+        MainScreen.openMessages(tab: 0);
+      } else {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const MessagesHubScreen(initialTab: 0),
+          ),
+        );
+      }
       return;
     }
 

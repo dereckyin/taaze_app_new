@@ -220,7 +220,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   // OAuth 登入成功，導航到主頁面
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (context) => const MainScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => MainScreen(key: MainScreen.navKey),
+                    ),
                     (route) => false,
                   );
                 },
@@ -454,7 +456,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const MainScreen()),
+        MaterialPageRoute(
+          builder: (context) => MainScreen(key: MainScreen.navKey),
+        ),
         (route) => false,
       );
     } else if (mounted) {

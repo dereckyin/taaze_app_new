@@ -2,61 +2,78 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../providers/notification_provider.dart';
-// import '../services/local_notification_service.dart';
-// import '../utils/debug_helper.dart'; // Debug功能已隱藏
+import '../providers/support_provider.dart';
 import 'home_screen.dart';
 import 'search_screen.dart';
 import 'cart_screen.dart';
-import 'notifications_screen.dart';
+import 'messages_hub_screen.dart';
 import 'profile_screen.dart';
 import 'ai_chat_screen.dart';
 import '../providers/ai_chat_provider.dart';
-// import 'debug_screen.dart'; // Debug功能已隱藏
 
 class MainScreen extends StatefulWidget {
+  static final GlobalKey<MainScreenState> navKey = GlobalKey<MainScreenState>();
+
+  /// Bottom-nav index of the messages hub.
+  static const int messagesTabIndex = 3;
+
   const MainScreen({super.key});
 
+  /// Switch to bottom「訊息」and select hub tab (0=客服, 1=通知).
+  static void openMessages({int tab = 0}) {
+    navKey.currentState?.openMessages(tab: tab);
+  }
+
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<MainScreen> createState() => MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  final GlobalKey<MessagesHubScreenState> _messagesHubKey =
+      GlobalKey<MessagesHubScreenState>();
 
-  final List<Widget> _screens = [
+  late final List<Widget> _screens = [
     const HomeScreen(),
     const SearchScreen(query: ''),
     const CartScreen(),
-    const NotificationsScreen(),
+    MessagesHubScreen(key: _messagesHubKey),
     const ProfileScreen(),
   ];
+
+  void openMessages({int tab = 0}) {
+    setState(() => _currentIndex = MainScreen.messagesTabIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _messagesHubKey.currentState?.selectTab(tab);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
-      // AI智能對話按鈕
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          // AI智能對話按鈕
-          FloatingActionButton(
-            onPressed: () {
-              context.read<AiChatProvider>().setProductContext(null);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AiChatScreen()),
-              );
-            },
-            backgroundColor: Theme.of(context).colorScheme.primary,
-            tooltip: '與書對話',
-            heroTag: 'ai_chat',
-            child: const Icon(Icons.smart_toy, color: Colors.white),
-          ),
-        ],
-      ),
-      bottomNavigationBar: Consumer<NotificationProvider>(
-        builder: (context, notificationProvider, child) {
+      // Hide AI FAB on 訊息 tab so it does not cover 開始對話.
+      floatingActionButton: _currentIndex == MainScreen.messagesTabIndex
+          ? null
+          : FloatingActionButton(
+              onPressed: () {
+                context.read<AiChatProvider>().setProductContext(null);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AiChatScreen(),
+                  ),
+                );
+              },
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              tooltip: '與書對話',
+              heroTag: 'ai_chat',
+              child: const Icon(Icons.smart_toy, color: Colors.white),
+            ),
+      bottomNavigationBar: Consumer2<NotificationProvider, SupportProvider>(
+        builder: (context, notificationProvider, supportProvider, child) {
+          final unread =
+              notificationProvider.unreadCount + supportProvider.unreadCount;
           return BottomNavigationBar(
             type: BottomNavigationBarType.fixed,
             currentIndex: _currentIndex,
@@ -84,67 +101,15 @@ class _MainScreenState extends State<MainScreen> {
                 label: '購物車',
               ),
               BottomNavigationBarItem(
-                icon: Stack(
-                  children: [
-                    const Icon(Icons.notifications_outlined),
-                    if (notificationProvider.unreadCount > 0)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            '${notificationProvider.unreadCount}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
+                icon: _MessagesNavIcon(
+                  outlined: true,
+                  unread: unread,
                 ),
-                activeIcon: Stack(
-                  children: [
-                    const Icon(Icons.notifications),
-                    if (notificationProvider.unreadCount > 0)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            '${notificationProvider.unreadCount}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
+                activeIcon: _MessagesNavIcon(
+                  outlined: false,
+                  unread: unread,
                 ),
-                label: '通知',
+                label: '訊息',
               ),
               const BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),
@@ -155,6 +120,53 @@ class _MainScreenState extends State<MainScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class _MessagesNavIcon extends StatelessWidget {
+  final bool outlined;
+  final int unread;
+
+  const _MessagesNavIcon({
+    required this.outlined,
+    required this.unread,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(
+          outlined ? Icons.chat_bubble_outline : Icons.chat_bubble,
+        ),
+        if (unread > 0)
+          Positioned(
+            right: -6,
+            top: -4,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 16,
+                minHeight: 16,
+              ),
+              child: Text(
+                unread > 99 ? '99+' : '$unread',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

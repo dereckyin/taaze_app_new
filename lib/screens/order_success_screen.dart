@@ -122,7 +122,8 @@ class OrderSuccessScreen extends StatelessWidget {
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const MainScreen(),
+                            builder: (context) =>
+                                MainScreen(key: MainScreen.navKey),
                           ),
                           (route) => false,
                         );

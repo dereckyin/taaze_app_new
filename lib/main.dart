@@ -120,7 +120,7 @@ class _AppHomeState extends State<AppHome> {
       );
     }
 
-    return const MainScreen();
+    return MainScreen(key: MainScreen.navKey);
   }
 }
 

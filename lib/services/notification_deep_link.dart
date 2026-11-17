@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import '../models/book.dart';
 import '../models/notification.dart';
 import '../screens/book_detail_screen.dart';
+import '../screens/main_screen.dart';
+import '../screens/messages_hub_screen.dart';
 import '../screens/order_list_screen.dart';
 import '../screens/podcast_hub_screen.dart';
 import '../screens/search_screen.dart';
-import '../screens/notifications_screen.dart';
 import '../screens/support_chat_screen.dart';
-import '../screens/support_conversations_screen.dart';
 import 'navigation_service.dart';
 
 /// Handles push notification deep links.
@@ -63,11 +63,9 @@ class NotificationDeepLink {
         );
         break;
       case 'support':
-        // 舊版群發曾誤標 target=support；有 broadcast 標記則改開通知中心。
+        // 舊版群發曾誤標 target=support；有 broadcast 標記則改開通知分頁。
         if (_isBroadcast(data)) {
-          navigator.push(
-            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-          );
+          _openMessagesHub(tab: 1);
           break;
         }
         final convId = _parseConversationId(data, payload);
@@ -78,24 +76,32 @@ class NotificationDeepLink {
             ),
           );
         } else {
-          navigator.push(
-            MaterialPageRoute(
-              builder: (_) => const SupportConversationsScreen(),
-            ),
-          );
+          _openMessagesHub(tab: 0);
         }
         break;
       case 'home':
         navigator.popUntil((route) => route.isFirst);
         break;
       case 'notifications':
-        navigator.push(
-          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-        );
+        _openMessagesHub(tab: 1);
         break;
       default:
         break;
     }
+  }
+
+  static void _openMessagesHub({required int tab}) {
+    final navigator = NavigationService.navigatorKey.currentState;
+    if (MainScreen.navKey.currentState != null) {
+      navigator?.popUntil((route) => route.isFirst);
+      MainScreen.openMessages(tab: tab);
+      return;
+    }
+    navigator?.push(
+      MaterialPageRoute(
+        builder: (_) => MessagesHubScreen(initialTab: tab),
+      ),
+    );
   }
 
   static bool _isBroadcast(Map<String, dynamic> data) {

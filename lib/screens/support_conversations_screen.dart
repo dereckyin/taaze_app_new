@@ -8,7 +8,13 @@ import 'login_screen.dart';
 import 'support_chat_screen.dart';
 
 class SupportConversationsScreen extends StatefulWidget {
-  const SupportConversationsScreen({super.key});
+  /// When true, render body only (used inside MessagesHubScreen).
+  final bool embedded;
+
+  const SupportConversationsScreen({
+    super.key,
+    this.embedded = false,
+  });
 
   @override
   State<SupportConversationsScreen> createState() =>
@@ -80,75 +86,103 @@ class _SupportConversationsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final body = Consumer<SupportProvider>(
+      builder: (context, provider, _) {
+        if (provider.loadingList && provider.conversations.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (provider.error != null && provider.conversations.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(provider.error!, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  FilledButton(onPressed: _load, child: const Text('重試')),
+                ],
+              ),
+            ),
+          );
+        }
+        if (provider.conversations.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.chat_bubble_outline,
+                  size: 40,
+                  color: Colors.grey[350],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  '尚無客服對話',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return RefreshIndicator(
+          onRefresh: _load,
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
+            itemCount: provider.conversations.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final conv = provider.conversations[index];
+              return _ConversationTile(
+                title: _titleFor(conv),
+                conversation: conv,
+                statusLabel: _statusLabel(conv.status),
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          SupportChatScreen(conversationId: conv.convId),
+                    ),
+                  );
+                  await _load();
+                },
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    final fab = FloatingActionButton.extended(
+      onPressed: _startChat,
+      icon: const Icon(Icons.chat_bubble_outline),
+      label: const Text('開始對話'),
+      heroTag: widget.embedded ? 'support_fab_embedded' : 'support_fab',
+    );
+
+    if (widget.embedded) {
+      return Stack(
+        children: [
+          body,
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: fab,
+          ),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('聯絡客服'),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Colors.white,
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _startChat,
-        icon: const Icon(Icons.chat_bubble_outline),
-        label: const Text('開始對話'),
-      ),
-      body: Consumer<SupportProvider>(
-        builder: (context, provider, _) {
-          if (provider.loadingList && provider.conversations.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (provider.error != null && provider.conversations.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(provider.error!, textAlign: TextAlign.center),
-                    const SizedBox(height: 12),
-                    FilledButton(onPressed: _load, child: const Text('重試')),
-                  ],
-                ),
-              ),
-            );
-          }
-          if (provider.conversations.isEmpty) {
-            return Center(
-              child: Icon(
-                Icons.chat_bubble_outline,
-                size: 40,
-                color: Colors.grey[350],
-              ),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: _load,
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
-              itemCount: provider.conversations.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final conv = provider.conversations[index];
-                return _ConversationTile(
-                  title: _titleFor(conv),
-                  conversation: conv,
-                  statusLabel: _statusLabel(conv.status),
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            SupportChatScreen(conversationId: conv.convId),
-                      ),
-                    );
-                    await _load();
-                  },
-                );
-              },
-            ),
-          );
-        },
-      ),
+      floatingActionButton: fab,
+      body: body,
     );
   }
 }

@@ -7,7 +7,8 @@ import 'login_screen.dart';
 import 'order_list_screen.dart';
 import 'watchlist_screen.dart';
 import 'draft_list_screen.dart';
-import 'support_conversations_screen.dart';
+import 'main_screen.dart';
+import 'messages_hub_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -194,12 +195,17 @@ class ProfileScreen extends StatelessWidget {
             title: '聯絡客服',
             subtitle: '留言詢問與查看客服回覆',
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SupportConversationsScreen(),
-                ),
-              );
+              if (MainScreen.navKey.currentState != null) {
+                MainScreen.openMessages(tab: 0);
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        const MessagesHubScreen(initialTab: 0),
+                  ),
+                );
+              }
             },
           ),
 

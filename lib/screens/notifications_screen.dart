@@ -10,7 +10,13 @@ import '../widgets/loading_widget.dart';
 import 'login_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
-  const NotificationsScreen({super.key});
+  /// When true, render body only (used inside MessagesHubScreen).
+  final bool embedded;
+
+  const NotificationsScreen({
+    super.key,
+    this.embedded = false,
+  });
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -30,6 +36,44 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final body = Consumer2<NotificationProvider, AuthProvider>(
+      builder: (context, notificationProvider, authProvider, child) {
+        if (notificationProvider.isLoading &&
+            notificationProvider.notifications.isEmpty) {
+          return const Center(child: LoadingWidget());
+        }
+
+        if (notificationProvider.error != null &&
+            notificationProvider.notifications.isEmpty) {
+          return _buildErrorState(context, notificationProvider, authProvider);
+        }
+
+        if (notificationProvider.notifications.isEmpty) {
+          return _buildEmptyState(context, authProvider);
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => notificationProvider.refresh(
+            authToken: authProvider.authToken,
+          ),
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: notificationProvider.notifications.length,
+            itemBuilder: (context, index) {
+              final notification = notificationProvider.notifications[index];
+              return _buildNotificationItem(
+                context,
+                notification,
+                notificationProvider,
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    if (widget.embedded) return body;
+
     return Scaffold(
       appBar: CustomAppBar(
         title: '通知',
@@ -56,37 +100,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
         ],
       ),
-      body: Consumer2<NotificationProvider, AuthProvider>(
-        builder: (context, notificationProvider, authProvider, child) {
-          if (notificationProvider.isLoading &&
-              notificationProvider.notifications.isEmpty) {
-            return const Center(child: LoadingWidget());
-          }
-
-          if (notificationProvider.error != null &&
-              notificationProvider.notifications.isEmpty) {
-            return _buildErrorState(context, notificationProvider, authProvider);
-          }
-
-          if (notificationProvider.notifications.isEmpty) {
-            return _buildEmptyState(context, authProvider);
-          }
-
-          return RefreshIndicator(
-            onRefresh: () => notificationProvider.refresh(
-              authToken: authProvider.authToken,
-            ),
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: notificationProvider.notifications.length,
-              itemBuilder: (context, index) {
-                final notification = notificationProvider.notifications[index];
-                return _buildNotificationItem(context, notification, notificationProvider);
-              },
-            ),
-          );
-        },
-      ),
+      body: body,
     );
   }
 

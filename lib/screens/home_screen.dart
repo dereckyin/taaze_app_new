@@ -30,7 +30,8 @@ import '../providers/auth_provider.dart';
 import '../widgets/theme_activity_section.dart';
 import '../widgets/social_feed_section.dart';
 import 'login_screen.dart';
-import 'support_conversations_screen.dart';
+import 'main_screen.dart';
+import 'messages_hub_screen.dart';
 import '../providers/support_provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -142,6 +143,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   // 快速功能區域
                   _buildQuickActionsSection(),
+
+                  // 客服入口（溝通主幹道，置於首頁顯眼位置）
+                  _buildSupportEntryBanner(),
 
                   // 分類導航
                   _buildCategorySection(bookProvider.categories),
@@ -531,9 +535,100 @@ class _HomeScreenState extends State<HomeScreen> {
       await support.refreshUnreadCount(token);
     }
     if (!mounted) return;
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SupportConversationsScreen()),
+    // Prefer bottom「訊息」tab (客服); fall back to pushed hub if MainScreen
+    // is not the current root host (e.g. unexpected navigation stack).
+    if (MainScreen.navKey.currentState != null) {
+      MainScreen.openMessages(tab: 0);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const MessagesHubScreen(initialTab: 0),
+        ),
+      );
+    }
+  }
+
+  Widget _buildSupportEntryBanner() {
+    return Consumer2<AuthProvider, SupportProvider>(
+      builder: (context, auth, support, _) {
+        final unread = support.unreadCount;
+        final primary = Theme.of(context).colorScheme.primary;
+        return Container(
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Material(
+            color: primary.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _openSupport(),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                child: Row(
+                  children: [
+                    Icon(Icons.support_agent, color: primary, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                '聯絡客服',
+                                style: TextStyle(
+                                  color: primary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              if (unread > 0) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 1,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE53935),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Text(
+                                    '$unread',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '訂單、書籍、會員問題',
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: primary.withValues(alpha: 0.7),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

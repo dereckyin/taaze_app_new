@@ -5,7 +5,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../providers/notification_provider.dart';
 import '../models/notification.dart' as model;
 import 'navigation_service.dart';
-import '../screens/notifications_screen.dart';
+import '../screens/messages_hub_screen.dart';
 
 class LocalNotificationService {
   LocalNotificationService._();
@@ -80,7 +80,9 @@ class LocalNotificationService {
     final navigator = NavigationService.navigatorKey.currentState;
     if (navigator != null) {
       navigator.push(
-        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+        MaterialPageRoute(
+          builder: (_) => const MessagesHubScreen(initialTab: 1),
+        ),
       );
     }
   }
