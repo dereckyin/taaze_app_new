@@ -275,6 +275,20 @@ class SupportProvider extends ChangeNotifier {
     }
   }
 
+  /// 登出時清空客服狀態，避免未登入仍看到上一帳號對話。
+  void clearSession() {
+    stopPolling();
+    _conversations = [];
+    _messagesByConv.clear();
+    _unreadCount = 0;
+    _loadingList = false;
+    _loadingMessages = false;
+    _sending = false;
+    _error = null;
+    _activeConvId = null;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     stopPolling();

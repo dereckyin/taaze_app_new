@@ -89,7 +89,7 @@ class OAuthButtons extends StatelessWidget {
 
     // Google 登入按鈕
     if (configuredProviders.contains('google')) {
-      if (buttons.isNotEmpty) buttons.add(const SizedBox(height: 8));
+      if (buttons.isNotEmpty) buttons.add(const SizedBox(height: 16));
       buttons.add(
         _buildOAuthButton(
           context: context,
@@ -107,7 +107,7 @@ class OAuthButtons extends StatelessWidget {
 
     // Facebook 登入按鈕
     if (configuredProviders.contains('facebook')) {
-      if (buttons.isNotEmpty) buttons.add(const SizedBox(height: 8));
+      if (buttons.isNotEmpty) buttons.add(const SizedBox(height: 16));
       buttons.add(
         _buildOAuthButton(
           context: context,
@@ -125,7 +125,7 @@ class OAuthButtons extends StatelessWidget {
 
     // LINE 登入按鈕
     if (configuredProviders.contains('line')) {
-      if (buttons.isNotEmpty) buttons.add(const SizedBox(height: 8));
+      if (buttons.isNotEmpty) buttons.add(const SizedBox(height: 16));
       buttons.add(
         _buildOAuthButton(
           context: context,

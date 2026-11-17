@@ -74,88 +74,39 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 圖左 + 輸入右，縮短垂直佔位
         Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Container(
-              width: 128,
-              height: 48,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade400, width: 1.2),
-                borderRadius: BorderRadius.circular(8),
-                color: Colors.white,
-              ),
-              child: widget.isLoading
-                  ? const Center(
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    )
-                  : _captchaImageBytes != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(7),
-                      child: Image.memory(
-                        _captchaImageBytes!,
-                        fit: BoxFit.cover,
-                        width: 128,
-                        height: 48,
-                        alignment: Alignment.center,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildFallbackCaptcha();
-                        },
-                      ),
-                    )
-                  : _buildFallbackCaptcha(),
-            ),
-            const SizedBox(width: 8),
             Expanded(
-              child: TextFormField(
-                controller: _controller,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 1,
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade400, width: 1.2),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
                 ),
-                decoration: InputDecoration(
-                  hintText: '請輸入 4 碼',
-                  hintStyle: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade500,
-                    letterSpacing: 0,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: border,
-                  enabledBorder: border,
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                      color: Color(0xFFE91E63),
-                      width: 2,
-                    ),
-                  ),
-                  isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
-                  ),
-                ),
-                keyboardType: TextInputType.text,
-                textCapitalization: TextCapitalization.characters,
-                inputFormatters: [LengthLimitingTextInputFormatter(6)],
-                onChanged: widget.onCaptchaChanged,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return '請輸入驗證碼';
-                  }
-                  if (value.length < 4) {
-                    return '驗證碼長度不足';
-                  }
-                  return null;
-                },
+                child: widget.isLoading
+                    ? const Center(
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
+                    : _captchaImageBytes != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(7),
+                        child: Image.memory(
+                          _captchaImageBytes!,
+                          fit: BoxFit.contain,
+                          width: double.infinity,
+                          height: 56,
+                          alignment: Alignment.center,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildFallbackCaptcha();
+                          },
+                        ),
+                      )
+                    : _buildFallbackCaptcha(),
               ),
             ),
             IconButton(
@@ -166,6 +117,52 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
               constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             ),
           ],
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _controller,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w400,
+            letterSpacing: 1,
+          ),
+          decoration: InputDecoration(
+            hintText: '請輸入 4 碼',
+            hintStyle: TextStyle(
+              fontSize: 13,
+              color: Colors.grey.shade500,
+              letterSpacing: 0,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            border: border,
+            enabledBorder: border,
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(
+                color: Color(0xFFE91E63),
+                width: 2,
+              ),
+            ),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+          ),
+          keyboardType: TextInputType.text,
+          textCapitalization: TextCapitalization.characters,
+          inputFormatters: [LengthLimitingTextInputFormatter(6)],
+          onChanged: widget.onCaptchaChanged,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return '請輸入驗證碼';
+            }
+            if (value.length < 4) {
+              return '驗證碼長度不足';
+            }
+            return null;
+          },
         ),
         if (widget.captcha?.message != null) ...[
           const SizedBox(height: 6),

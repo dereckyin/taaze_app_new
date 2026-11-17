@@ -14,9 +14,11 @@ class NotificationProvider with ChangeNotifier {
 
   static const _localInboxKey = 'local_notification_inbox';
 
-  List<AppNotification> get notifications => _notifications;
+  /// 通知匣不顯示客服對話推播（那些只走「客服」分頁）。
+  List<AppNotification> get notifications =>
+      _notifications.where((n) => !_isSupportThreadPush(n)).toList();
   List<AppNotification> get unreadNotifications =>
-      _notifications.where((n) => !n.isRead).toList();
+      notifications.where((n) => !n.isRead).toList();
   int get unreadCount => unreadNotifications.length;
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -43,10 +45,13 @@ class NotificationProvider with ChangeNotifier {
           authToken: _authToken!,
         );
         final localOnly = await _loadLocalOnly();
-        _notifications = _mergeNotifications(remote, localOnly);
+        _notifications = _mergeNotifications(remote, localOnly)
+            .where((n) => !_isSupportThreadPush(n))
+            .toList();
         await _persistLocalInbox();
       } else {
-        _notifications = await _loadLocalOnly();
+        // 未登入不顯示上一帳號本機匣
+        _notifications = [];
       }
       _error = null;
     } catch (e) {
@@ -150,6 +155,8 @@ class NotificationProvider with ChangeNotifier {
   }
 
   Future<void> addNotification(AppNotification notification) async {
+    // 客服回覆只應出現在「客服」分頁，不要塞進通知匣。
+    if (_isSupportThreadPush(notification)) return;
     if (_notifications.any((n) => n.id == notification.id)) return;
     _notifications.insert(0, notification);
     if (_notifications.length > 100) {
@@ -159,8 +166,39 @@ class NotificationProvider with ChangeNotifier {
     await _persistLocalInbox();
   }
 
+  /// 登出時清空記憶體與本機匣，避免未登入仍看到上一帳號訊息。
+  Future<void> clearSession() async {
+    _notifications = [];
+    _authToken = null;
+    _error = null;
+    _isLoading = false;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_localInboxKey);
+  }
+
   void clearError() {
     _error = null;
     notifyListeners();
+  }
+
+  static bool _isSupportThreadPush(AppNotification n) {
+    final data = n.data;
+    if (data != null) {
+      final broadcast = data['broadcast']?.toString().trim().toLowerCase();
+      if (broadcast == '1' ||
+          broadcast == 'true' ||
+          broadcast == 'yes') {
+        return false;
+      }
+      final type = data['type']?.toString();
+      final target = data['target']?.toString();
+      if (type == 'support' || target == 'support') return true;
+      if (data.containsKey('conversation_id') ||
+          data.containsKey('conversationId')) {
+        return true;
+      }
+    }
+    return n.type == NotificationType.support;
   }
 }

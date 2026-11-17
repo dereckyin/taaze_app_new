@@ -9,6 +9,8 @@ import 'watchlist_screen.dart';
 import 'draft_list_screen.dart';
 import 'main_screen.dart';
 import 'messages_hub_screen.dart';
+import '../providers/notification_provider.dart';
+import '../providers/support_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -311,9 +313,13 @@ class ProfileScreen extends StatelessWidget {
             child: const Text('取消'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              context.read<AuthProvider>().logout();
+              await context.read<AuthProvider>().logout();
+              if (!context.mounted) return;
+              await context.read<NotificationProvider>().clearSession();
+              if (!context.mounted) return;
+              context.read<SupportProvider>().clearSession();
             },
             child: const Text('登出'),
           ),

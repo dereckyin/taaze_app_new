@@ -70,13 +70,6 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 8),
-
-              // Logo（簡化版）
-              _buildHeader(),
-
-              const SizedBox(height: 16),
-
               // 安全狀態顯示
               _buildSecurityStatus(),
 
@@ -197,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
               // 登入按鈕
               _buildLoginButton(),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
 
               // OAuth 登入按鈕
               OAuthButtons(
@@ -239,20 +232,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Center(
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.primary,
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: const Icon(Icons.book, size: 30, color: Colors.white),
       ),
     );
   }
