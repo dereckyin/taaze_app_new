@@ -253,7 +253,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final book = _displayBook;
 
     return Scaffold(
-      appBar: CustomAppBar(title: '書籍詳情', showBackButton: true),
+      appBar: CustomAppBar(title: '商品資訊', showBackButton: true),
       body: Column(
         children: [
           if (_isLoadingTaaze)

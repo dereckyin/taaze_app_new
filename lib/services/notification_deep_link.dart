@@ -34,7 +34,7 @@ class NotificationDeepLink {
               builder: (_) => BookDetailScreen(
                 book: Book.minimal(
                   id: prodId,
-                  title: notification?.title ?? '書籍詳情',
+                  title: notification?.title ?? '商品資訊',
                 ),
               ),
             ),

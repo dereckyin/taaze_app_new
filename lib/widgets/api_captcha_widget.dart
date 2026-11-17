@@ -74,64 +74,74 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '驗證碼',
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w400),
-        ),
-        const SizedBox(height: 8),
-        // 驗證碼圖獨立一排
-        Container(
-          width: double.infinity,
-          height: 64,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade400, width: 1.2),
-            borderRadius: BorderRadius.circular(8),
-            color: Colors.white,
-          ),
-          child: widget.isLoading
-              ? const Center(
-                  child: SizedBox(
-                    width: 26,
-                    height: 26,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                )
-              : _captchaImageBytes != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(7),
-                  child: Image.memory(
-                    _captchaImageBytes!,
-                    fit: BoxFit.fitWidth,
-                    width: double.infinity,
-                    alignment: Alignment.center,
-                    errorBuilder: (context, error, stackTrace) {
-                      return _buildFallbackCaptcha();
-                    },
-                  ),
-                )
-              : _buildFallbackCaptcha(),
-        ),
-        const SizedBox(height: 8),
+        // 圖左 + 輸入右，縮短垂直佔位
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            Container(
+              width: 128,
+              height: 48,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade400, width: 1.2),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.white,
+              ),
+              child: widget.isLoading
+                  ? const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : _captchaImageBytes != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: Image.memory(
+                        _captchaImageBytes!,
+                        fit: BoxFit.cover,
+                        width: 128,
+                        height: 48,
+                        alignment: Alignment.center,
+                        errorBuilder: (context, error, stackTrace) {
+                          return _buildFallbackCaptcha();
+                        },
+                      ),
+                    )
+                  : _buildFallbackCaptcha(),
+            ),
+            const SizedBox(width: 8),
             Expanded(
               child: TextFormField(
                 controller: _controller,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w400, letterSpacing: 1),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 1,
+                ),
                 decoration: InputDecoration(
-                  hintText: '請輸入上方 4 碼',
-                  hintStyle: TextStyle(fontSize: 14, color: Colors.grey.shade500, letterSpacing: 0),
+                  hintText: '請輸入 4 碼',
+                  hintStyle: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade500,
+                    letterSpacing: 0,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   border: border,
                   enabledBorder: border,
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Color(0xFFE91E63), width: 2),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFE91E63),
+                      width: 2,
+                    ),
                   ),
-                  prefixIcon: const Icon(Icons.security),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
                 ),
                 keyboardType: TextInputType.text,
                 textCapitalization: TextCapitalization.characters,
@@ -150,15 +160,15 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
             ),
             IconButton(
               onPressed: widget.isLoading ? null : widget.onRefreshCaptcha,
-              icon: const Icon(Icons.refresh, size: 28),
+              icon: const Icon(Icons.refresh, size: 24),
               tooltip: '刷新驗證碼',
-              padding: const EdgeInsets.only(left: 4, top: 8),
-              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
             ),
           ],
         ),
         if (widget.captcha?.message != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             widget.captcha!.message!,
             style: TextStyle(color: Colors.orange[700], fontSize: 12),
@@ -175,16 +185,16 @@ class _ApiCaptchaWidgetState extends State<ApiCaptchaWidget> {
         child: Text(
           widget.captcha!.captchaText!,
           style: const TextStyle(
-            fontSize: 22,
+            fontSize: 18,
             fontWeight: FontWeight.w400,
             color: Color(0xFF1565C0),
-            letterSpacing: 4,
+            letterSpacing: 3,
           ),
         ),
       );
     } else {
       return const Center(
-        child: Icon(Icons.image_not_supported, color: Colors.grey, size: 28),
+        child: Icon(Icons.image_not_supported, color: Colors.grey, size: 22),
       );
     }
   }

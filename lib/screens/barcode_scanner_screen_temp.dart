@@ -206,7 +206,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
                       '• 輸入書籍的 ISBN 條碼進行搜尋\n'
                       '• 支援 13 位 ISBN-13 格式\n'
                       '• 支援 10 位 ISBN-10 格式\n'
-                      '• 找到書籍後會自動跳轉到書籍詳情頁面',
+                      '• 找到書籍後會自動跳轉到商品資訊頁面',
                     ),
                   ],
                 ),

@@ -114,7 +114,7 @@ class _SocialFeedSectionState extends State<SocialFeedSection> {
                       builder: (_) => BookDetailScreen(
                         book: Book.minimal(
                           id: item.prodId,
-                          title: item.prodName ?? '書籍詳情',
+                          title: item.prodName ?? '商品資訊',
                         ),
                       ),
                     ),

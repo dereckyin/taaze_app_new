@@ -136,7 +136,7 @@ class PodcastHubBookTile extends StatelessWidget {
                     IconButton(
                       onPressed: onOpenDetail,
                       icon: const Icon(Icons.chevron_right),
-                      tooltip: '書籍詳情',
+                      tooltip: '商品資訊',
                     ),
                 ],
               ),

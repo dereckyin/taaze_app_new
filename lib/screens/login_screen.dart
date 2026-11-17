@@ -70,22 +70,22 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
 
               // Logo（簡化版）
               _buildHeader(),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
               // 安全狀態顯示
               _buildSecurityStatus(),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
 
               // 登入表單
               _buildLoginForm(),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
               // 驗證碼（始終顯示）
               Consumer<AuthProvider>(
@@ -98,45 +98,45 @@ class _LoginScreenState extends State<LoginScreen> {
                     });
                     // 顯示載入中的驗證碼區域
                     return Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                       decoration: BoxDecoration(
                         color: Colors.orange[50],
                         border: Border.all(color: Colors.orange[200]!),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Column(
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.security,
-                                color: Colors.orange[700],
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '安全驗證',
-                                style: TextStyle(
-                                  color: Colors.orange[700],
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
+                          Icon(
+                            Icons.security,
+                            color: Colors.orange[700],
+                            size: 18,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(width: 8),
                           Text(
-                            '正在載入驗證碼...',
+                            '安全驗證',
+                            style: TextStyle(
+                              color: Colors.orange[700],
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            '載入中…',
                             style: TextStyle(
                               color: Colors.orange[600],
                               fontSize: 12,
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.orange,
+                          const SizedBox(width: 8),
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.orange,
+                              ),
                             ),
                           ),
                         ],
@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   return Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                         decoration: BoxDecoration(
                           color: Colors.orange[50],
                           border: Border.all(color: Colors.orange[200]!),
@@ -161,26 +161,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Icon(
                                   Icons.security,
                                   color: Colors.orange[700],
-                                  size: 20,
+                                  size: 18,
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 6),
                                 Text(
                                   '安全驗證',
                                   style: TextStyle(
                                     color: Colors.orange[700],
                                     fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+                                    fontSize: 13,
                                   ),
                                 ),
                               ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              '為了保護您的帳戶安全，請輸入下方驗證碼完成登入',
-                              style: TextStyle(
-                                color: Colors.orange[600],
-                                fontSize: 12,
-                              ),
                             ),
                             const SizedBox(height: 8),
                             ApiCaptchaWidget(
