@@ -7,6 +7,7 @@ import '../screens/book_detail_screen.dart';
 import '../screens/order_list_screen.dart';
 import '../screens/podcast_hub_screen.dart';
 import '../screens/search_screen.dart';
+import '../screens/notifications_screen.dart';
 import '../screens/support_chat_screen.dart';
 import '../screens/support_conversations_screen.dart';
 import 'navigation_service.dart';
@@ -62,6 +63,13 @@ class NotificationDeepLink {
         );
         break;
       case 'support':
+        // 舊版群發曾誤標 target=support；有 broadcast 標記則改開通知中心。
+        if (_isBroadcast(data)) {
+          navigator.push(
+            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+          );
+          break;
+        }
         final convId = _parseConversationId(data, payload);
         if (convId != null) {
           navigator.push(
@@ -81,9 +89,20 @@ class NotificationDeepLink {
         navigator.popUntil((route) => route.isFirst);
         break;
       case 'notifications':
+        navigator.push(
+          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+        );
+        break;
       default:
         break;
     }
+  }
+
+  static bool _isBroadcast(Map<String, dynamic> data) {
+    final flag = data['broadcast'];
+    if (flag == true || flag == 1) return true;
+    final s = flag?.toString().trim().toLowerCase();
+    return s == '1' || s == 'true' || s == 'yes';
   }
 
   static int? _parseConversationId(
