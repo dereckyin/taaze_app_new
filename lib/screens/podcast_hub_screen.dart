@@ -16,18 +16,32 @@ class PodcastHubScreen extends StatefulWidget {
 }
 
 class _PodcastHubScreenState extends State<PodcastHubScreen> {
+  final ScrollController _scrollController = ScrollController();
   Map<String, int> _progressMs = {};
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _loadProgress();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<BookProvider>();
-      if (provider.podcastBooks.isEmpty) {
-        provider.loadPodcastBooks();
-      }
+      context.read<BookProvider>().loadPodcastBooks();
     });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 320) {
+      context.read<BookProvider>().loadMorePodcastBooks();
+    }
   }
 
   Future<void> _loadProgress() async {
@@ -41,7 +55,8 @@ class _PodcastHubScreenState extends State<PodcastHubScreen> {
       appBar: const CustomAppBar(title: '聽書專區', showBackButton: true),
       body: Consumer<BookProvider>(
         builder: (context, bookProvider, _) {
-          if (bookProvider.isLoading && bookProvider.podcastBooks.isEmpty) {
+          if (bookProvider.isLoadingPodcast &&
+              bookProvider.podcastBooks.isEmpty) {
             return const Center(child: LoadingWidget());
           }
 
@@ -67,16 +82,40 @@ class _PodcastHubScreenState extends State<PodcastHubScreen> {
             );
           }
 
+          final showFooter = bookProvider.isLoadingPodcast ||
+              !bookProvider.podcastHasMore;
+          final itemCount = books.length + (showFooter ? 1 : 0);
+
           return RefreshIndicator(
             onRefresh: () async {
               await bookProvider.loadPodcastBooks();
               await _loadProgress();
             },
             child: ListView.separated(
+              controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: books.length,
+              itemCount: itemCount,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
+                if (index >= books.length) {
+                  if (bookProvider.isLoadingPodcast) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Center(
+                      child: Text(
+                        bookProvider.podcastTotal > 0
+                            ? '已載入全部 ${bookProvider.podcastTotal} 本'
+                            : '沒有更多了',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                      ),
+                    ),
+                  );
+                }
                 final book = books[index];
                 final progressMs =
                     _progressMs[book.id] ?? _progressMs[book.orgProdId];

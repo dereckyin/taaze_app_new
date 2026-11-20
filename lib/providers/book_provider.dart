@@ -22,6 +22,9 @@ class BookProvider with ChangeNotifier {
   List<Book> _usedBooks = [];
   List<Book> _podcastBooks = [];
   bool _isLoadingPodcast = false;
+  int _podcastPage = 1;
+  int _podcastTotal = 0;
+  bool _podcastHasMore = true;
 
   // 分頁相關
   int _currentPage = 1;
@@ -64,6 +67,8 @@ class BookProvider with ChangeNotifier {
   List<Book> get newReleases => _newReleases;
   List<Book> get usedBooks => _usedBooks;
   List<Book> get podcastBooks => _podcastBooks;
+  bool get podcastHasMore => _podcastHasMore;
+  int get podcastTotal => _podcastTotal;
 
   // 分頁相關getter
   int get currentPage => _currentPage;
@@ -562,15 +567,22 @@ class BookProvider with ChangeNotifier {
 
   // 從 JSON 創建 Book 物件（暫時註解，使用假資料模式）
   Book _bookFromJson(Map<String, dynamic> json) {
+    final id = json['id']?.toString() ?? '';
+    final orgProdId = json['orgProdId']?.toString();
+    final coverId = (orgProdId != null && orgProdId.isNotEmpty) ? orgProdId : id;
+    final imageUrl = json['imageUrl']?.toString() ??
+        json['coverImage']?.toString() ??
+        (coverId.isNotEmpty
+            ? 'https://media.taaze.tw/showLargeImage.html?sc=$coverId&height=400&width=300&fill=f'
+            : '');
     return Book(
-      id: json['id']?.toString() ?? '',
+      id: id,
+      orgProdId: orgProdId,
       title: json['title']?.toString() ?? '',
       author: json['author']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       price: (json['price'] ?? 0).toDouble(),
-      imageUrl: json['imageUrl']?.toString() ??
-          json['coverImage']?.toString() ??
-          '',
+      imageUrl: imageUrl,
       category: json['category']?.toString() ?? '',
       rating: (json['rating'] ?? 0).toDouble(),
       reviewCount: json['reviewCount'] ?? json['reviews'] ?? 0,
@@ -905,6 +917,7 @@ class BookProvider with ChangeNotifier {
 
   // 載入Podcast書籍（不佔用全域 isLoading，避免拖垮首頁）
   Future<void> loadPodcastBooks({int page = 1, int pageSize = 20}) async {
+    if (_isLoadingPodcast) return;
     try {
       _isLoadingPodcast = true;
       notifyListeners();
@@ -936,6 +949,9 @@ class BookProvider with ChangeNotifier {
         
         // 解析分頁響應
         final items = decoded['items'] as List<dynamic>;
+        final total = (decoded['total'] is num)
+            ? (decoded['total'] as num).toInt()
+            : int.tryParse('${decoded['total']}') ?? 0;
 
         // 轉換為 Book 物件
         final newBooks = items.map((json) => _bookFromJson(json as Map<String, dynamic>)).toList();
@@ -946,9 +962,12 @@ class BookProvider with ChangeNotifier {
         } else {
           _podcastBooks.addAll(newBooks);
         }
+        _podcastPage = page;
+        _podcastTotal = total;
+        _podcastHasMore = _podcastBooks.length < total && newBooks.isNotEmpty;
 
         DebugHelper.log(
-          'Podcast書籍載入完成，共 ${_podcastBooks.length} 本書籍',
+          'Podcast書籍載入完成，共 ${_podcastBooks.length}/$total 本書籍',
           tag: 'BookProvider',
         );
       } else {
@@ -959,11 +978,18 @@ class BookProvider with ChangeNotifier {
       // 不寫入全域 _error，避免首頁整頁顯示錯誤
       if (page == 1) {
         _podcastBooks = [];
+        _podcastHasMore = false;
+        _podcastTotal = 0;
       }
     } finally {
       _isLoadingPodcast = false;
       notifyListeners();
     }
+  }
+
+  Future<void> loadMorePodcastBooks({int pageSize = 20}) async {
+    if (!_podcastHasMore || _isLoadingPodcast) return;
+    await loadPodcastBooks(page: _podcastPage + 1, pageSize: pageSize);
   }
 
   // 根據endpoint載入對應的假資料，可附帶起迄索引；append可累加資料
