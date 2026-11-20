@@ -12,6 +12,9 @@ class BookProvider with ChangeNotifier {
   List<Book> _featuredBooks = [];
   List<String> _categories = [];
   List<ProductCategory> _productCategories = [];
+  /// Cached category trees keyed by prod_cat_id (11 / 14 / 25).
+  final Map<String, List<ProductCategory>> _categoriesByProdCat = {};
+  bool _isLoadingCategories = false;
   bool _isLoading = false;
   String? _error;
 
@@ -47,16 +50,25 @@ class BookProvider with ChangeNotifier {
   List<Book> get books => _books;
   List<Book> get featuredBooks => _featuredBooks;
   List<String> get categories => _categories;
-  List<ProductCategory> get productCategories => _productCategories;
-  
-  // Get only level 1 categories (top-level categories)
-  List<String> get levelOneCategories {
-    return _productCategories
-        .where((category) => category.level == 1)
-        .map((category) => category.name)
-        .toList();
+  List<ProductCategory> get productCategories =>
+      _categoriesByProdCat['11'] ?? _productCategories;
+  bool get isLoadingCategories => _isLoadingCategories;
+
+  // Get only level 1 categories (top-level categories) for paper books (11)
+  List<String> get levelOneCategories => levelOneCategoryNamesFor('11');
+
+  List<ProductCategory> categoriesFor(String prodCatId) {
+    return _categoriesByProdCat[prodCatId] ?? const [];
   }
-  
+
+  List<ProductCategory> levelOneCategoryTreeFor(String prodCatId) {
+    return categoriesFor(prodCatId).where((c) => c.level == 1).toList();
+  }
+
+  List<String> levelOneCategoryNamesFor(String prodCatId) {
+    return levelOneCategoryTreeFor(prodCatId).map((c) => c.name).toList();
+  }
+
   bool get isLoading => _isLoading;
   bool get isLoadingPodcast => _isLoadingPodcast;
   String? get error => _error;
@@ -644,30 +656,62 @@ class BookProvider with ChangeNotifier {
   }
 
   Future<void> _loadCategories() async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}/book/category/list');
+    await loadCategories(prodCatId: '11');
+  }
+
+  /// Load / cache category tree for a prod_cat_id (11 paper, 14 ebook, 25 emag).
+  Future<void> loadCategories({
+    String prodCatId = '11',
+    bool force = false,
+  }) async {
+    final key = prodCatId.trim().isEmpty ? '11' : prodCatId.trim();
+    if (!force && (_categoriesByProdCat[key]?.isNotEmpty ?? false)) {
+      return;
+    }
+    if (_isLoadingCategories) {
+      // Allow parallel loads for different keys by not early-returning forever;
+      // still skip duplicate in-flight for same key via force/cache above.
+    }
+
+    _isLoadingCategories = true;
+    notifyListeners();
+
+    final uri = Uri.parse('${ApiConfig.baseUrl}/book/category/list').replace(
+      queryParameters: {'prod_cat_id': key},
+    );
     DebugHelper.log('載入分類資料: ${uri.toString()}', tag: 'BookProvider');
     DebugHelper.logApiRequest('GET', uri.toString());
     try {
-      final response = await http.get(uri);
+      final response = await http.get(uri).timeout(const Duration(seconds: 30));
       DebugHelper.logApiResponse(response.statusCode, response.body);
       if (response.statusCode == 200) {
         final decoded = json.decode(response.body);
-        // Handle both array and single object responses
+        List<ProductCategory> tree = [];
         if (decoded is List) {
-          _productCategories = decoded
-              .map((category) => _categoryFromJson(category as Map<String, dynamic>))
+          tree = decoded
+              .map((category) =>
+                  _categoryFromJson(category as Map<String, dynamic>))
               .toList();
         } else if (decoded is Map<String, dynamic>) {
-          _productCategories = [_categoryFromJson(decoded)];
+          tree = [_categoryFromJson(decoded)];
         }
-        // Flatten the hierarchy to populate _categories for backward compatibility
-        _categories = levelOneCategories;
+        _categoriesByProdCat[key] = tree;
+        if (key == '11') {
+          _productCategories = tree;
+          _categories = levelOneCategories;
+        }
         notifyListeners();
       } else {
-        DebugHelper.log('載入分類失敗: HTTP ${response.statusCode}', tag: 'BookProvider');
+        DebugHelper.log(
+          '載入分類失敗: HTTP ${response.statusCode}',
+          tag: 'BookProvider',
+        );
       }
     } catch (e) {
       DebugHelper.log('載入分類異常: ${e.toString()}', tag: 'BookProvider');
+    } finally {
+      _isLoadingCategories = false;
+      notifyListeners();
     }
   }
 

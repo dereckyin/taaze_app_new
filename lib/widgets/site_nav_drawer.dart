@@ -29,6 +29,7 @@ class SiteNavDrawer extends StatefulWidget {
 
 class _SiteNavDrawerState extends State<SiteNavDrawer> {
   bool _booksExpanded = false;
+  bool _ebooksExpanded = false;
 
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
@@ -200,21 +201,51 @@ class _SiteNavDrawerState extends State<SiteNavDrawer> {
                 );
               }),
             ),
-            _link(
-              label: '電子書',
-              onTap: () => _closeAnd(() {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const BookListScreen(
-                      title: '電子書注目新品',
-                      endpoint: ApiConfig.ebookNewArrivalsEndpoint,
-                      startNum: 0,
-                      endNum: 19,
+            _expandableEbooks(
+              primary: primary,
+              onChineseEbook: () {
+                _closeAnd(() {
+                  context.read<BookProvider>().loadCategories(prodCatId: '14');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CategoryBrowseScreen(
+                        prodCatId: '14',
+                        title: '中文電子書',
+                      ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                });
+              },
+              onChineseEmag: () {
+                _closeAnd(() {
+                  context.read<BookProvider>().loadCategories(prodCatId: '25');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const CategoryBrowseScreen(
+                        prodCatId: '25',
+                        title: '中文電子雜誌',
+                      ),
+                    ),
+                  );
+                });
+              },
+              onNewArrivals: () {
+                _closeAnd(() {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const BookListScreen(
+                        title: '電子書注目新品',
+                        endpoint: ApiConfig.ebookNewArrivalsEndpoint,
+                        startNum: 0,
+                        endNum: 19,
+                      ),
+                    ),
+                  );
+                });
+              },
             ),
             _link(
               label: '二手書',
@@ -425,15 +456,9 @@ class _SiteNavDrawerState extends State<SiteNavDrawer> {
             )
           else
             ...categories.map(
-              (name) => InkWell(
+              (name) => _nestedLink(
+                label: name,
                 onTap: () => onCategoryTap(name),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 10, 20, 10),
-                  child: Text(
-                    name,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-                  ),
-                ),
               ),
             ),
           Padding(
@@ -454,6 +479,80 @@ class _SiteNavDrawerState extends State<SiteNavDrawer> {
           ),
         ],
       ],
+    );
+  }
+
+  Widget _expandableEbooks({
+    required Color primary,
+    required VoidCallback onChineseEbook,
+    required VoidCallback onChineseEmag,
+    required VoidCallback onNewArrivals,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() => _ebooksExpanded = !_ebooksExpanded);
+            if (_ebooksExpanded) {
+              final provider = context.read<BookProvider>();
+              provider.loadCategories(prodCatId: '14');
+              provider.loadCategories(prodCatId: '25');
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '電子書',
+                    style: TextStyle(fontSize: 16, color: Colors.black87),
+                  ),
+                ),
+                Icon(
+                  _ebooksExpanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
+                  color: Colors.grey[600],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_ebooksExpanded) ...[
+          _nestedLink(label: '中文電子書', onTap: onChineseEbook),
+          _nestedLink(label: '中文電子雜誌', onTap: onChineseEmag),
+          _nestedLink(label: '電子書注目新品', onTap: onNewArrivals),
+          const SizedBox(height: 4),
+        ],
+      ],
+    );
+  }
+
+  Widget _nestedLink({
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    // 與父層 20 對齊再縮一階；左側多留並關閉裁切，避免 CJK 首字（尤其「中」）缺筆變淡
+    return Material(
+      type: MaterialType.transparency,
+      clipBehavior: Clip.none,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(36, 10, 20, 10),
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF424242),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
