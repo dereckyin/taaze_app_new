@@ -51,6 +51,8 @@ class SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<String>? onChanged;
   final VoidCallback? onSearchPressed;
   final TextEditingController? controller;
+  /// Left hamburger (e.g. open category browse).
+  final VoidCallback? onMenuPressed;
 
   const SearchAppBar({
     super.key,
@@ -58,6 +60,7 @@ class SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onChanged,
     this.onSearchPressed,
     this.controller,
+    this.onMenuPressed,
   });
 
   @override
@@ -66,6 +69,14 @@ class SearchAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Theme.of(context).colorScheme.primary,
       foregroundColor: Colors.white,
       elevation: 0,
+      leading: onMenuPressed != null
+          ? IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              tooltip: '選單',
+              onPressed: onMenuPressed,
+            )
+          : null,
+      titleSpacing: onMenuPressed != null ? 0 : NavigationToolbar.kMiddleSpacing,
       title: Container(
         height: 40,
         decoration: BoxDecoration(

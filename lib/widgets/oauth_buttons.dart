@@ -19,7 +19,7 @@ class OAuthButtons extends StatelessWidget {
         // 分隔線
         _buildDivider(context),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
 
         // OAuth 按鈕
         _buildOAuthButtons(context),
@@ -153,15 +153,23 @@ class OAuthButtons extends StatelessWidget {
     required Color borderColor,
     required VoidCallback? onPressed,
   }) {
+    // 固定高度並限制 padding，避免 Material 最小尺寸溢位蓋住上方「或使用以下方式登入」。
     return SizedBox(
       width: double.infinity,
-      height: 44,
+      height: 52,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor,
           foregroundColor: textColor,
           elevation: 0,
+          shadowColor: Colors.transparent,
+          minimumSize: const Size(double.infinity, 52),
+          maximumSize: const Size(double.infinity, 52),
+          fixedSize: const Size(double.infinity, 52),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.standard,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
             side: BorderSide(color: borderColor, width: 1),
@@ -178,6 +186,7 @@ class OAuthButtons extends StatelessWidget {
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
                 color: textColor,
+                height: 1.2,
               ),
             ),
           ],
@@ -322,13 +331,19 @@ class OAuthButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 44,
+      height: 52,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor,
           foregroundColor: textColor,
           elevation: 0,
+          shadowColor: Colors.transparent,
+          minimumSize: const Size(double.infinity, 52),
+          maximumSize: const Size(double.infinity, 52),
+          fixedSize: const Size(double.infinity, 52),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
             side: BorderSide(color: borderColor, width: 1),
@@ -354,6 +369,7 @@ class OAuthButton extends StatelessWidget {
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                       color: textColor,
+                      height: 1.2,
                     ),
                   ),
                 ],

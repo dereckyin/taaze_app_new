@@ -6,6 +6,7 @@ import '../models/identified_book.dart';
 import '../providers/auth_provider.dart';
 import '../providers/ai_listing_wizard_provider.dart';
 import '../services/search_service.dart';
+import '../services/used_book_market_service.dart';
 
 class BarcodeScannerScreen extends StatefulWidget {
   const BarcodeScannerScreen({super.key});
@@ -30,6 +31,8 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
   final TextEditingController _notesController = TextEditingController();
   String _condition = '良好';
   String? _infoMessage;
+  UsedBookMarketSummary? _marketSummary;
+  bool _marketLoading = false;
 
   @override
   void dispose() {
@@ -53,22 +56,36 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       _error = null;
       _infoMessage = null;
       _isSearching = true;
+      _marketSummary = null;
+      _marketLoading = true;
+      _priceController.clear();
     });
 
     try {
-      final book = await _fetchBookByIsbn(sanitized);
+      final results = await Future.wait([
+        _fetchBookByIsbn(sanitized),
+        UsedBookMarketService.fetchByIsbn(sanitized).catchError(
+          (_) => UsedBookMarketSummary(isbn: sanitized, count: 0),
+        ),
+      ]);
       if (!mounted) return;
+      final book = results[0] as IdentifiedBook;
+      final market = results[1] as UsedBookMarketSummary;
       setState(() {
         _scannedBook = book;
         _condition = book.condition;
-        _priceController.text =
-            book.sellingPrice?.toStringAsFixed(0) ?? '';
+        // 預設賣價不自動填；由行情「帶入」按鈕決定
+        _priceController.clear();
+        _marketSummary = market;
+        _marketLoading = false;
       });
     } catch (e) {
       if (!mounted) return;
       // 搜尋失敗時不顯示錯誤，只是保留掃描狀態，讓使用者繼續掃描
       setState(() {
         _scannedBook = null;
+        _marketSummary = null;
+        _marketLoading = false;
         _infoMessage = '未找到對應書籍，請再試一次或換本書。';
       });
     } finally {
@@ -100,7 +117,7 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       titleMain: book.title,
       condition: '良好',
       isSelected: true,
-      sellingPrice: book.salePrice,
+      sellingPrice: null,
     );
   }
 
@@ -160,6 +177,15 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
       _priceController.clear();
       _notesController.clear();
       _condition = '良好';
+      _marketSummary = null;
+      _marketLoading = false;
+    });
+  }
+
+  void _applyMarketPrice(double? price) {
+    if (price == null) return;
+    setState(() {
+      _priceController.text = price.round().toString();
     });
   }
 
@@ -367,6 +393,8 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
               border: OutlineInputBorder(),
             ),
           ),
+          const SizedBox(height: 8),
+          _buildMarketHint(),
           const SizedBox(height: 12),
           TextField(
             controller: _notesController,
@@ -385,6 +413,48 @@ class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildMarketHint() {
+    if (_marketLoading) {
+      return Text(
+        '查詢同 ISBN 二手行情中…',
+        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+      );
+    }
+    final market = _marketSummary;
+    if (market == null || !market.hasPrices) {
+      return Text(
+        '目前沒有同 ISBN 在售二手',
+        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+      );
+    }
+    final minP = market.minPrice!.round();
+    final midP = market.medianPrice!.round();
+    final maxP = market.maxPrice!.round();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '同 ISBN 在售二手：${market.count} 本｜最低 $minP｜中位 $midP｜最高 $maxP',
+          style: TextStyle(fontSize: 13, color: Colors.grey[800]),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          children: [
+            ActionChip(
+              label: Text('帶入最低 $minP'),
+              onPressed: () => _applyMarketPrice(market.minPrice),
+            ),
+            ActionChip(
+              label: Text('帶入中位 $midP'),
+              onPressed: () => _applyMarketPrice(market.medianPrice),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

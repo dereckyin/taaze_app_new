@@ -74,6 +74,7 @@ class ApiConfig {
   static const String newArrivalsEndpoint = '/book/latest';
   static const String ebookNewArrivalsEndpoint = '/book/e-book/latest';
   static const String usedBooksLatestEndpoint = '/book/second-hand/latest';
+  static const String usedBookMarketEndpoint = '/book/used-market';
   static const String aiTalkToBooksEndpoint = '/ai/talk-to-the-books/chat';
   static const String searchEndpoint = '/search/';
   static const String searchVectorEndpoint = '/search/vector';

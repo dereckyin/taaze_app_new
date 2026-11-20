@@ -19,7 +19,8 @@ import '../widgets/custom_app_bar.dart';
 import '../utils/debug_helper.dart';
 import 'book_detail_screen.dart';
 import 'search_screen.dart';
-import 'category_screen.dart';
+import 'category_browse_screen.dart';
+import '../widgets/site_nav_drawer.dart';
 import 'book_list_screen.dart';
 import 'barcode_scanner_screen.dart';
 import 'bookstore/bookstore_entry_screen.dart';
@@ -42,6 +43,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController _searchController = TextEditingController();
   final PageController _bannerPageController = PageController();
   int _currentBannerIndex = 0;
@@ -109,8 +111,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: const SiteNavDrawer(),
       appBar: SearchAppBar(
         controller: _searchController,
+        onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
         onSearchPressed: () {
           if (_searchController.text.isNotEmpty) {
             Navigator.push(
@@ -846,7 +851,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const CategoryScreen(),
+                      builder: (context) => const CategoryBrowseScreen(),
                     ),
                   );
                 },
@@ -868,7 +873,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CategoryScreen(
+                      builder: (context) => CategoryBrowseScreen(
                         initialCategoryName: category,
                       ),
                     ),

@@ -190,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
               // 登入按鈕
               _buildLoginButton(),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
 
               // OAuth 登入按鈕
               OAuthButtons(

@@ -24,6 +24,11 @@ class MainScreen extends StatefulWidget {
     navKey.currentState?.openMessages(tab: tab);
   }
 
+  /// Switch bottom navigation tab (0 home … 4 profile).
+  static void openTab(int index) {
+    navKey.currentState?.openTab(index);
+  }
+
   @override
   State<MainScreen> createState() => MainScreenState();
 }
@@ -46,6 +51,11 @@ class MainScreenState extends State<MainScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _messagesHubKey.currentState?.selectTab(tab);
     });
+  }
+
+  void openTab(int index) {
+    final i = index.clamp(0, _screens.length - 1);
+    setState(() => _currentIndex = i);
   }
 
   @override
